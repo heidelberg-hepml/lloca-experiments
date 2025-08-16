@@ -1,9 +1,25 @@
 import os, torch
 from omegaconf import OmegaConf, open_dict
+from hydra.core.hydra_config import HydraConfig
 from torch_ema import ExponentialMovingAverage
 
 from experiments.tagging.experiment import TopTaggingExperiment
 from experiments.logger import LOGGER
+
+
+def _extract_cli_overrides(cfg, prefix):
+    if not HydraConfig.initialized():
+        return OmegaConf.create()
+    out = OmegaConf.create()
+    for s in HydraConfig.get().overrides.task:
+        s_ = s.lstrip("+~")  # handle +add / ~delete syntax
+        if not s_.startswith(prefix):
+            continue
+        key = s_.split("=", 1)[0]  # absolute path, e.g. model.foo.bar
+        val = OmegaConf.select(cfg, key)
+        rel = key[len(prefix) :]  # inside subtree
+        OmegaConf.update(out, rel, val, merge=True)
+    return out
 
 
 class TopTaggingFineTuneExperiment(TopTaggingExperiment):
@@ -26,8 +42,10 @@ class TopTaggingFineTuneExperiment(TopTaggingExperiment):
 
         # merge config files
         with open_dict(self.cfg):
-            # overwrite model
-            self.cfg.model = self.warmstart_cfg.model
+            # model: warmstart defaults, overridden only by CLI `model.*`
+            model_cli = _extract_cli_overrides(self.cfg, "model.")
+            self.cfg.model = OmegaConf.merge(self.warmstart_cfg.model, model_cli)
+
             self.cfg.ema = self.warmstart_cfg.ema
 
             # overwrite model-specific cfg.data entries
