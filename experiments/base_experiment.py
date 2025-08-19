@@ -416,6 +416,15 @@ class BaseExperiment:
                 ),
                 eta_min=self.cfg.training.cosanneal_eta_min,
             )
+        elif self.cfg.training.scheduler == "CosineAnnealingWarmRestarts":
+            self.scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
+                self.optimizer,
+                T_0=int(
+                    (self.cfg.training.iterations * self.cfg.training.scheduler_scale)
+                    / 2
+                ),
+                eta_min=self.cfg.training.cosanneal_eta_min,
+            )
         elif self.cfg.training.scheduler == "ReduceLROnPlateau":
             self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
                 self.optimizer,
@@ -679,7 +688,11 @@ class BaseExperiment:
         if self.ema is not None:
             self.ema.update()
 
-        if self.cfg.training.scheduler in ["OneCycleLR", "CosineAnnealingLR"]:
+        if self.cfg.training.scheduler in [
+            "OneCycleLR",
+            "CosineAnnealingLR",
+            "CosineAnnealingWarmRestarts",
+        ]:
             self.scheduler.step()
 
         # collect metrics
@@ -764,9 +777,9 @@ class BaseExperiment:
             {
                 "model": self.model.state_dict(),
                 "optimizer": self.optimizer.state_dict(),
-                "scheduler": self.scheduler.state_dict()
-                if self.scheduler is not None
-                else None,
+                "scheduler": (
+                    self.scheduler.state_dict() if self.scheduler is not None else None
+                ),
                 "ema": self.ema.state_dict() if self.ema is not None else None,
                 "scaler": self.scaler.state_dict(),
             },

@@ -1,5 +1,6 @@
 data:
  add_tagging_features_lframesnet: true
+ boost_jet: false
  beam_reference: lightlike
  two_beams: true
  add_time_reference: true

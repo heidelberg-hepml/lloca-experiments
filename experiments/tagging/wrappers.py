@@ -26,10 +26,12 @@ class TaggerWrapper(nn.Module):
         in_channels: int,
         out_channels: int,
         lframesnet,
+        add_fourmomenta_backbone: bool = False,
     ):
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
+        self.add_fourmomenta_backbone = add_fourmomenta_backbone
         self.lframesnet = lframesnet
         self.trafo_fourmomenta = TensorRepsTransform(TensorReps("1x1n"))
 
@@ -87,6 +89,10 @@ class TaggerWrapper(nn.Module):
         features_local_nospurions = torch.cat(
             [scalars_nospurions, local_tagging_features_nospurions], dim=-1
         )
+        if self.add_fourmomenta_backbone:
+            features_local_nospurions = torch.cat(
+                [features_local_nospurions, fourmomenta_local_nospurions], dim=-1
+            )
 
         # change dtype (see embedding.py fourmomenta_float64 option)
         features_local_nospurions = features_local_nospurions.to(
