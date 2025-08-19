@@ -3,8 +3,10 @@ exp_name: topt_local_debug
 
 data:
  boost_jet: true
+ data_dir: data
+ dataset: full
 
 defaults:
  - tagging
  - training: tag_top_default
- - model: tag_top_transformer
+ - model@: tag_top_transformer
