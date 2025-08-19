@@ -10,3 +10,6 @@ weight_decay: 2
 # LR: Default CosineAnnealingLR
 lr: 3e-5
 scheduler: CosineAnnealingWarmRestarts
+
+defaults:
+ - tag_default
