@@ -208,8 +208,14 @@ class EquiEdgeConv(MessagePassing):
 
             def func(x, batch):
                 ptr = get_ptr_from_batch(batch)
+                return softmax(x, ptr=ptr)
+
+            return func
+        elif nonlinearity == "softmax_safe":
+
+            def func(x, batch):
+                ptr = get_ptr_from_batch(batch)
                 return safe_softmax(x, ptr=ptr)
-                # return softmax(x, ptr=ptr)
 
             return func
         else:

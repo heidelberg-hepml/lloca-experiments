@@ -2,6 +2,7 @@ _target_: experiments.tagging.wrappers.GraphNetWrapper
 in_channels: null
 out_channels: null
 include_edges: false
+add_fourmomenta_backbone: false
 
 net:
  _target_: lloca.nn.graphnet.GraphNet

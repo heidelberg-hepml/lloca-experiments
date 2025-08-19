@@ -3,7 +3,6 @@
 weight_decay: 0
 iterations: 1000000
 validate_every_n_steps: 10000000
-evaluation.batchsize: 2048
 
 defaults:
  - tag_ParT

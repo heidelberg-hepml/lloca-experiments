@@ -1,6 +1,5 @@
 iterations: 1000000
 validate_every_n_steps: 10000000
-evaluation.batchsize: 1024
 
 defaults:
  - tag_default

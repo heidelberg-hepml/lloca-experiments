@@ -151,7 +151,7 @@ class LearnedPolarDecompositionLFrames(LearnedLFrames):
         boost = vecs[..., 0, :]
         rotation_references = [vecs[..., i, :] for i in range(1, vecs.shape[-2])]
         boost = self._deterministic_boost(boost, ptr)
-        boost, reg_gammamax = self._clamp_boost(boost)
+        boost, reg_gammamax, gamma_mean, gamma_max = self._clamp_boost(boost)
 
         trafo, reg_collinear = polar_decomposition(
             boost,
@@ -159,21 +159,28 @@ class LearnedPolarDecompositionLFrames(LearnedLFrames):
             **self.ortho_kwargs,
             return_reg=True,
         )
-        tracker = {"reg_collinear": reg_collinear}
+        tracker = {
+            "reg_collinear": reg_collinear,
+            "gamma_mean": gamma_mean,
+            "gamma_max": gamma_max,
+        }
         if reg_gammamax is not None:
             tracker["reg_gammamax"] = reg_gammamax
         lframes = LFrames(trafo, is_global=self.is_global)
         return (lframes, tracker) if return_tracker else lframes
 
     def _clamp_boost(self, x):
+        mass = lorentz_squarednorm(x).clamp(min=0).sqrt().unsqueeze(-1)
+        beta = x[..., 1:] / x[..., [0]].clamp(min=1e-10)
+        gamma = x[..., [0]] / mass
+        gamma_max = gamma.max().detach().cpu()
+        gamma_mean = gamma.detach().mean().cpu()
+
         if self.gamma_max is None:
-            return x, None
+            return x, None, gamma_mean, gamma_max
 
         else:
             # carefully clamp gamma to keep boosts under control
-            mass = lorentz_squarednorm(x).clamp(min=0).sqrt().unsqueeze(-1)
-            beta = x[..., 1:] / x[..., [0]].clamp(min=1e-10)
-            gamma = x[..., [0]] / mass
             reg_gammamax = (gamma > self.gamma_max).sum().cpu()
             gamma_reg = soft_clamp(
                 gamma, min=1, max=self.gamma_max, hardness=self.gamma_hardness
@@ -186,7 +193,7 @@ class LearnedPolarDecompositionLFrames(LearnedLFrames):
             )
             beta_reg = beta * beta_scaling
             x_reg = mass * torch.cat((gamma_reg, gamma_reg * beta_reg), dim=-1)
-            return x_reg, reg_gammamax
+            return x_reg, reg_gammamax, gamma_mean, gamma_max
 
     def _deterministic_boost(self, boost, ptr):
         if self.deterministic_boost is None:

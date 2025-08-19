@@ -5,6 +5,7 @@ from experiments.hep import get_eta, get_phi, get_pt
 from experiments.tagging.dataset import EPS
 from lloca.utils.utils import get_batch_from_ptr
 from lloca.utils.lorentz import lorentz_squarednorm
+from lloca.utils.polar_decomposition import restframe_boost
 
 # weaver defaults for tagging features standardization (mean, std)
 TAGGING_FEATURES_PREPROCESSING = [
@@ -94,6 +95,12 @@ def embed_tagging_data(fourmomenta, scalars, ptr, cfg_data):
         )
 
     batch = get_batch_from_ptr(ptr)
+
+    if cfg_data.boost_jet:
+        # boost to the jet rest frame to avoid large boosts
+        jet = scatter(fourmomenta, batch, dim=0, reduce="sum").index_select(0, batch)
+        jet_boost = restframe_boost(jet)
+        fourmomenta = torch.einsum("ijk,ik->ij", jet_boost, fourmomenta)
 
     if cfg_data.add_tagging_features_lframesnet:
         jet = scatter(fourmomenta, batch, dim=0, reduce="sum").index_select(0, batch)
@@ -200,6 +207,16 @@ def get_spurion(
             beam2 = beam.clone()
             beam2[..., 3] = -1  # flip pz
             beam = torch.cat((beam, beam2), dim=0)
+    elif beam_reference == "all":
+        beam = torch.tensor(
+            [
+                [1, 0, 0, 1],
+                [1, 0, 1, 0],
+                [1, 1, 0, 0],
+            ],
+            device=device,
+            dtype=dtype,
+        )
 
     elif beam_reference is None:
         beam = torch.empty(0, 4, device=device, dtype=dtype)

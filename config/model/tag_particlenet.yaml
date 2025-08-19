@@ -1,6 +1,7 @@
 _target_: experiments.tagging.wrappers.ParticleNetWrapper
 in_channels: null
 out_channels: null
+add_fourmomenta_backbone: false
 
 net:
  _target_: lloca.nn.particlenet.ParticleNet

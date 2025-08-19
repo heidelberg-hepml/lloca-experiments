@@ -268,4 +268,6 @@ class AmplitudeExperiment(BaseExperiment):
             "reg_coplanar": [],
             "reg_lightlike": [],
             "reg_gammamax": [],
+            "gamma_mean": [],
+            "gamma_max": [],
         }

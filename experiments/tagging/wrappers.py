@@ -26,10 +26,12 @@ class TaggerWrapper(nn.Module):
         in_channels: int,
         out_channels: int,
         lframesnet,
+        add_fourmomenta_backbone: bool = False,
     ):
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
+        self.add_fourmomenta_backbone = add_fourmomenta_backbone
         self.lframesnet = lframesnet
         self.trafo_fourmomenta = TensorRepsTransform(TensorReps("1x1n"))
 
@@ -87,6 +89,10 @@ class TaggerWrapper(nn.Module):
         features_local_nospurions = torch.cat(
             [scalars_nospurions, local_tagging_features_nospurions], dim=-1
         )
+        if self.add_fourmomenta_backbone:
+            features_local_nospurions = torch.cat(
+                [features_local_nospurions, fourmomenta_local_nospurions], dim=-1
+            )
 
         # change dtype (see embedding.py fourmomenta_float64 option)
         features_local_nospurions = features_local_nospurions.to(
@@ -590,6 +596,33 @@ class ParTWrapper(TaggerWrapper):
         score = self.net(
             x=features_local,
             lframes=lframes,
+            v=fourmomenta_local,
+            mask=mask,
+        )
+        return score, tracker, lframes
+
+
+class MIParTWrapper(ParTWrapper):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        assert isinstance(self.lframesnet, IdentityLFrames)
+
+    def forward(self, embedding):
+        (features_local, fourmomenta_local, lframes, _, batch, tracker,) = super(
+            ParTWrapper, self
+        ).forward(embedding)
+        fourmomenta_local = fourmomenta_local.to(features_local.dtype)
+        fourmomenta_local = fourmomenta_local[..., [1, 2, 3, 0]]  # need (px, py, pz, E)
+
+        features_local, mask = to_dense_batch(features_local, batch)
+        fourmomenta_local, _ = to_dense_batch(fourmomenta_local, batch)
+        features_local = features_local.transpose(1, 2)
+        fourmomenta_local = fourmomenta_local.transpose(1, 2)
+        mask = mask.unsqueeze(1).float()
+
+        # network
+        score = self.net(
+            x=features_local,
             v=fourmomenta_local,
             mask=mask,
         )

@@ -2,8 +2,9 @@ exp_type: toptagging
 exp_name: topt_local_debug
 
 data:
- data_dir : data
- dataset: full
+ boost_jet: true
 
 defaults:
  - tagging
+ - training: tag_top_default
+ - model: tag_top_transformer

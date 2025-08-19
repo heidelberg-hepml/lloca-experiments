@@ -2,6 +2,7 @@ _target_: experiments.tagging.wrappers.ParTWrapper
 in_channels: null
 out_channels: null
 use_amp: false
+add_fourmomenta_backbone: false
 
 net:
  _target_: lloca.nn.particletransformer.ParticleTransformer

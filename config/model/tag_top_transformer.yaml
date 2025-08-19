@@ -9,12 +9,13 @@ net:
  _partial_: true
 
  in_channels: null
- attn_reps: "8x0n+2x1n" # reps can be varied, but number of channels should stay fixed
+ attn_reps: "12x0n+1x1n" # reps can be varied, but number of channels should stay fixed
  out_channels: null
 
- num_blocks: 10
+ num_blocks: 12
  num_heads: 8
- mlp_factor: 4
+ mlp_factor: 2
+ dropout_prob: null
 
 defaults:
  - lframesnet: identity

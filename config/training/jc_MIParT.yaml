@@ -1,0 +1,8 @@
+# hyperparameters from https://arxiv.org/pdf/2407.08682 section III
+# note that this is much more expensive than the original ParT pretraining
+iterations: 13020833 # 50 epochs
+batchsize: 384
+lr: 0.0008
+
+defaults:
+ - jc_ParT

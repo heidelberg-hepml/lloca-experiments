@@ -43,6 +43,8 @@ class TaggingExperiment(BaseExperiment):
         else:
             # LLoCa models
             self.cfg.model.in_channels = 7 + self.extra_scalars
+            if self.cfg.model.add_fourmomenta_backbone:
+                self.cfg.model.in_channels += 4
 
             if modelname == "GraphNet":
                 self.cfg.model.net.num_edge_attr = (
@@ -103,7 +105,10 @@ class TaggingExperiment(BaseExperiment):
         )
 
     def _init_optimizer(self, param_groups=None):
-        if self.cfg.model.net._target_.rsplit(".", 1)[-1] == "ParticleTransformer":
+        if self.cfg.model.net._target_.rsplit(".", 1)[-1] in [
+            "ParticleTransformer",
+            "MIParticleTransformer",
+        ]:
             # special treatment for ParT, see
             # https://github.com/hqucms/weaver-core/blob/dev/custom_train_eval/weaver/train.py#L464
             # have to adapt this for finetuning!!!
@@ -344,6 +349,8 @@ class TaggingExperiment(BaseExperiment):
             "reg_coplanar": [],
             "reg_lightlike": [],
             "reg_gammamax": [],
+            "gamma_mean": [],
+            "gamma_max": [],
         }
 
 

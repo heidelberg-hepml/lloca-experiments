@@ -1,0 +1,13 @@
+_target_: experiments.tagging.wrappers.MIParTWrapper
+in_channels: null
+out_channels: null
+use_amp: false
+
+net:
+ _target_: experiments.baselines.mipart.MIParticleTransformer
+ _partial_: true
+ input_dim: null
+ num_classes: null
+
+defaults:
+ - lframesnet: identity

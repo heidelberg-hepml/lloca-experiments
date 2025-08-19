@@ -68,7 +68,7 @@ def plot_mixer(cfg, plot_path, title, plot_dict):
                 labels=["collinear", "coplanar", "lightlike"],
             )
 
-            for key in ["reg_gammamax"]:
+            for key in ["reg_gammamax", "gamma_mean", "gamma_max"]:
                 plot_metric(
                     out,
                     [
