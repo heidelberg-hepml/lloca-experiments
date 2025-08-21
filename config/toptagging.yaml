@@ -8,5 +8,5 @@ data:
 
 defaults:
  - tagging
- - training: tag_top_default
+ - training@: tag_top_default
  - model@: tag_top_transformer
