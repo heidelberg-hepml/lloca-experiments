@@ -339,15 +339,15 @@ class Transformer(nn.Module):
     ) -> None:
         super().__init__()
         attn_reps = TensorReps(attn_reps)
-        hidden_channels = attn_reps.dim * num_heads
+        self.hidden_channels = attn_reps.dim * num_heads
         self.checkpoint_blocks = checkpoint_blocks
         self.attention = LLoCaAttention(attn_reps, num_heads)
 
-        self.linear_in = nn.Linear(in_channels, hidden_channels)
+        self.linear_in = nn.Linear(in_channels, self.hidden_channels)
         self.blocks = nn.ModuleList(
             [
                 BaselineTransformerBlock(
-                    hidden_channels,
+                    self.hidden_channels,
                     attention=self.attention,
                     num_heads=num_heads,
                     increase_hidden_channels=increase_hidden_channels,
@@ -358,7 +358,7 @@ class Transformer(nn.Module):
                 for _ in range(num_blocks)
             ]
         )
-        self.linear_out = nn.Linear(hidden_channels, out_channels)
+        self.linear_out = nn.Linear(self.hidden_channels, out_channels)
 
     def forward(
         self, inputs: torch.Tensor, lframes, attention_mask=None, is_causal=False
