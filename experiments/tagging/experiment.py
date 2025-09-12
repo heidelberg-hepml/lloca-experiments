@@ -38,7 +38,13 @@ class TaggingExperiment(BaseExperiment):
         elif modelname == "CGENN":
             # CGENN cant handle zero scalar inputs -> give 1 input with zeros
             self.cfg.model.net.in_features_h = 1 + self.extra_scalars
-        else:
+        elif modelname in [
+            "Transformer",
+            "ParticleTransformer",
+            "GraphNet",
+            "ParticleNet",
+            "MIParticleTransformer",
+        ]:
             # LLoCa models
             self.cfg.model.in_channels = 7 + self.extra_scalars
             if self.cfg.model.add_fourmomenta_backbone:
@@ -52,6 +58,8 @@ class TaggingExperiment(BaseExperiment):
                 self.cfg.model.net.hidden_reps_list[
                     0
                 ] = f"{self.cfg.model.in_channels}x0n"
+        else:
+            raise NotImplementedError(f"Model {modelname} not implemented")
 
         # decide which entries to use for the lframesnet
         if "equivectors" in self.cfg.model.lframesnet:
