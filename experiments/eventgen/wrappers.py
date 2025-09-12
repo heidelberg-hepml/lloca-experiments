@@ -124,6 +124,7 @@ class CFMWrapper(EventCFM):
 
 
 class MLPCFM(CFMWrapper):
+    # Not properly tested
     def __init__(self, net, **kwargs):
         super().__init__(**kwargs)
         self.net = net
@@ -172,6 +173,7 @@ class TransformerCFM(CFMWrapper):
 
 
 class GraphNetCFM(CFMWrapper):
+    # Not properly tested
     def __init__(self, net, include_edges, **kwargs):
         super().__init__(**kwargs)
         self.net = net
