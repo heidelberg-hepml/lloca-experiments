@@ -109,7 +109,6 @@ class TaggingExperiment(BaseExperiment):
         ]:
             # special treatment for ParT, see
             # https://github.com/hqucms/weaver-core/blob/dev/custom_train_eval/weaver/train.py#L464
-            # have to adapt this for finetuning!!!
             decay, no_decay = {}, {}
             for name, param in self.model.net.named_parameters():
                 if not param.requires_grad:

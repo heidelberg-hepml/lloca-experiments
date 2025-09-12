@@ -916,12 +916,12 @@ class ParticleTransformer(nn.Module):
         self.for_segmentation = for_segmentation
         self.use_amp = use_amp
 
-        embed_dim = embed_dims[-1] if len(embed_dims) > 0 else input_dim
+        self.embed_dim = embed_dims[-1] if len(embed_dims) > 0 else input_dim
         attn_reps = TensorReps(attn_reps)
-        assert attn_reps.dim * num_heads == embed_dim
+        assert attn_reps.dim * num_heads == self.embed_dim
         self.attention = LLoCaAttention(attn_reps, num_heads)
         default_cfg = dict(
-            embed_dim=embed_dim,
+            embed_dim=self.embed_dim,
             num_heads=num_heads,
             ffn_ratio=4,
             dropout=0.1,
@@ -986,11 +986,11 @@ class ParticleTransformer(nn.Module):
             if num_cls_layers > 0
             else None
         )
-        self.norm = nn.LayerNorm(embed_dim)
+        self.norm = nn.LayerNorm(self.embed_dim)
 
         if fc_params is not None:
             fcs = []
-            in_dim = embed_dim
+            in_dim = self.embed_dim
             for param in fc_params:
                 try:
                     out_dim, drop_rate, act = param
@@ -1017,7 +1017,7 @@ class ParticleTransformer(nn.Module):
         # cls tokens
         if not self.for_segmentation and num_cls_layers > 0:
             self.cls_token = nn.Parameter(
-                torch.zeros(1, 1, embed_dim), requires_grad=True
+                torch.zeros(1, 1, self.embed_dim), requires_grad=True
             )
             nn.init.trunc_normal_(self.cls_token, std=0.02)
         else:
