@@ -207,6 +207,16 @@ def get_spurion(
             beam2 = beam.clone()
             beam2[..., 3] = -1  # flip pz
             beam = torch.cat((beam, beam2), dim=0)
+    elif beam_reference == "all":
+        beam = torch.tensor(
+            [
+                [1, 0, 0, 1],
+                [1, 0, 1, 0],
+                [1, 1, 0, 0],
+            ],
+            device=device,
+            dtype=dtype,
+        )
 
     elif beam_reference is None:
         beam = torch.empty(0, 4, device=device, dtype=dtype)

@@ -1,0 +1,21 @@
+_target_: experiments.tagging.wrappers.TransformerWrapper
+in_channels: null
+out_channels: null
+use_amp: false
+add_fourmomenta_backbone: false
+
+net:
+ _target_: lloca.nn.transformer.Transformer
+ _partial_: true
+
+ in_channels: null
+ attn_reps: "12x0n+1x1n" # reps can be varied, but number of channels should stay fixed
+ out_channels: null
+
+ num_blocks: 12
+ num_heads: 8
+ mlp_factor: 2
+ dropout_prob: null
+
+defaults:
+ - lframesnet: identity

@@ -142,9 +142,6 @@ class LLoCaAttention(torch.nn.Module):
 
         # transform out back into local frame
         out_local = self.transform(out_global, self.lframes)
-        out_local = torch.nn.functional.layer_norm(
-            out_local, normalized_shape=out_local.shape[-1:]
-        )
         return out_local
 
 
