@@ -33,7 +33,7 @@ def undo_preprocess_amplitude(prepd_amplitude, mean, std):
     assert mean is not None and std is not None
     log_amplitude = prepd_amplitude * std + mean
     amplitude = log_amplitude.clamp(max=10).exp()
-    return amplitude
+    return amplitude, log_amplitude
 
 
 def load_file(

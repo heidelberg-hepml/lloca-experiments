@@ -187,12 +187,16 @@ class AmplitudeExperiment(BaseExperiment):
         LOGGER.info(f"MSE on {title} dataset: {mse_prepd:.4e}")
 
         # undo preprocessing
-        amp_truth = undo_preprocess_amplitude(
+        amp_truth, log_amp_truth = undo_preprocess_amplitude(
             amp_truth_prepd, self.amp_mean, self.amp_std
         )
-        amp_model = undo_preprocess_amplitude(
+        amp_model, log_amp_model = undo_preprocess_amplitude(
             amp_model_prepd, self.amp_mean, self.amp_std
         )
+
+        # MSE over log amplitudes
+        mse_log = torch.mean((log_amp_model - log_amp_truth) ** 2)
+        LOGGER.info(f"MSE of log-amplitudes on {title} dataset: {mse_log:.4e}")
 
         # MSE over raw amplitudes
         mse_raw = torch.mean((amp_model - amp_truth) ** 2)
@@ -200,6 +204,7 @@ class AmplitudeExperiment(BaseExperiment):
         if self.cfg.use_mlflow:
             log_dict = {
                 f"eval.{title}.mse_prepd": mse_prepd,
+                f"eval.{title}.mse_log": mse_log,
                 f"eval.{title}.mse_raw": mse_raw,
             }
             for key, value in log_dict.items():
@@ -210,6 +215,11 @@ class AmplitudeExperiment(BaseExperiment):
                 "truth": amp_truth.numpy(),
                 "prediction": amp_model.numpy(),
                 "mse": mse_raw,
+            },
+            "log": {
+                "truth": log_amp_truth.numpy(),
+                "prediction": log_amp_model.numpy(),
+                "mse": mse_log,
             },
             "prepd": {
                 "truth": amp_truth_prepd.numpy(),
