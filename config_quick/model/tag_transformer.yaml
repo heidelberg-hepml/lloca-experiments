@@ -16,4 +16,4 @@ net:
  num_heads: 2
  
 defaults:
- - lframesnet: identity
+ - framesnet: identity

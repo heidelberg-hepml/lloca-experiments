@@ -1,6 +1,6 @@
 import torch
 
-from ..lframes.lframes import LFrames
+from ..frames.frames import Frames
 from .tensorreps import TensorReps
 
 
@@ -59,14 +59,14 @@ class TensorRepsTransform(torch.nn.Module):
             # super efficient shortcut if only scalar and vector reps are present
             self.transform = self._transform_only_scalars_and_vectors
 
-    def forward(self, tensor: torch.Tensor, lframes: LFrames):
+    def forward(self, tensor: torch.Tensor, frames: Frames):
         """Apply a transformation to a tensor of a given representation.
 
         Parameters
         ----------
         tensor: torch.Tensor
             The tensor to transform, shape (..., self.reps.dim).
-        lframes: LFrames
+        frames: Frames
             The local frames to apply the transformation with, shape (..., 4, 4).
 
         Returns
@@ -76,29 +76,29 @@ class TensorRepsTransform(torch.nn.Module):
         """
         assert self.reps.dim == tensor.shape[-1]
 
-        if lframes.is_identity or self.reps.mul_without_scalars == 0:
+        if frames.is_identity or self.reps.mul_without_scalars == 0:
             return tensor
 
         in_shape = tensor.shape
-        if len(lframes.shape) > 3:
-            lframes = lframes.reshape(-1, 4, 4)
+        if len(frames.shape) > 3:
+            frames = frames.reshape(-1, 4, 4)
         tensor = tensor.reshape(-1, tensor.shape[-1])
-        assert tensor.shape[0] == lframes.shape[0]
+        assert tensor.shape[0] == frames.shape[0]
 
-        tensor_transformed = self.transform(tensor, lframes)
-        tensor_transformed = self.transform_parity(tensor_transformed, lframes)
+        tensor_transformed = self.transform(tensor, frames)
+        tensor_transformed = self.transform_parity(tensor_transformed, frames)
 
         tensor_transformed = tensor_transformed.reshape(*in_shape)
         return tensor_transformed
 
-    def _transform_naive(self, tensor, lframes):
+    def _transform_naive(self, tensor, frames):
         """Naive transform: Apply n transformations to a tensor of n'th order.
 
         Parameters
         ----------
         tensor: torch.Tensor
             The tensor to transform, shape (N, self.reps.dim).
-        lframes: LFrames
+        frames: Frames
             The local frames to apply the transformation with, shape (N, 4, 4).
 
         Returns
@@ -116,16 +116,16 @@ class TensorRepsTransform(torch.nn.Module):
 
             einsum_string = get_einsum_string(rep.order)
             x_transformed = torch.einsum(
-                einsum_string, *([lframes.matrices.to(x.dtype)] * rep.order), x
+                einsum_string, *([frames.matrices.to(x.dtype)] * rep.order), x
             )
             output[:, idx_start:idx_end] = x_transformed.reshape(-1, mul_rep.dim)
 
         return output
 
-    def _transform_efficient(self, tensor, lframes):
+    def _transform_efficient(self, tensor, frames):
         """Efficient transform:
         Starting with the highest-order tensor contribution,
-        add the next contribution, apply lframes transformation
+        add the next contribution, apply frames transformation
         and flatten first dimension before continueing with next order.
 
         This is more efficient, because we use the
@@ -135,7 +135,7 @@ class TensorRepsTransform(torch.nn.Module):
         ----------
         tensor: torch.Tensor
             The tensor to transform, shape (N, self.reps.dim).
-        lframes: LFrames
+        frames: Frames
             The local frames to apply the transformation with, shape (N, 4, 4).
 
         Returns
@@ -160,13 +160,13 @@ class TensorRepsTransform(torch.nn.Module):
             if order > 0:
                 # apply transformation, then flatten because transformation is done
                 output = torch.einsum(
-                    "ijk,ilk...->ilj...", lframes.matrices.to(output.dtype), output
+                    "ijk,ilk...->ilj...", frames.matrices.to(output.dtype), output
                 )
                 output = output.flatten(start_dim=1, end_dim=2)
 
         return output
 
-    def _transform_only_scalars_and_vectors(self, tensor, lframes):
+    def _transform_only_scalars_and_vectors(self, tensor, frames):
         """Super efficient transform that assumes that only scalars and vectors are present.
         Follows the same recipe as _transform_efficient, but avoids small overheads from
         torch.cat and torch.reshape.
@@ -175,7 +175,7 @@ class TensorRepsTransform(torch.nn.Module):
         ----------
         tensor: torch.Tensor
             The tensor to transform, shape (N, self.reps.dim).
-        lframes: LFrames
+        frames: Frames
             The local frames to apply the transformation with, shape (N, 4, 4).
 
         Returns
@@ -189,7 +189,7 @@ class TensorRepsTransform(torch.nn.Module):
         vectors = vectors.reshape(tensor.shape[0], -1, 4)
         vectors_transformed = torch.einsum(
             "ijk,ilk->ilj",
-            lframes.matrices.to(vectors.dtype),
+            frames.matrices.to(vectors.dtype),
             vectors,
         )
         output[:, vector_idx_start:vector_idx_end] = vectors_transformed.reshape(
@@ -197,14 +197,14 @@ class TensorRepsTransform(torch.nn.Module):
         )
         return output
 
-    def transform_parity(self, tensor, lframes):
+    def transform_parity(self, tensor, frames):
         """Parity transform: Multiply parity-odd states by sign(det Lambda).
 
         Parameters
         ----------
         tensor: torch.Tensor
             The tensor to transform, shape (N, self.reps.dim).
-        lframes: LFrames
+        frames: Frames
             The local frames to apply the transformation with, shape (N, 4, 4).
 
         Returns
@@ -216,7 +216,7 @@ class TensorRepsTransform(torch.nn.Module):
             return tensor
         else:
             return torch.where(
-                self.parity_odd, lframes.det.sign().unsqueeze(-1) * tensor, tensor
+                self.parity_odd, frames.det.sign().unsqueeze(-1) * tensor, tensor
             )
 
 
@@ -240,7 +240,7 @@ def get_einsum_string(order):
     start = ord("A")
     batch_index = ord("a")
 
-    # list of lframes
+    # list of frames
     for i in range(order):
         einsum += chr(batch_index) + chr(start + 2 * i) + chr(start + 2 * i + 1) + ","
 

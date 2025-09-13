@@ -2,7 +2,7 @@ from typing import Any, Dict
 import torch
 from torch_geometric.nn import MessagePassing
 
-from ..lframes.lframes import ChangeOfLFrames, LFrames, IndexSelectLFrames
+from ..frames.frames import ChangeOfFrames, Frames, IndexSelectFrames
 from ..reps.tensorreps_transform import TensorRepsTransform
 
 
@@ -39,13 +39,13 @@ class LLoCaMessagePassing(MessagePassing):
 
     def pre_propagate_hook(self, module: Any, inputs: tuple) -> tuple:
         """A hook method called before propagating messages in the message passing algorithm. We
-        save the lframes in the class variable and remove it from the inputs dictionary.
+        save the frames in the class variable and remove it from the inputs dictionary.
         """
         assert (
-            inputs[-1].get("lframes") is not None
-        ), "lframes are not in the propagate inputs"
+            inputs[-1].get("frames") is not None
+        ), "frames are not in the propagate inputs"
 
-        self._lframes = inputs[-1]["lframes"]
+        self._frames = inputs[-1]["frames"]
         self._edge_index = inputs[0]
 
         return inputs
@@ -55,19 +55,19 @@ class LLoCaMessagePassing(MessagePassing):
         algorithm. We transform the features according to the representations in the params_dict.
         """
 
-        # calculate lframes_i, lframes_j and the U matrix
-        if isinstance(self._lframes, tuple):
-            lframes_i = IndexSelectLFrames(self._lframes[1], self._edge_index[1])
-            lframes_j = IndexSelectLFrames(self._lframes[0], self._edge_index[0])
-        elif isinstance(self._lframes, LFrames):
-            lframes_i = IndexSelectLFrames(self._lframes, self._edge_index[1])
-            lframes_j = IndexSelectLFrames(self._lframes, self._edge_index[0])
+        # calculate frames_i, frames_j and the U matrix
+        if isinstance(self._frames, tuple):
+            frames_i = IndexSelectFrames(self._frames[1], self._edge_index[1])
+            frames_j = IndexSelectFrames(self._frames[0], self._edge_index[0])
+        elif isinstance(self._frames, Frames):
+            frames_i = IndexSelectFrames(self._frames, self._edge_index[1])
+            frames_j = IndexSelectFrames(self._frames, self._edge_index[0])
         else:
             raise ValueError(
-                f"lframes should be either a tuple or an LFrames object but is {type(self._lframes)}"
+                f"frames should be either a tuple or an Frames object but is {type(self._frames)}"
             )
 
-        U = ChangeOfLFrames(lframes_start=lframes_j, lframes_end=lframes_i)
+        U = ChangeOfFrames(frames_start=frames_j, frames_end=frames_i)
 
         # now go through the params_dict and get the representations and transform the features in the right way
         for param, param_info in self.params_dict.items():
@@ -80,15 +80,15 @@ class LLoCaMessagePassing(MessagePassing):
             elif param_info["type"] == "global":
                 if inputs[-1].get(param) is not None:
                     inputs[-1][param] = self.transform_dict[param](
-                        inputs[-1][param], lframes_i
+                        inputs[-1][param], frames_i
                     )
                 if inputs[-1].get(param + "_j") is not None:
                     inputs[-1][param + "_j"] = self.transform_dict[param](
-                        inputs[-1][param + "_j"], lframes_i
+                        inputs[-1][param + "_j"], frames_i
                     )
                 if inputs[-1].get(param + "_i") is not None:
                     inputs[-1][param + "_i"] = self.transform_dict[param](
-                        inputs[-1][param + "_i"], lframes_i
+                        inputs[-1][param + "_i"], frames_i
                     )
 
         return inputs

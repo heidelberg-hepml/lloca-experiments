@@ -11,4 +11,4 @@ net:
  num_classes: null
 
 defaults:
- - lframesnet: identity
+ - framesnet: identity

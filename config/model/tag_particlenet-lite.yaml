@@ -13,4 +13,4 @@ net:
  hidden_reps_list: ["7x0n", "16x0n+4x1n"]
 
 defaults:
- - lframesnet: identity
+ - framesnet: identity

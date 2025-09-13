@@ -50,8 +50,8 @@ class TopTaggingFineTuneExperiment(TopTaggingExperiment):
 
             # overwrite model-specific cfg.data entries
             # NOTE: might have to extend this if adding more models
-            self.cfg.data.add_tagging_features_lframesnet = (
-                self.warmstart_cfg.data.add_tagging_features_lframesnet
+            self.cfg.data.add_tagging_features_framesnet = (
+                self.warmstart_cfg.data.add_tagging_features_framesnet
             )
             self.cfg.data.beam_reference = self.warmstart_cfg.data.beam_reference
             self.cfg.data.two_beams = self.warmstart_cfg.data.two_beams
@@ -122,7 +122,7 @@ class TopTaggingFineTuneExperiment(TopTaggingExperiment):
             self.warmstart_cfg.model._target_
             == "experiments.tagging.wrappers.TransformerWrapper"
         ):
-            params_backbone_lfnet = list(self.model.lframesnet.parameters())
+            params_backbone_lfnet = list(self.model.framesnet.parameters())
             params_backbone_main = list(self.model.net.linear_in.parameters()) + list(
                 self.model.net.blocks.parameters()
             )
@@ -133,8 +133,8 @@ class TopTaggingFineTuneExperiment(TopTaggingExperiment):
                 {
                     "params": params_backbone_lfnet,
                     "lr": self.cfg.finetune.lr_backbone
-                    * self.cfg.training.lr_factor_lframesnet,
-                    "weight_decay": self.cfg.training.weight_decay_lframesnet,
+                    * self.cfg.training.lr_factor_framesnet,
+                    "weight_decay": self.cfg.training.weight_decay_framesnet,
                 },
                 {
                     "params": params_backbone_main,
@@ -190,10 +190,10 @@ class TopTaggingFineTuneExperiment(TopTaggingExperiment):
                     "lr": self.cfg.finetune.lr_backbone,
                 },
                 {
-                    "params": self.model.lframesnet.parameters(),
-                    "weight_decay": self.cfg.training.weight_decay_lframesnet,
+                    "params": self.model.framesnet.parameters(),
+                    "weight_decay": self.cfg.training.weight_decay_framesnet,
                     "lr": self.cfg.finetune.lr_backbone
-                    * self.cfg.training.lr_factor_lframesnet,
+                    * self.cfg.training.lr_factor_framesnet,
                 },
                 {
                     "params": head_nodecay_1x,

@@ -14,4 +14,4 @@ net:
  use_fusion: false
 
 defaults:
- - lframesnet: identity
+ - framesnet: identity

@@ -361,7 +361,7 @@ class Transformer(nn.Module):
         self.linear_out = nn.Linear(self.hidden_channels, out_channels)
 
     def forward(
-        self, inputs: torch.Tensor, lframes, attention_mask=None, is_causal=False
+        self, inputs: torch.Tensor, frames, attention_mask=None, is_causal=False
     ) -> torch.Tensor:
         """Forward pass.
 
@@ -369,7 +369,7 @@ class Transformer(nn.Module):
         ----------
         inputs : Tensor
             Input data with shape (..., num_items, in_channels)
-        lframes : LFrames
+        frames : Frames
             Local frames used for invariant particle attention
         attention_mask : None or Tensor or xformers.ops.AttentionBias
             Optional attention mask
@@ -380,7 +380,7 @@ class Transformer(nn.Module):
         outputs : Tensor
             Outputs with shape (..., num_items, out_channels)
         """
-        self.attention.prepare_lframes(lframes)
+        self.attention.prepare_frames(frames)
 
         h = self.linear_in(inputs)
         for block in self.blocks:

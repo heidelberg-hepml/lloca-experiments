@@ -17,4 +17,4 @@ net:
  mlp_factor: 4
 
 defaults:
- - lframesnet: identity
+ - framesnet: identity

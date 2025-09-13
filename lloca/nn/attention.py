@@ -7,9 +7,9 @@ from torch.nn.functional import scaled_dot_product_attention as torch_sdpa
 from xformers.ops import AttentionBias, memory_efficient_attention
 from xformers.ops.fmha import BlockDiagonalMask
 
-from ..lframes.lframes import (
-    LFrames,
-    InverseLFrames,
+from ..frames.frames import (
+    Frames,
+    InverseFrames,
     LowerIndices,
 )
 from ..reps.tensorreps import TensorReps
@@ -24,59 +24,59 @@ class LLoCaAttention(torch.nn.Module):
         self.transform = TensorRepsTransform(TensorReps(attn_reps))
         self.num_heads = num_heads
 
-        self.lframes = None
-        self.inv_lframes = None
-        self.lower_inv_lframes = None
+        self.frames = None
+        self.inv_frames = None
+        self.lower_inv_frames = None
 
-    def prepare_lframes(self, lframes):
+    def prepare_frames(self, frames):
         """Prepare local frames for processing with LLoCa attention.
         For a single forward pass through the network, this method is
         called only once for efficiency.
 
         Parameters
         ----------
-        lframes: torch.tensor
+        frames: torch.tensor
             Local frames of reference for each particle of shape (..., N, 4, 4)
             where N is the number of particles.
         """
-        self.lframes = lframes
-        if not self.lframes.is_global:
-            # insert lframes head dimension
-            self.lframes = self.lframes.reshape(
-                *lframes.shape[:-3], 1, lframes.shape[-3], 4, 4
+        self.frames = frames
+        if not self.frames.is_global:
+            # insert frames head dimension
+            self.frames = self.frames.reshape(
+                *frames.shape[:-3], 1, frames.shape[-3], 4, 4
             )
-            self.lframes = self.lframes.repeat(
-                *((1,) * len(lframes.shape[:-3])), self.num_heads, 1, 1, 1
+            self.frames = self.frames.repeat(
+                *((1,) * len(frames.shape[:-3])), self.num_heads, 1, 1, 1
             )
 
-            # create inv_lframes and lower_inv_lframes
-            inv_lframes = InverseLFrames(self.lframes)
-            lower_inv_lframes = LowerIndices(inv_lframes)
+            # create inv_frames and lower_inv_frames
+            inv_frames = InverseFrames(self.frames)
+            lower_inv_frames = LowerIndices(inv_frames)
 
-            # qkv = (inv_lframes, lower_inv_lframes, inv_lframes)
-            # note that (lower_inv_lframes, inv_lframes, inv_lframes) is equivalent
-            self.lframes_qkv = LFrames(
+            # qkv = (inv_frames, lower_inv_frames, inv_frames)
+            # note that (lower_inv_frames, inv_frames, inv_frames) is equivalent
+            self.frames_qkv = Frames(
                 matrices=torch.stack(
                     [
-                        inv_lframes.matrices,
-                        lower_inv_lframes.matrices,
-                        inv_lframes.matrices,
+                        inv_frames.matrices,
+                        lower_inv_frames.matrices,
+                        inv_frames.matrices,
                     ],
                     dim=0,
                 ),
-                is_identity=inv_lframes.is_identity,
-                is_global=inv_lframes.is_global,
+                is_identity=inv_frames.is_identity,
+                is_global=inv_frames.is_global,
                 det=torch.stack(
-                    [inv_lframes.det, lower_inv_lframes.det, inv_lframes.det], dim=0
+                    [inv_frames.det, lower_inv_frames.det, inv_frames.det], dim=0
                 ),
                 inv=torch.stack(
-                    [inv_lframes.inv, lower_inv_lframes.inv, inv_lframes.inv], dim=0
+                    [inv_frames.inv, lower_inv_frames.inv, inv_frames.inv], dim=0
                 ),
             )
 
-            # flatten lframes (preparation for tensorreps_transform)
-            self.lframes = self.lframes.reshape(-1, 4, 4)
-            self.lframes_qkv = self.lframes_qkv.reshape(-1, 4, 4)
+            # flatten frames (preparation for tensorreps_transform)
+            self.frames = self.frames.reshape(-1, 4, 4)
+            self.frames_qkv = self.frames_qkv.reshape(-1, 4, 4)
 
     def forward(self, q_local, k_local, v_local, **attn_kwargs):
         """Execute LLoCa attention.
@@ -89,7 +89,7 @@ class LLoCaAttention(torch.nn.Module):
         Comments
         - dimensions: *dims (optional), H (head), N (particles), C (channels)
         - extension to cross-attention is trivial but we don't have this right now for convenience
-          strategy: lframes_q for queries (in contrast to lframes=lframes_kv)
+          strategy: frames_q for queries (in contrast to frames=frames_kv)
 
         Parameters
         ----------
@@ -107,7 +107,7 @@ class LLoCaAttention(torch.nn.Module):
         out_local: torch.tensor
             Attention output in local frame of shape (*dims, H, N, C)
         """
-        if self.lframes.is_global:
+        if self.frames.is_global:
             # shortcut if global_frame = local_frame
             return scaled_dot_product_attention(
                 q_local,
@@ -118,10 +118,10 @@ class LLoCaAttention(torch.nn.Module):
 
         # check input shapes
         assert k_local.shape == v_local.shape == q_local.shape  # has to match perfectly
-        assert 3 * prod(k_local.shape[:-1]) == self.lframes_qkv.shape[-3]
+        assert 3 * prod(k_local.shape[:-1]) == self.frames_qkv.shape[-3]
 
         qkv_local = torch.stack([q_local, k_local, v_local], dim=0)
-        qkv_global = self.transform(qkv_local, self.lframes_qkv)
+        qkv_global = self.transform(qkv_local, self.frames_qkv)
         q_global, k_global, v_global = torch.unbind(qkv_global, dim=0)
 
         # (B, H, N, C) format required for scaled_dot_product_attention
@@ -141,7 +141,7 @@ class LLoCaAttention(torch.nn.Module):
         out_global = out_global.view(*shape_q)  # (*dims, H, N, C)
 
         # transform out back into local frame
-        out_local = self.transform(out_global, self.lframes)
+        out_local = self.transform(out_global, self.frames)
         return out_local
 
 

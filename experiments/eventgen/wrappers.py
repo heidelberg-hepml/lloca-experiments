@@ -2,7 +2,7 @@ import torch
 
 from experiments.eventgen.cfm import EventCFM
 from experiments.tagging.embedding import get_spurion
-from lloca.lframes.lframes import LFrames, InverseLFrames
+from lloca.frames.frames import Frames, InverseFrames
 from lloca.reps.tensorreps import TensorReps
 from lloca.reps.tensorreps_transform import TensorRepsTransform
 from lloca.utils.utils import build_edge_index_fully_connected
@@ -12,7 +12,7 @@ from lgatr import embed_vector, extract_vector
 class CFMWrapper(EventCFM):
     def __init__(
         self,
-        lframesnet,
+        framesnet,
         cfm,
         odeint,
         n_particles,
@@ -26,7 +26,7 @@ class CFMWrapper(EventCFM):
             **kwargs,
         )
         self.fourmomenta_velocity = fourmomenta_velocity
-        self.lframesnet = lframesnet
+        self.framesnet = framesnet
         self.trafo_fourmomenta = TensorRepsTransform(TensorReps("1x1n"))
 
         self.register_buffer("particle_type", torch.arange(n_particles))
@@ -45,10 +45,10 @@ class CFMWrapper(EventCFM):
         t_embedding = self.t_embedding(t).expand(x.shape[0], x.shape[1], -1)
         particle_type = self.encode_particle_type(x.shape)
 
-        if self.lframesnet.is_identity:
+        if self.framesnet.is_identity:
             # shortcut
             # local frame = global frame -> nothing to do
-            lframes, tracker = self.lframesnet(x, return_tracker=True)
+            frames, tracker = self.framesnet(x, return_tracker=True)
             x_local = x
 
         else:
@@ -66,47 +66,47 @@ class CFMWrapper(EventCFM):
                 dtype=scalars.dtype,
             )
             scalars_withspurions = torch.cat((scalars_zeros, scalars), dim=-2)
-            lframes_withspurions, tracker = self.lframesnet(
+            frames_withspurions, tracker = self.framesnet(
                 fm_withspurions,
                 scalars=scalars_withspurions,
                 ptr=None,
                 return_tracker=True,
             )
-            lframes = LFrames(
-                matrices=lframes_withspurions.matrices[:, self.n_spurions :],
-                det=lframes_withspurions.det[:, self.n_spurions :],
-                inv=lframes_withspurions.inv[:, self.n_spurions :],
-                is_global=lframes_withspurions.is_global,
-                is_identity=lframes_withspurions.is_identity,
+            frames = Frames(
+                matrices=frames_withspurions.matrices[:, self.n_spurions :],
+                det=frames_withspurions.det[:, self.n_spurions :],
+                inv=frames_withspurions.inv[:, self.n_spurions :],
+                is_global=frames_withspurions.is_global,
+                is_identity=frames_withspurions.is_identity,
             )
 
-            fm_local = self.trafo_fourmomenta(fm, lframes)
+            fm_local = self.trafo_fourmomenta(fm, frames)
             x_local = self.coordinates.fourmomenta_to_x(fm_local)
 
         # move everything to self.save_dtype
         x_local = x_local.to(self.network_dtype)
-        lframes.to(self.network_dtype)
+        frames.to(self.network_dtype)
 
         return (
             x_local,
             t_embedding,
             particle_type,
-            lframes,
+            frames,
             tracker,
         )
 
-    def postprocess_velocity(self, v_mixed_local, x, lframes):
+    def postprocess_velocity(self, v_mixed_local, x, frames):
         v_mixed_local = v_mixed_local.to(x.dtype)
-        lframes.to(x.dtype)
+        frames.to(x.dtype)
         v_fm_local, v_s_local = v_mixed_local[..., 0:4], v_mixed_local[..., 4:]
 
-        if self.lframesnet.is_identity and not self.fourmomenta_velocity:
+        if self.framesnet.is_identity and not self.fourmomenta_velocity:
             # network output is velocity in x-coordinates
             v_x = v_fm_local
 
         else:
             # network output is velocity in fourmomenta-coordinates
-            v_fm = self.trafo_fourmomenta(v_fm_local, InverseLFrames(lframes))
+            v_fm = self.trafo_fourmomenta(v_fm_local, InverseFrames(frames))
             fm = self.coordinates.x_to_fourmomenta(x)
 
             v_x, _ = self.coordinates.velocity_fourmomenta_to_x(v_fm, fm)
@@ -134,7 +134,7 @@ class MLPCFM(CFMWrapper):
             x_local,
             t_embedding,
             _,
-            lframes,
+            frames,
             tracker,
         ) = super().preprocess_velocity(x, t)
 
@@ -148,7 +148,7 @@ class MLPCFM(CFMWrapper):
         )
         v_local = self.net(fts)
         v_local = v_local.reshape(*x_local.shape[:-1], -1)
-        v = self.postprocess_velocity(v_local, x, lframes)
+        v = self.postprocess_velocity(v_local, x, frames)
         return v, tracker
 
 
@@ -162,13 +162,13 @@ class TransformerCFM(CFMWrapper):
             x_local,
             t_embedding,
             particle_type,
-            lframes,
+            frames,
             tracker,
         ) = super().preprocess_velocity(x, t)
 
         fts = torch.cat([x_local, particle_type, t_embedding], dim=-1)
-        v_local = self.net(fts, lframes)
-        v = self.postprocess_velocity(v_local, x, lframes)
+        v_local = self.net(fts, frames)
+        v = self.postprocess_velocity(v_local, x, frames)
         return v, tracker
 
 
@@ -185,20 +185,20 @@ class GraphNetCFM(CFMWrapper):
             x_local,
             t_embedding,
             particle_type,
-            lframes,
+            frames,
             tracker,
         ) = super().preprocess_velocity(x, t)
         edge_index, batch = build_edge_index_fully_connected(x_local)
         fts = torch.cat([x_local, particle_type, t_embedding], dim=-1)
 
         fts_flat = fts.flatten(0, 1)
-        lframes_flat = lframes.reshape(-1, *lframes.shape[2:])
+        frames_flat = frames.reshape(-1, *frames.shape[2:])
         v_local_flat = self.net(
-            fts_flat, lframes_flat, edge_index=edge_index, batch=batch
+            fts_flat, frames_flat, edge_index=edge_index, batch=batch
         )
         v_local = v_local_flat.reshape(*fts.shape[:-1], v_local_flat.shape[-1])
 
-        v = self.postprocess_velocity(v_local, x, lframes)
+        v = self.postprocess_velocity(v_local, x, frames)
         return v, tracker
 
 
@@ -206,14 +206,14 @@ class LGATrCFM(CFMWrapper):
     def __init__(self, net, **kwargs):
         super().__init__(fourmomenta_velocity=True, **kwargs)
         self.net = net
-        assert self.lframesnet.is_identity
+        assert self.framesnet.is_identity
 
     def get_velocity(self, x, t):
         (
             _,
             t_embedding,
             particle_type,
-            lframes,
+            frames,
             tracker,
         ) = super().preprocess_velocity(x, t)
 
@@ -232,5 +232,5 @@ class LGATrCFM(CFMWrapper):
         v_mv, v_s = self.net(multivectors, scalars)
         v_v = extract_vector(v_mv).squeeze(dim=-2)
         v_pre = torch.cat((v_v, v_s), dim=-1)
-        v = self.postprocess_velocity(v_pre, x, lframes)
+        v = self.postprocess_velocity(v_pre, x, frames)
         return v, tracker

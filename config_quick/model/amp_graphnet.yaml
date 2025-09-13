@@ -17,4 +17,4 @@ net:
  num_layers_mlp2: 0
 
 defaults:
- - lframesnet: identity
+ - framesnet: identity

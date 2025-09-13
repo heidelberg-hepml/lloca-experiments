@@ -5,9 +5,9 @@ Code: https://github.com/hqucms/weaver-core/blob/main/weaver/nn/model/ParticleNe
 
 We have to do three things to build a LLoCa-ParticleNet
 - Specify the hidden_reps_list for hidden representations in each message-passing layer
-- Pass the lframes through the network
+- Pass the frames through the network
 - During the edge convolution, transform the features from the local to the global frames
-  using tools from the lloca code (TensorRepsTransform, IndexSelectLFrames, ChangeOfLFrames)
+  using tools from the lloca code (TensorRepsTransform, IndexSelectFrames, ChangeOfFrames)
 
 Use 'git diff --no-index experiments/baselines/particlenet.py lloca/nn/particlenet.py'
 to see the changes required to include frame-to-frame transformations.
@@ -19,10 +19,10 @@ import torch.nn as nn
 
 from ..reps.tensorreps import TensorReps
 from ..reps.tensorreps_transform import TensorRepsTransform
-from ..lframes.lframes import IndexSelectLFrames, ChangeOfLFrames
+from ..frames.frames import IndexSelectFrames, ChangeOfFrames
 
 
-def change_local_frame(x_j_framej, idx, lframes, trafo):
+def change_local_frame(x_j_framej, idx, frames, trafo):
     """Transform features x_j from frame 'j' ('x_j_framej') to frame 'i' ('x_j_framei').
 
     Parameters
@@ -31,7 +31,7 @@ def change_local_frame(x_j_framej, idx, lframes, trafo):
         Input features in local frame 'j' of shape (batch_size, num_dims, num_points, k).
     idx : torch.Tensor
         Indices of the nearest neighbors in the batch of shape (batch_size*num_points*k).
-    lframes : LFrames
+    frames : Frames
         Local frames of reference for the particles, shape (num_points, 4, 4).
     trafo : TensorRepsTransform
         Transformation function to apply to the features.
@@ -49,11 +49,11 @@ def change_local_frame(x_j_framej, idx, lframes, trafo):
     )  # identity (batch, num_points*k)
     idx_j = idx  # indices from knn (batch, num_points*k)
 
-    lframes_i = IndexSelectLFrames(lframes, idx_i)
-    lframes_j = IndexSelectLFrames(lframes, idx_j)
-    trafo_j_to_i = ChangeOfLFrames(
-        lframes_j, lframes_i
-    )  # convention: (lframes_start, lframes_end)
+    frames_i = IndexSelectFrames(frames, idx_i)
+    frames_j = IndexSelectFrames(frames, idx_j)
+    trafo_j_to_i = ChangeOfFrames(
+        frames_j, frames_i
+    )  # convention: (frames_start, frames_end)
 
     # reshape and apply trafo
     x_j_framej_2 = x_j_framej.permute(
@@ -80,7 +80,7 @@ def knn(x, k):
 
 
 # v1 is faster on GPU
-def get_graph_feature_v1(x, k, idx, lframes, trafo):
+def get_graph_feature_v1(x, k, idx, frames, trafo):
     batch_size, num_dims, num_points = x.size()
 
     idx_base = torch.arange(0, batch_size, device=x.device).view(-1, 1, 1) * num_points
@@ -95,13 +95,13 @@ def get_graph_feature_v1(x, k, idx, lframes, trafo):
     )  # neighbors: -> (batch_size*num_points*k, num_dims) -> ...
     fts = fts.permute(0, 3, 1, 2).contiguous()  # (batch_size, num_dims, num_points, k)
     x = x.view(batch_size, num_dims, num_points, 1).repeat(1, 1, 1, k)
-    fts = change_local_frame(fts, idx, lframes, trafo)
+    fts = change_local_frame(fts, idx, frames, trafo)
     fts = torch.cat((x, fts - x), dim=1)  # ->(batch_size, 2*num_dims, num_points, k)
     return fts
 
 
 # v2 is faster on CPU
-def get_graph_feature_v2(x, k, idx, lframes, trafo):
+def get_graph_feature_v2(x, k, idx, frames, trafo):
     batch_size, num_dims, num_points = x.size()
 
     idx_base = torch.arange(0, batch_size, device=x.device).view(-1, 1, 1) * num_points
@@ -115,7 +115,7 @@ def get_graph_feature_v2(x, k, idx, lframes, trafo):
         num_dims, batch_size, num_points, k
     )  # neighbors: -> (num_dims, batch_size*num_points*k) -> ...
     fts = fts.transpose(1, 0).contiguous()  # (batch_size, num_dims, num_points, k)
-    fts = change_local_frame(fts, idx, lframes, trafo)
+    fts = change_local_frame(fts, idx, frames, trafo)
 
     x = x.view(batch_size, num_dims, num_points, 1).repeat(1, 1, 1, k)
     fts = torch.cat((x, fts - x), dim=1)  # ->(batch_size, 2*num_dims, num_points, k)
@@ -191,10 +191,10 @@ class EdgeConvBlock(nn.Module):
         if activation:
             self.sc_act = nn.ReLU()
 
-    def forward(self, points, features, lframes):
+    def forward(self, points, features, frames):
 
         topk_indices = knn(points, self.k)
-        x = self.get_graph_feature(features, self.k, topk_indices, lframes, self.trafo)
+        x = self.get_graph_feature(features, self.k, topk_indices, frames, self.trafo)
 
         for conv, bn, act in zip(self.convs, self.bns, self.acts):
             x = conv(x)  # (N, C', P, K)
@@ -299,7 +299,7 @@ class ParticleNet(nn.Module):
 
         self.for_inference = for_inference
 
-    def forward(self, points, features, lframes, mask=None):
+    def forward(self, points, features, frames, mask=None):
         #         print('points:\n', points)
         #         print('features:\n', features)
         if mask is None:
@@ -318,7 +318,7 @@ class ParticleNet(nn.Module):
         outputs = []
         for idx, conv in enumerate(self.edge_convs):
             pts = (points if idx == 0 else fts) + coord_shift
-            fts = conv(pts, fts, lframes) * mask
+            fts = conv(pts, fts, frames) * mask
             if self.use_fusion:
                 outputs.append(fts)
         if self.use_fusion:

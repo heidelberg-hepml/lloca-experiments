@@ -9,4 +9,4 @@ net:
  hidden_layers: 6
 
 defaults:
- - lframesnet: identity
+ - framesnet: identity

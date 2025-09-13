@@ -1,0 +1,3 @@
+_target_: lloca.frames.nonequi_frames.RandomFrames
+is_global: true
+transform_type: xyrotation

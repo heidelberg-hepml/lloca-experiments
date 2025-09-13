@@ -3,13 +3,13 @@
 Paper: "Particle Transformer for Jet Tagging" - https://arxiv.org/abs/2202.03772
 
 We have to do three things to build a LLoCa-ParT
-- Construct a LLoCaAttention module for the whole transformer that preprocesses the lframes
+- Construct a LLoCaAttention module for the whole transformer that preprocesses the frames
   and is passed to each attention block during initialization.
 - When evaluating attention, use the LLoCaAttention module.
 
 More comments:
 - We also added an extra clamp in to_ptrapphim to avoid numerical issues from log(0). This case
-  might not happen in the original ParT, but it can happen with LLoCa for highly boosted lframes.
+  might not happen in the original ParT, but it can happen with LLoCa for highly boosted frames.
 - We use LLoCaAttention only for the self-attention blocks, and use default attention (corresponds
   to scalar messages only) for the class attention blocks.
 
@@ -1100,13 +1100,13 @@ class ParticleTransformer(nn.Module):
             x_cls = self.norm(cls_tokens)  # (batch, embed_dim)
         return x_cls
 
-    def forward(self, x, lframes, v=None, mask=None, uu=None, uu_idx=None):
+    def forward(self, x, frames, v=None, mask=None, uu=None, uu_idx=None):
         # x: (batch_size, num_fts, seq_len)
         # v: (batch_size, 4, seq_len) [px,py,pz,energy]
         # mask: (batch_size, 1, seq_len) -- real particle = 1, padded = 0
         # for pytorch: uu (batch_size, C', num_pairs), uu_idx (batch_size, 2, num_pairs)
         # for onnx: uu (batch_size, C', seq_len, seq_len), uu_idx=None
-        self.attention.prepare_lframes(lframes)
+        self.attention.prepare_frames(frames)
 
         x, padding_mask = self._forward_encoder(x, v=v, mask=mask, uu=uu, uu_idx=uu_idx)
 

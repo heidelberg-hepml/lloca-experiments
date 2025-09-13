@@ -7,7 +7,7 @@ from tests.experiments.utils import track_clamps
 
 
 @pytest.mark.parametrize(
-    "lframesnet",
+    "framesnet",
     [
         "identity",
         "randomrotation",
@@ -29,14 +29,14 @@ from tests.experiments.utils import track_clamps
     ],
 )
 @pytest.mark.parametrize("iterations", [1])
-def test_amplitudes(lframesnet, model_list, iterations):
+def test_amplitudes(framesnet, model_list, iterations):
     experiments.logger.LOGGER.disabled = True  # turn off logging
 
     # create experiment environment
     with hydra.initialize(config_path="../../config_quick", version_base=None):
         overrides = [
             *model_list,
-            f"model/lframesnet={lframesnet}",
+            f"model/framesnet={framesnet}",
             "save=false",
         ]
         cfg = hydra.compose(config_name="amplitudes", overrides=overrides)

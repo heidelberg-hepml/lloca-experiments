@@ -18,4 +18,4 @@ net:
  num_edge_attr: 0
 
 defaults:
- - lframesnet: identity
+ - framesnet: identity

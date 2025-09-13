@@ -38,20 +38,20 @@ class EdgeConv(LLoCaMessagePassing):
             else nn.Identity()
         )
 
-    def forward(self, x, lframes, edge_index, batch=None, edge_attr=None):
-        lframes = (lframes, lframes)
+    def forward(self, x, frames, edge_index, batch=None, edge_attr=None):
+        frames = (frames, frames)
 
         x_aggr = self.propagate(
             edge_index,
             x=x,
-            lframes=lframes,
+            frames=frames,
             edge_attr=edge_attr,
             batch=batch,
         )
         x_aggr = self.mlp2(x_aggr)
         return x_aggr
 
-    def message(self, x_i, x_j, lframes_i, lframes_j, edge_attr=None):
+    def message(self, x_i, x_j, frames_i, frames_j, edge_attr=None):
         x = x_j
         x = torch.cat((x, x_i), dim=-1)
         if edge_attr is not None:
@@ -104,14 +104,14 @@ class GraphNet(nn.Module):
             ]
         )
 
-    def forward(self, inputs, lframes, edge_index, batch=None, edge_attr=None):
+    def forward(self, inputs, frames, edge_index, batch=None, edge_attr=None):
         """Forward pass.
 
         Parameters
         ----------
         inputs : Tensor
             Input data with shape (num_items, in_channels)
-        lframes : LFrames
+        frames : Frames
             Local frames used for message passing
         edge_index : Tensor
             Edge index tensor with shape (2, num_edges)
@@ -132,7 +132,7 @@ class GraphNet(nn.Module):
                 x = checkpoint(
                     block,
                     x=x,
-                    lframes=lframes,
+                    frames=frames,
                     edge_index=edge_index,
                     batch=batch,
                     edge_attr=edge_attr,
@@ -140,7 +140,7 @@ class GraphNet(nn.Module):
             else:
                 x = block(
                     x=x,
-                    lframes=lframes,
+                    frames=frames,
                     edge_index=edge_index,
                     batch=batch,
                     edge_attr=edge_attr,

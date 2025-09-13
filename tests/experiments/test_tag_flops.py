@@ -7,7 +7,7 @@ import experiments.logger
 from experiments.tagging.experiment import TopTaggingExperiment
 
 
-@pytest.mark.parametrize("lframesnet", ["identity", "polardec"])
+@pytest.mark.parametrize("framesnet", ["identity", "polardec"])
 @pytest.mark.parametrize(
     "model_list",
     [
@@ -22,14 +22,14 @@ from experiments.tagging.experiment import TopTaggingExperiment
         ["model=tag_MIParT-L"],
     ],
 )
-def test_tagging(lframesnet, model_list, jet_size=50):
+def test_tagging(framesnet, model_list, jet_size=50):
     experiments.logger.LOGGER.disabled = True  # turn off logging
 
     # create experiment environment
     with hydra.initialize(config_path="../../config", version_base=None):
         overrides = [
             *model_list,
-            f"model/lframesnet={lframesnet}",
+            f"model/framesnet={framesnet}",
             "save=false",
             "training.batchsize=1",
             "data.dataset=mini",
@@ -62,6 +62,6 @@ def test_tagging(lframesnet, model_list, jet_size=50):
     print(
         f"flops(batchsize=1)={flops:.2e}; parameters={num_parameters}",
         model_list,
-        lframesnet,
+        framesnet,
     )
     # print(flop_counter.get_table(depth=2))

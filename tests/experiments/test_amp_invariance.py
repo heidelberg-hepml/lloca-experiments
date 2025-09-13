@@ -19,11 +19,11 @@ from lloca.utils.transforms import rand_rotation, rand_lorentz
         ],
     ),
 )
-@pytest.mark.parametrize("lframesnet", ["polardec", "orthogonal"])
+@pytest.mark.parametrize("framesnet", ["polardec", "orthogonal"])
 @pytest.mark.parametrize("rand_trafo", [rand_rotation, rand_lorentz])
 def test_amplitudes(
     model_list,
-    lframesnet,
+    framesnet,
     rand_trafo,
     iterations=100,
 ):
@@ -33,7 +33,7 @@ def test_amplitudes(
     with hydra.initialize(config_path="../../config_quick", version_base=None):
         overrides = [
             *model_list,
-            f"model/lframesnet={lframesnet}",
+            f"model/framesnet={framesnet}",
             "save=false",
         ]
         cfg = hydra.compose(config_name="amplitudes", overrides=overrides)
@@ -73,5 +73,5 @@ def test_amplitudes(
         f"log-mean={mses.log().mean().exp():.2e} max={mses.max().item():.2e}",
         model_list,
         rand_trafo.__name__,
-        lframesnet,
+        framesnet,
     )

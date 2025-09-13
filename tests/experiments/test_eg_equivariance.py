@@ -23,7 +23,7 @@ BREAKING = [
         ],
     ),
 )
-@pytest.mark.parametrize("lframesnet", ["polardec", "orthogonal"])
+@pytest.mark.parametrize("framesnet", ["polardec", "orthogonal"])
 @pytest.mark.parametrize(
     "rand_trafo,breaking_list",
     [
@@ -34,7 +34,7 @@ BREAKING = [
 )
 def test_amplitudes(
     model_list,
-    lframesnet,
+    framesnet,
     rand_trafo,
     breaking_list,
     iterations=1,
@@ -45,7 +45,7 @@ def test_amplitudes(
     with hydra.initialize(config_path="../../config_quick", version_base=None):
         overrides = [
             *model_list,
-            f"model/lframesnet={lframesnet}",
+            f"model/framesnet={framesnet}",
             "save=false",
             "cfm.coordinates=Fourmomenta",
             *breaking_list,
@@ -101,5 +101,5 @@ def test_amplitudes(
         f"log-mean={mses.log().mean().exp():.2e} max={mses.max().item():.2e}",
         model_list,
         rand_trafo.__name__,
-        lframesnet,
+        framesnet,
     )

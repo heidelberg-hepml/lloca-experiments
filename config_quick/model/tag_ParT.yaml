@@ -24,4 +24,4 @@ net:
  version: 1
 
 defaults:
- - lframesnet: identity
+ - framesnet: identity

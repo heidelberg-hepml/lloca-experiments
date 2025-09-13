@@ -7,7 +7,7 @@ from tests.experiments.utils import track_clamps
 
 
 @pytest.mark.parametrize(
-    "lframesnet",
+    "framesnet",
     [
         "identity",
         "randomrotation",
@@ -25,7 +25,7 @@ from tests.experiments.utils import track_clamps
         ["model=eg_gatr"],
     ],
 )
-def test_amplitudes(lframesnet, model_list, iterations=1):
+def test_amplitudes(framesnet, model_list, iterations=1):
     # Note: Clamps happen for non-identity models, because there
     # the transformed events do not satisfy the pT cut (which leads to clamps).
     experiments.logger.LOGGER.disabled = True  # turn off logging
@@ -34,7 +34,7 @@ def test_amplitudes(lframesnet, model_list, iterations=1):
     with hydra.initialize(config_path="../../config_quick", version_base=None):
         overrides = [
             *model_list,
-            f"model/lframesnet={lframesnet}",
+            f"model/framesnet={framesnet}",
             "save=false",
         ]
         cfg = hydra.compose(config_name="ttbar", overrides=overrides)

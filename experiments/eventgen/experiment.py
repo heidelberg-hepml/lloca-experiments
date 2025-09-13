@@ -65,9 +65,9 @@ class EventGenerationExperiment(BaseExperiment):
             self.cfg.model.cfm = self.cfg.cfm
             self.cfg.model.spurions = self.cfg.data.spurions
 
-        # decide which entries to use for the lframesnet
-        if "equivectors" in self.cfg.model.lframesnet:
-            self.cfg.model.lframesnet.equivectors.num_scalars = (
+        # decide which entries to use for the framesnet
+        if "equivectors" in self.cfg.model.framesnet:
+            self.cfg.model.framesnet.equivectors.num_scalars = (
                 n_particles + self.cfg.cfm.embed_t_dim
             )
 
@@ -181,9 +181,9 @@ class EventGenerationExperiment(BaseExperiment):
                 "weight_decay": self.cfg.training.weight_decay,
             },
             {
-                "params": self.model.lframesnet.parameters(),
-                "lr": self.cfg.training.lr_factor_lframesnet * self.cfg.training.lr,
-                "weight_decay": self.cfg.training.weight_decay_lframesnet,
+                "params": self.model.framesnet.parameters(),
+                "lr": self.cfg.training.lr_factor_framesnet * self.cfg.training.lr,
+                "weight_decay": self.cfg.training.weight_decay_framesnet,
             },
             {
                 "params": self.model.t_embedding.parameters(),

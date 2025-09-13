@@ -26,29 +26,29 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: MLP + IdentityLFrames
+    - name: MLP + IdentityFrames
       run: |
         python run.py -cn ttbar model=eg_mlp save=false evaluate=false training.iterations=3
 
-    - name: MLP + LearnedPolarDecompositionLFrames
+    - name: MLP + LearnedPolarDecompositionFrames
       run: |
-        python run.py -cn ttbar model=eg_mlp model/lframesnet=polardec save=false evaluate=false training.iterations=3
+        python run.py -cn ttbar model=eg_mlp model/framesnet=polardec save=false evaluate=false training.iterations=3
 
-    - name: Transformer + IdentityLFrames
+    - name: Transformer + IdentityFrames
       run: |
         python run.py -cn ttbar model=eg_transformer save=false evaluate=false training.iterations=3
 
-    - name: Transformer + LearnedPolarDecompositionLFrames
+    - name: Transformer + LearnedPolarDecompositionFrames
       run: |
-        python run.py -cn ttbar model=eg_transformer model/lframesnet=polardec save=false evaluate=false training.iterations=3
+        python run.py -cn ttbar model=eg_transformer model/framesnet=polardec save=false evaluate=false training.iterations=3
 
-    - name: GraphNet + IdentityLFrames
+    - name: GraphNet + IdentityFrames
       run: |
         python run.py -cn ttbar model=eg_graphnet save=false evaluate=false training.iterations=3
 
-    - name: GraphNet + LearnedPolarDecompositionLFrames
+    - name: GraphNet + LearnedPolarDecompositionFrames
       run: |
-        python run.py -cn ttbar model=eg_graphnet model/lframesnet=polardec save=false evaluate=false training.iterations=3
+        python run.py -cn ttbar model=eg_graphnet model/framesnet=polardec save=false evaluate=false training.iterations=3
 
     - name: GATr
       run: |
