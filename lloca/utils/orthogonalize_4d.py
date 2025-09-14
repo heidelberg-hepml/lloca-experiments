@@ -37,7 +37,7 @@ def orthogonalize_4d(vecs, use_float64=True, return_reg=False, **kwargs):
         original_dtype = vecs[0].dtype
         vecs = [v.to(torch.float64) for v in vecs]
 
-    out = orthogonalize(vecs, return_reg=return_reg, **kwargs)
+    out = orthogonalize_wrapper_4d(vecs, return_reg=return_reg, **kwargs)
     if return_reg:
         orthogonal_vecs, *reg = out
     else:
@@ -52,7 +52,7 @@ def orthogonalize_4d(vecs, use_float64=True, return_reg=False, **kwargs):
     return (trafo, *reg) if return_reg else trafo
 
 
-def orthogonalize(
+def orthogonalize_wrapper_4d(
     vecs,
     method="gramschmidt",
     eps_norm=1e-15,
@@ -120,7 +120,7 @@ def orthogonalize_gramschmidt(vecs, eps_norm=1e-15):
     orthogonal_vecs : list of torch.Tensor
         List of orthogonalized Lorentz vectors of shape (..., 4).
     """
-    vecs = [normalize(v, eps_norm) for v in vecs]
+    vecs = [normalize_4d(v, eps_norm) for v in vecs]
 
     v_nexts = [v for v in vecs]
     orthogonal_vecs = [vecs[0]]
@@ -131,8 +131,8 @@ def orthogonalize_gramschmidt(vecs, eps_norm=1e-15):
             v_nexts[k] = v_nexts[k] - orthogonal_vecs[i - 1] * v_inner / (
                 v_norm + eps_norm
             )
-        orthogonal_vecs.append(normalize(v_nexts[i], eps_norm))
-    last_vec = normalize(lorentz_cross(*orthogonal_vecs), eps_norm)
+        orthogonal_vecs.append(normalize_4d(v_nexts[i], eps_norm))
+    last_vec = normalize_4d(lorentz_cross(*orthogonal_vecs), eps_norm)
     orthogonal_vecs.append(last_vec)
 
     return orthogonal_vecs
@@ -155,13 +155,13 @@ def orthogonalize_cross(vecs, eps_norm=1e-15):
     orthogonal_vecs : list of torch.Tensor
         List of orthogonalized Lorentz vectors of shape (..., 4).
     """
-    vecs = [normalize(v, eps_norm) for v in vecs]
+    vecs = [normalize_4d(v, eps_norm) for v in vecs]
 
     orthogonal_vecs = [vecs[0]]
     for i in range(1, len(vecs) + 1):
         v_next = lorentz_cross(*orthogonal_vecs, *vecs[i:])
         assert torch.isfinite(v_next).all()
-        orthogonal_vecs.append(normalize(v_next, eps_norm))
+        orthogonal_vecs.append(normalize_4d(v_next, eps_norm))
 
     return orthogonal_vecs
 
@@ -260,7 +260,7 @@ def regularize_coplanar(vecs, eps_reg_coplanar=1e-10):
     return vecs_reg, reg_coplanar
 
 
-def normalize(v, eps=1e-15):
+def normalize_4d(v, eps=1e-15):
     """Normalize a Lorentz vector by the absolute value of the Minkowski norm.
     Note that this norm can be close to zero.
 

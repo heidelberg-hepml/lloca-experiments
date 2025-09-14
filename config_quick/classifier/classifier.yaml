@@ -16,7 +16,7 @@ cfg_training:
  lr_patience: 5
 
 net:
- _target_: lloca.nn.mlp.MLP
+ _target_: lloca.backbone.mlp.MLP
 
  in_shape: null
  out_shape: 1

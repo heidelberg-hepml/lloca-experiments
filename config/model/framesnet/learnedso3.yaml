@@ -1,0 +1,11 @@
+_target_: lloca.framesnet.equi_frames.LearnedSO3Frames
+is_global: false
+random: false
+fix_params: false
+ortho_kwargs:
+ method: gramschmidt
+ eps_norm: 1e-10
+ eps_reg: 1e-4
+
+defaults:
+ - equivectors: equimlp

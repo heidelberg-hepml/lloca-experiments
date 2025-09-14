@@ -4,7 +4,7 @@ import hydra
 
 import experiments.logger
 from experiments.tagging.experiment import TopTaggingExperiment
-from lloca.utils.transforms import (
+from lloca.utils.rand_transforms import (
     rand_rotation,
     rand_lorentz,
     rand_xyrotation,
@@ -14,7 +14,7 @@ from lloca.utils.transforms import (
 BREAKING = [
     "data.beam_reference=null",
     "data.add_time_reference=false",
-    "data.add_tagging_features_lframesnet=false",
+    "data.add_tagging_features_framesnet=false",
 ]
 
 
@@ -38,13 +38,14 @@ BREAKING = [
         ]
     ),
 )
-@pytest.mark.parametrize("lframesnet", ["polardec", "orthogonal"])
+@pytest.mark.parametrize("framesnet", ["learnedpd", "learnedso13"])
 def test_amplitudes(
     rand_trafo,
     model_list,
-    lframesnet,
+    framesnet,
     breaking_list,
     iterations=1,
+    batchsize=4,
 ):
     experiments.logger.LOGGER.disabled = True  # turn off logging
 
@@ -52,7 +53,8 @@ def test_amplitudes(
     with hydra.initialize(config_path="../../config_quick", version_base=None):
         overrides = [
             *model_list,
-            f"model/lframesnet={lframesnet}",
+            f"model/framesnet={framesnet}",
+            f"training.batchsize={batchsize}",
             "save=false",
             *breaking_list,
         ]
@@ -94,5 +96,5 @@ def test_amplitudes(
         f"log-mean={mses.log().mean().exp():.2e} max={mses.max().item():.2e}",
         model_list,
         rand_trafo.__name__,
-        lframesnet,
+        framesnet,
     )

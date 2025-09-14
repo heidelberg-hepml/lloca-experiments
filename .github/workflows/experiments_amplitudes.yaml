@@ -26,34 +26,34 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: MLP + IdentityLFrames
+    - name: MLP + IdentityFrames
       run: |
         python run.py -cn amplitudes model=amp_mlp save=false evaluate=false training.iterations=3
 
-    - name: Transformer + IdentityLFrames
+    - name: Transformer + IdentityFrames
       run: |
         python run.py -cn amplitudes model=amp_transformer save=false evaluate=false training.iterations=3
 
-    - name: Transformer + LearnedPolarDecompositionLFames
+    - name: Transformer + LearnedPDFrames
       run: |
-        python run.py -cn amplitudes model=amp_transformer model/lframesnet=polardec save=false evaluate=false training.iterations=3
+        python run.py -cn amplitudes model=amp_transformer model/framesnet=learnedpd save=false evaluate=false training.iterations=3
 
-    - name: Transformer + RandomLFrames
+    - name: Transformer + RandomFrames
       run: |
-        python run.py -cn amplitudes model=amp_transformer model/lframesnet=randomlorentz save=false evaluate=false training.iterations=3
+        python run.py -cn amplitudes model=amp_transformer model/framesnet=randomlorentz save=false evaluate=false training.iterations=3
 
-    - name: GraphNet (nodes+edges) + LearnedPolarDecompositionLFames
+    - name: GraphNet (nodes+edges) + LearnedPDFrames
       run: |
-        python run.py -cn amplitudes model=amp_graphnet model/lframesnet=polardec save=false evaluate=false training.iterations=3
+        python run.py -cn amplitudes model=amp_graphnet model/framesnet=learnedpd save=false evaluate=false training.iterations=3
 
-    - name: GraphNet (nodes only) + LearnedPolarDecompositionLFames
+    - name: GraphNet (nodes only) + LearnedPDFrames
       run: |
-        python run.py -cn amplitudes model=amp_graphnet model/lframesnet=polardec save=false evaluate=false training.iterations=3 model.include_nodes=false
+        python run.py -cn amplitudes model=amp_graphnet model/framesnet=learnedpd save=false evaluate=false training.iterations=3 model.include_nodes=false
 
-    - name: GATr + IdentityLFrames
+    - name: GATr + IdentityFrames
       run: |
         python run.py -cn amplitudes model=amp_gatr save=false evaluate=false training.iterations=3
 
-    - name: DSI + IdentityLFrames
+    - name: DSI + IdentityFrames
       run: |
         python run.py -cn amplitudes model=amp_dsi save=false evaluate=false training.iterations=3

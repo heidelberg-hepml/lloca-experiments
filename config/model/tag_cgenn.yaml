@@ -15,4 +15,4 @@ net:
  dropout: 0.2
  
 defaults:
- - lframesnet: identity
+ - framesnet: identity

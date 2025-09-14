@@ -6,18 +6,20 @@ from torch_geometric.utils import to_dense_batch
 from lgatr import embed_vector, extract_scalar
 
 from experiments.tagging.embedding import get_tagging_features
-from lloca.lframes.lframes import LFrames
+from lloca.framesnet.frames import Frames
 from lloca.utils.utils import (
     get_ptr_from_batch,
     get_batch_from_ptr,
     get_edge_index_from_ptr,
     get_edge_attr,
 )
-from lloca.nn.attention import get_xformers_attention_mask
+from lloca.backbone.attention_backends.xformers_attention import (
+    get_xformers_attention_mask,
+)
 from lloca.utils.lorentz import lorentz_eye
 from lloca.reps.tensorreps import TensorReps
 from lloca.reps.tensorreps_transform import TensorRepsTransform
-from lloca.lframes.nonequi_lframes import IdentityLFrames
+from lloca.framesnet.nonequi_frames import IdentityFrames
 
 
 class TaggerWrapper(nn.Module):
@@ -25,14 +27,14 @@ class TaggerWrapper(nn.Module):
         self,
         in_channels: int,
         out_channels: int,
-        lframesnet,
+        framesnet,
         add_fourmomenta_backbone: bool = False,
     ):
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.add_fourmomenta_backbone = add_fourmomenta_backbone
-        self.lframesnet = lframesnet
+        self.framesnet = framesnet
         self.trafo_fourmomenta = TensorRepsTransform(TensorReps("1x1n"))
 
     def forward(self, embedding):
@@ -54,33 +56,31 @@ class TaggerWrapper(nn.Module):
         scalars_withspurions = torch.cat(
             [scalars_withspurions, global_tagging_features_withspurions], dim=-1
         )
-        lframes_spurions, tracker = self.lframesnet(
+        frames_spurions, tracker = self.framesnet(
             fourmomenta_withspurions,
             scalars_withspurions,
             ptr=ptr_withspurions,
             return_tracker=True,
         )
-        lframes_nospurions = LFrames(
-            lframes_spurions.matrices[~is_spurion],
-            is_global=lframes_spurions.is_global,
-            det=lframes_spurions.det[~is_spurion],
-            inv=lframes_spurions.inv[~is_spurion],
-            is_identity=lframes_spurions.is_identity,
-            device=lframes_spurions.device,
-            dtype=lframes_spurions.dtype,
-            shape=lframes_spurions.matrices[~is_spurion].shape,
+        frames_nospurions = Frames(
+            frames_spurions.matrices[~is_spurion],
+            is_global=frames_spurions.is_global,
+            det=frames_spurions.det[~is_spurion],
+            inv=frames_spurions.inv[~is_spurion],
+            is_identity=frames_spurions.is_identity,
+            device=frames_spurions.device,
+            dtype=frames_spurions.dtype,
+            shape=frames_spurions.matrices[~is_spurion].shape,
         )
 
         # transform features into local frames
         fourmomenta_local_nospurions = self.trafo_fourmomenta(
-            fourmomenta_nospurions, lframes_nospurions
+            fourmomenta_nospurions, frames_nospurions
         )
         jet_nospurions = scatter(
             fourmomenta_nospurions, index=batch_nospurions, dim=0, reduce="sum"
         ).index_select(0, batch_nospurions)
-        jet_local_nospurions = self.trafo_fourmomenta(
-            jet_nospurions, lframes_nospurions
-        )
+        jet_local_nospurions = self.trafo_fourmomenta(jet_nospurions, frames_nospurions)
         local_tagging_features_nospurions = get_tagging_features(
             fourmomenta_local_nospurions,
             jet_local_nospurions,
@@ -98,12 +98,12 @@ class TaggerWrapper(nn.Module):
         features_local_nospurions = features_local_nospurions.to(
             scalars_nospurions.dtype
         )
-        lframes_nospurions.to(scalars_nospurions.dtype)
+        frames_nospurions.to(scalars_nospurions.dtype)
 
         return (
             features_local_nospurions,
             fourmomenta_local_nospurions,
-            lframes_nospurions,
+            frames_nospurions,
             ptr_nospurions,
             batch_nospurions,
             tracker,
@@ -122,158 +122,6 @@ class AggregatedTaggerWrapper(TaggerWrapper):
     def extract_score(self, features, ptr):
         score = self.aggregator(features, ptr=ptr)
         return score
-
-
-class BaselineTransformerWrapper(AggregatedTaggerWrapper):
-    def __init__(
-        self,
-        net,
-        *args,
-        **kwargs,
-    ):
-        super().__init__(*args, **kwargs)
-        self.net = net(in_channels=self.in_channels, num_classes=self.out_channels)
-        assert (
-            self.lframesnet.is_global
-        ), "Non-equivariant model can only handle global lframes"
-
-    def forward(self, embedding):
-        (
-            features_local,
-            _,
-            lframes,
-            ptr,
-            batch,
-            tracker,
-        ) = super().forward(embedding)
-
-        mask = get_xformers_attention_mask(
-            batch,
-            materialize=features_local.device == torch.device("cpu"),
-            dtype=features_local.dtype,
-        )
-
-        # network
-        outputs = self.net(
-            inputs=features_local,
-            attention_mask=mask,
-        )
-
-        # aggregation
-        score = self.extract_score(outputs, ptr)
-        return score, tracker, lframes
-
-
-class BaselineGraphNetWrapper(AggregatedTaggerWrapper):
-    def __init__(
-        self,
-        net,
-        *args,
-        **kwargs,
-    ):
-        super().__init__(*args, **kwargs)
-        self.net = net(in_channels=self.in_channels, num_classes=self.out_channels)
-        assert (
-            self.lframesnet.is_global
-        ), "Non-equivariant model can only handle global lframes"
-
-    def forward(self, embedding):
-        (
-            features_local,
-            _,
-            lframes,
-            ptr,
-            batch,
-            tracker,
-        ) = super().forward(embedding)
-
-        edge_index = get_edge_index_from_ptr(ptr)
-        # network
-        outputs = self.net(x=features_local, edge_index=edge_index)
-
-        # aggregation
-        score = self.extract_score(outputs, ptr)
-        return score, tracker, lframes
-
-
-class BaselineParticleNetWrapper(TaggerWrapper):
-    def __init__(
-        self,
-        net,
-        *args,
-        **kwargs,
-    ):
-        super().__init__(*args, **kwargs)
-        assert (
-            self.lframesnet.is_global
-        ), "Non-equivariant model can only handle global lframes"
-        self.net = net(input_dims=self.in_channels, num_classes=self.out_channels)
-
-    def forward(self, embedding):
-        (
-            features_local,
-            _,
-            lframes,
-            _,
-            batch,
-            tracker,
-        ) = super().forward(embedding)
-        # ParticleNet uses L2 norm in (phi, eta) for kNN
-        phieta_local = features_local[..., [4, 5]]
-
-        phieta_local, mask = to_dense_batch(phieta_local, batch)
-        features_local, _ = to_dense_batch(features_local, batch)
-        phieta_local = phieta_local.transpose(1, 2)
-        features_local = features_local.transpose(1, 2)
-        mask = mask.unsqueeze(1)
-
-        # network
-        score = self.net(
-            points=phieta_local,
-            features=features_local,
-            mask=mask,
-        )
-        return score, tracker, lframes
-
-
-class BaselineParTWrapper(TaggerWrapper):
-    def __init__(
-        self,
-        net,
-        *args,
-        **kwargs,
-    ):
-        super().__init__(*args, **kwargs)
-        assert (
-            self.lframesnet.is_global
-        ), "Non-equivariant model can only handle global lframes"
-        self.net = net(input_dim=self.in_channels, num_classes=self.out_channels)
-
-    def forward(self, embedding):
-        (
-            features_local,
-            fourmomenta_local,
-            lframes,
-            _,
-            batch,
-            tracker,
-        ) = super().forward(embedding)
-        fourmomenta_local = fourmomenta_local.to(features_local.dtype)
-        fourmomenta_local = fourmomenta_local[..., [1, 2, 3, 0]]  # need (px, py, pz, E)
-
-        features_local, mask = to_dense_batch(features_local, batch)
-        fourmomenta_local, _ = to_dense_batch(fourmomenta_local, batch)
-        features_local = features_local.transpose(1, 2)
-        fourmomenta_local = fourmomenta_local.transpose(1, 2)
-        mask = mask.unsqueeze(1).float()
-
-        # network
-        score = self.net(
-            x=features_local,
-            v=fourmomenta_local,
-            mask=mask,
-        )
-        return score, tracker, lframes
 
 
 class GraphNetWrapper(AggregatedTaggerWrapper):
@@ -296,7 +144,7 @@ class GraphNetWrapper(AggregatedTaggerWrapper):
         (
             features_local,
             fourmomenta_local,
-            lframes,
+            frames,
             ptr,
             batch,
             tracker,
@@ -312,14 +160,14 @@ class GraphNetWrapper(AggregatedTaggerWrapper):
         # network
         outputs = self.net(
             inputs=features_local,
-            lframes=lframes,
+            frames=frames,
             edge_index=edge_index,
             edge_attr=edge_attr,
         )
 
         # aggregation
         score = self.extract_score(outputs, ptr)
-        return score, tracker, lframes
+        return score, tracker, frames
 
     def get_edge_attr(self, fourmomenta, edge_index):
         edge_attr = get_edge_attr(fourmomenta, edge_index)
@@ -347,7 +195,7 @@ class TransformerWrapper(AggregatedTaggerWrapper):
         (
             features_local,
             _,
-            lframes,
+            frames,
             ptr,
             batch,
             tracker,
@@ -361,18 +209,18 @@ class TransformerWrapper(AggregatedTaggerWrapper):
 
         # add artificial batch dimension
         features_local = features_local.unsqueeze(0)
-        lframes = lframes.reshape(1, *lframes.shape)
+        frames = frames.reshape(1, *frames.shape)
 
         # network
         with torch.autocast("cuda", enabled=self.use_amp):
             outputs = self.net(
-                inputs=features_local, lframes=lframes, attention_mask=mask
+                inputs=features_local, frames=frames, attention_mask=mask
             )
 
         # aggregation
         outputs = outputs[0, ...]
         score = self.extract_score(outputs, ptr)
-        return score, tracker, lframes
+        return score, tracker, frames
 
 
 class ParticleNetWrapper(AggregatedTaggerWrapper):
@@ -389,7 +237,7 @@ class ParticleNetWrapper(AggregatedTaggerWrapper):
         (
             features_local,
             _,
-            lframes,
+            frames,
             _,
             batch,
             tracker,
@@ -400,20 +248,20 @@ class ParticleNetWrapper(AggregatedTaggerWrapper):
         features_local, _ = to_dense_batch(features_local, batch)
         phieta_local = phieta_local.transpose(1, 2)
         features_local = features_local.transpose(1, 2)
-        dense_lframes, _ = to_dense_batch(lframes.matrices, batch)
-        dense_lframes[~mask] = (
-            torch.eye(4, device=dense_lframes.device, dtype=dense_lframes.dtype)
+        dense_frames, _ = to_dense_batch(frames.matrices, batch)
+        dense_frames[~mask] = (
+            torch.eye(4, device=dense_frames.device, dtype=dense_frames.dtype)
             .unsqueeze(0)
             .expand((~mask).sum(), -1, -1)
         )
 
-        lframes = LFrames(
-            dense_lframes.view(-1, 4, 4),
-            is_global=lframes.is_global,
-            is_identity=lframes.is_identity,
-            device=lframes.device,
-            dtype=lframes.dtype,
-            shape=lframes.matrices.shape,
+        frames = Frames(
+            dense_frames.view(-1, 4, 4),
+            is_global=frames.is_global,
+            is_identity=frames.is_identity,
+            device=frames.device,
+            dtype=frames.dtype,
+            shape=frames.matrices.shape,
         )
         mask = mask.unsqueeze(1)
 
@@ -421,17 +269,17 @@ class ParticleNetWrapper(AggregatedTaggerWrapper):
         score = self.net(
             points=phieta_local,
             features=features_local,
-            lframes=lframes,
+            frames=frames,
             mask=mask,
         )
-        return score, tracker, lframes
+        return score, tracker, frames
 
 
 class LGATrWrapper(nn.Module):
     def __init__(
         self,
         net,
-        lframesnet,
+        framesnet,
         out_channels,
         mean_aggregation=False,
         use_amp=False,
@@ -441,8 +289,8 @@ class LGATrWrapper(nn.Module):
         self.net = net(out_mv_channels=out_channels)
         self.aggregator = MeanAggregation() if mean_aggregation else None
 
-        self.lframesnet = lframesnet  # not actually used
-        assert isinstance(lframesnet, IdentityLFrames)
+        self.framesnet = framesnet  # not actually used
+        assert isinstance(framesnet, IdentityFrames)
 
     def forward(self, embedding):
         # extract embedding (includes spurions)
@@ -558,7 +406,7 @@ class ParTWrapper(TaggerWrapper):
         (
             features_local,
             fourmomenta_local,
-            lframes,
+            frames,
             _,
             batch,
             tracker,
@@ -571,23 +419,23 @@ class ParTWrapper(TaggerWrapper):
         features_local = features_local.transpose(1, 2)
         fourmomenta_local = fourmomenta_local.transpose(1, 2)
 
-        lframes_matrices, _ = to_dense_batch(lframes.matrices, batch)
-        det, _ = to_dense_batch(lframes.det, batch)
-        inv, _ = to_dense_batch(lframes.inv, batch)
-        lframes_matrices[~mask] = lorentz_eye(
-            lframes_matrices[~mask].shape[:-2],
-            device=lframes.device,
-            dtype=lframes.dtype,
+        frames_matrices, _ = to_dense_batch(frames.matrices, batch)
+        det, _ = to_dense_batch(frames.det, batch)
+        inv, _ = to_dense_batch(frames.inv, batch)
+        frames_matrices[~mask] = lorentz_eye(
+            frames_matrices[~mask].shape[:-2],
+            device=frames.device,
+            dtype=frames.dtype,
         )
-        lframes = LFrames(
-            matrices=lframes_matrices,
-            is_global=lframes.is_global,
+        frames = Frames(
+            matrices=frames_matrices,
+            is_global=frames.is_global,
             det=det,
             inv=inv,
-            is_identity=lframes.is_identity,
-            device=lframes.device,
-            dtype=lframes.dtype,
-            shape=lframes.matrices.shape,
+            is_identity=frames.is_identity,
+            device=frames.device,
+            dtype=frames.dtype,
+            shape=frames.matrices.shape,
         )
 
         mask = mask.unsqueeze(1).float()
@@ -595,20 +443,20 @@ class ParTWrapper(TaggerWrapper):
         # network
         score = self.net(
             x=features_local,
-            lframes=lframes,
+            frames=frames,
             v=fourmomenta_local,
             mask=mask,
         )
-        return score, tracker, lframes
+        return score, tracker, frames
 
 
 class MIParTWrapper(ParTWrapper):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        assert isinstance(self.lframesnet, IdentityLFrames)
+        assert isinstance(self.framesnet, IdentityFrames)
 
     def forward(self, embedding):
-        (features_local, fourmomenta_local, lframes, _, batch, tracker,) = super(
+        (features_local, fourmomenta_local, frames, _, batch, tracker,) = super(
             ParTWrapper, self
         ).forward(embedding)
         fourmomenta_local = fourmomenta_local.to(features_local.dtype)
@@ -626,21 +474,21 @@ class MIParTWrapper(ParTWrapper):
             v=fourmomenta_local,
             mask=mask,
         )
-        return score, tracker, lframes
+        return score, tracker, frames
 
 
 class LorentzNetWrapper(nn.Module):
     def __init__(
         self,
         net,
-        lframesnet,
+        framesnet,
         out_channels,
     ):
         super().__init__()
         self.net = net(n_class=out_channels)
 
-        self.lframesnet = lframesnet  # not actually used
-        assert isinstance(lframesnet, IdentityLFrames)
+        self.framesnet = framesnet  # not actually used
+        assert isinstance(framesnet, IdentityFrames)
 
     def forward(self, embedding):
         # extract embedding (includes spurions)
@@ -660,11 +508,11 @@ class LorentzNetWrapper(nn.Module):
 
 
 class PELICANWrapper(nn.Module):
-    def __init__(self, net, lframesnet, out_channels):
+    def __init__(self, net, framesnet, out_channels):
         super().__init__()
         self.net = net(out_channels=out_channels)
-        self.lframesnet = lframesnet
-        assert isinstance(lframesnet, IdentityLFrames)
+        self.framesnet = framesnet
+        assert isinstance(framesnet, IdentityFrames)
 
     def forward(self, embedding):
         # extract embedding (includes spurions)
@@ -685,11 +533,11 @@ class PELICANWrapper(nn.Module):
 
 
 class CGENNWrapper(nn.Module):
-    def __init__(self, net, lframesnet, out_channels):
+    def __init__(self, net, framesnet, out_channels):
         super().__init__()
         self.net = net(n_outputs=out_channels)
-        self.lframesnet = lframesnet
-        assert isinstance(lframesnet, IdentityLFrames)
+        self.framesnet = framesnet
+        assert isinstance(framesnet, IdentityFrames)
 
     def forward(self, embedding):
         # we mimic the CGENN wrapper of

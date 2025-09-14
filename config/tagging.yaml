@@ -1,5 +1,5 @@
 data:
- add_tagging_features_lframesnet: true
+ add_tagging_features_framesnet: true
  boost_jet: false
  beam_reference: lightlike
  two_beams: true
@@ -12,7 +12,6 @@ evaluation:
  batchsize: 512
  save_roc: false
  eval_set: [train, test, val]
- save_lframes: false
 
 plotting:
  roc: true

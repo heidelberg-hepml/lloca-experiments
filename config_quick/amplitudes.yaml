@@ -14,7 +14,6 @@ data:
 
 evaluation:
  eval_set: [train, test, val]
- save_lframes: false
 
 plotting:
  histograms: true

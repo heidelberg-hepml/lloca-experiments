@@ -2,7 +2,7 @@ _target_: experiments.eventgen.wrappers.GraphNetCFM
 include_edges: false
 
 net:
- _target_: lloca.nn.graphnet.GraphNet
+ _target_: lloca.backbone.graphnet.GraphNet
 
  in_channels: null
  out_channels: null
@@ -14,4 +14,4 @@ net:
  num_layers_mlp2: 0
 
 defaults:
- - lframesnet: identity
+ - framesnet: identity

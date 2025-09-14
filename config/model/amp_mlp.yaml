@@ -3,7 +3,7 @@ particle_type: null
 network_float64: null
 
 net:
- _target_: lloca.nn.mlp.MLP
+ _target_: lloca.backbone.mlp.MLP
 
  in_shape: null
  out_shape: 1
@@ -11,4 +11,4 @@ net:
  hidden_layers: 5
 
 defaults:
- - lframesnet: identity
+ - framesnet: identity

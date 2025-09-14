@@ -1,7 +1,7 @@
 _target_: experiments.eventgen.wrappers.TransformerCFM
 
 net:
- _target_: lloca.nn.transformer.Transformer
+ _target_: lloca.backbone.transformer.Transformer
 
  in_channels: null
  out_channels: null
@@ -11,4 +11,4 @@ net:
  num_heads: 8
 
 defaults:
- - lframesnet: identity
+ - framesnet: identity
