@@ -2,7 +2,6 @@ import numpy as np
 import torch
 from torch_geometric.loader import DataLoader
 import os, time
-from torch_geometric.utils import to_dense_batch
 
 from sklearn.metrics import roc_curve, roc_auc_score, accuracy_score
 

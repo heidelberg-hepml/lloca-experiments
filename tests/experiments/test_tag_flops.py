@@ -40,7 +40,7 @@ def test_tagging(framesnet, model_list, jet_size=50):
     exp.init_physics()
     try:
         exp.init_model()
-    except Exception as e:
+    except Exception:
         return
     exp.init_data()
     exp._init_dataloader()
