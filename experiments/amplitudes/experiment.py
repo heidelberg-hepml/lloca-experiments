@@ -174,14 +174,6 @@ class AmplitudeExperiment(BaseExperiment):
         amp_model_prepd = torch.cat(amp_model_prepd, dim=0)
         frames_list = torch.cat(frames_list, dim=0)
 
-        # save frames
-        if self.cfg.evaluation.save_frames and title == "test":
-            path = os.path.join(self.cfg.run_dir, f"plots_{self.cfg.run_idx}")
-            os.makedirs(path, exist_ok=True)
-            filename = os.path.join(path, f"frames_{title}.npy")
-            LOGGER.info(f"Saving frames to {filename}")
-            np.save(filename, frames_list.numpy())
-
         # MSE over preprocessed amplitudes
         mse_prepd = torch.mean((amp_model_prepd - amp_truth_prepd) ** 2)
         LOGGER.info(f"MSE on {title} dataset: {mse_prepd:.4e}")

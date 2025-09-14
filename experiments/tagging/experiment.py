@@ -187,37 +187,13 @@ class TaggingExperiment(BaseExperiment):
 
         # predictions
         labels_true, labels_predict = [], []
-        frames_list = []
         self.model.eval()
         for batch in loader:
-            y_pred, label, _, frames = self._get_ypred_and_label(batch)
+            y_pred, label, _, _ = self._get_ypred_and_label(batch)
             y_pred = torch.nn.functional.sigmoid(y_pred)
             labels_true.append(label.cpu().float())
             labels_predict.append(y_pred.cpu().float())
-
-            if self.cfg.evaluation.save_frames:
-                frames = frames.matrices.cpu()
-                frames_dense, _ = to_dense_batch(frames, batch.batch)  # zero-pad
-                frames_list.append(frames_dense)
         labels_true, labels_predict = torch.cat(labels_true), torch.cat(labels_predict)
-
-        # save frames
-        if self.cfg.evaluation.save_frames and title == "test":
-            # zero-pad across batches
-            max_particles = max(frames.shape[1] for frames in frames_list)
-            frames_list_pad = [
-                torch.nn.functional.pad(
-                    frames, (0, 0, 0, 0, 0, max_particles - frames.shape[1])
-                )
-                for frames in frames_list
-            ]
-            frames_list = torch.cat(frames_list_pad, dim=0)
-
-            path = os.path.join(self.cfg.run_dir, f"plots_{self.cfg.run_idx}")
-            os.makedirs(path, exist_ok=True)
-            filename = os.path.join(path, f"frames_{title}.npy")
-            LOGGER.info(f"Saving frames to {filename}")
-            np.save(filename, frames_list.numpy())
 
         if mode == "eval":
             metrics["labels_true"], metrics["labels_predict"] = (
@@ -267,13 +243,13 @@ class TaggingExperiment(BaseExperiment):
                 log_mlflow(f"{name}.{key}", value, step=step)
 
         if mode == "eval":
-            lframeString = type(self.model.framesnet).__name__
+            framesString = type(self.model.framesnet).__name__
             num_parameters = sum(
                 p.numel() for p in self.model.parameters() if p.requires_grad
             )
 
             LOGGER.info(
-                f"table {title}: {lframeString} ({self.cfg.training.iterations} iterations)"
+                f"table {title}: {framesString} ({self.cfg.training.iterations} iterations)"
                 f" & {num_parameters} & {metrics['accuracy']:.4f} & {metrics['auc']:.4f}"
                 f" & {metrics['rej03']:.0f} & {metrics['rej05']:.0f} & {metrics['rej08']:.0f} \\\\"
             )
