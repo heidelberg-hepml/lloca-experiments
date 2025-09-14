@@ -2,7 +2,6 @@ from functools import partial
 from typing import Optional
 
 import torch
-from einops import rearrange
 from torch import nn
 from torch.utils.checkpoint import checkpoint
 
@@ -63,12 +62,12 @@ class MultiHeadQKVLinear(nn.Module):
             Values
         """
         qkv = self.linear(inputs)  # (..., num_items, 3 * hidden_channels * num_heads)
-        q, k, v = rearrange(
-            qkv,
-            "... items (qkv hidden_channels num_heads) -> qkv ... num_heads items hidden_channels",
-            num_heads=self.num_heads,
-            qkv=3,
-        )
+
+        *leading, items, last = qkv.shape
+        hidden_channels = last // (3 * self.num_heads)
+        qkv = qkv.view(*leading, items, 3, hidden_channels, self.num_heads)
+        qkv = qkv.movedim(-3, 0).movedim(-1, len(leading) + 1)
+        q, k, v = qkv.unbind(dim=0)  # 3x (..., num_heads, num_items, hidden_channels)
         return q, k, v
 
 
@@ -109,11 +108,13 @@ class MultiQueryQKVLinear(nn.Module):
         v : Tensor
             Values
         """
-        q = rearrange(
-            self.q_linear(inputs),
-            "... items (hidden_channels num_heads) -> ... num_heads items hidden_channels",
-            num_heads=self.num_heads,
-        )
+        q = self.q_linear(inputs)
+
+        *leading, items, last = q.shape
+        hidden_channels = last // self.num_heads
+        q = q.reshape(*leading, items, self.num_heads, hidden_channels)
+        q = q.movedim(-2, -3)
+
         k = self.k_linear(inputs)[
             ..., None, :, :
         ]  # (..., head=1, item, hidden_channels)
@@ -201,10 +202,10 @@ class BaselineSelfAttention(nn.Module):
         )
 
         # Concatenate heads and transform linearly
-        h = rearrange(
-            h,
-            "... num_heads num_items hidden_channels -> ... num_items (num_heads hidden_channels)",
-        )
+        *leading, num_heads, num_items, hidden_channels = h.shape
+        h = h.permute(*range(len(leading)), -2, -3, -1)
+        h = h.reshape(*leading, num_items, num_heads * hidden_channels)
+
         outputs = self.out_linear(h)  # (..., num_items, out_channels)
 
         if self.dropout is not None:

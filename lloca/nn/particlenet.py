@@ -13,7 +13,6 @@ Use 'git diff --no-index experiments/baselines/particlenet.py lloca/nn/particlen
 to see the changes required to include frame-to-frame transformations.
 """
 
-import numpy as np
 import torch
 import torch.nn as nn
 
@@ -260,7 +259,7 @@ class ParticleNet(nn.Module):
         self.use_fusion = use_fusion
         if self.use_fusion:
             in_chn = sum(x[-1] for _, x in conv_params)
-            out_chn = np.clip((in_chn // 128) * 128, 128, 1024)
+            out_chn = max(128, min((in_chn // 128) * 128, 1024))
             self.fusion_block = nn.Sequential(
                 nn.Conv1d(in_chn, out_chn, kernel_size=1, bias=False),
                 nn.BatchNorm1d(out_chn),

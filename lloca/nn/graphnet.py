@@ -2,7 +2,6 @@ import torch
 from torch import nn
 from torch.utils.checkpoint import checkpoint
 
-
 from .lloca_message_passing import LLoCaMessagePassing
 from .mlp import MLP
 from ..reps.tensorreps import TensorReps

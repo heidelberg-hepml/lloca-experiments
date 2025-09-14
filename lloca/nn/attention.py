@@ -7,11 +7,7 @@ from torch.nn.functional import scaled_dot_product_attention as torch_sdpa
 from xformers.ops import AttentionBias, memory_efficient_attention
 from xformers.ops.fmha import BlockDiagonalMask
 
-from ..frames.frames import (
-    Frames,
-    InverseFrames,
-    LowerIndicesFrames,
-)
+from ..frames.frames import Frames, InverseFrames, LowerIndicesFrames
 from ..reps.tensorreps import TensorReps
 from ..reps.tensorreps_transform import TensorRepsTransform
 
@@ -108,7 +104,7 @@ class LLoCaAttention(torch.nn.Module):
             Attention output in local frame of shape (*dims, H, N, C)
         """
         if self.frames.is_global:
-            # shortcut if global_frame = local_frame
+            # fallback to standard attention for global frames
             return scaled_dot_product_attention(
                 q_local,
                 k_local,
@@ -120,6 +116,7 @@ class LLoCaAttention(torch.nn.Module):
         assert k_local.shape == v_local.shape == q_local.shape  # has to match perfectly
         assert 3 * prod(k_local.shape[:-1]) == self.frames_qkv.shape[-3]
 
+        # transform q, k, v into global frame
         qkv_local = torch.stack([q_local, k_local, v_local], dim=0)
         qkv_global = self.transform(qkv_local, self.frames_qkv)
         q_global, k_global, v_global = torch.unbind(qkv_global, dim=0)
@@ -140,7 +137,7 @@ class LLoCaAttention(torch.nn.Module):
 
         out_global = out_global.view(*shape_q)  # (*dims, H, N, C)
 
-        # transform out back into local frame
+        # transform result back into local frame
         out_local = self.transform(out_global, self.frames)
         return out_local
 

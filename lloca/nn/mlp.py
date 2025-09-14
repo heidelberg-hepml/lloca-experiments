@@ -1,6 +1,6 @@
 from typing import List
 
-import numpy as np
+import math
 import torch
 from torch import nn
 
@@ -22,7 +22,7 @@ class MLP(nn.Module):
         self.in_shape = in_shape
         self.out_shape = out_shape
 
-        layers: List[nn.Module] = [nn.Linear(np.prod(in_shape), hidden_channels)]
+        layers: List[nn.Module] = [nn.Linear(prod(in_shape), hidden_channels)]
         if dropout_prob is not None:
             layers.append(nn.Dropout(dropout_prob))
         for _ in range(hidden_layers - 1):
@@ -32,9 +32,16 @@ class MLP(nn.Module):
                 layers.append(nn.Dropout(dropout_prob))
 
         layers.append(nn.GELU())
-        layers.append(nn.Linear(hidden_channels, np.prod(self.out_shape)))
+        layers.append(nn.Linear(hidden_channels, prod(self.out_shape)))
         self.mlp = nn.Sequential(*layers)
 
     def forward(self, inputs: torch.Tensor):
         """Forward pass of MLP."""
         return self.mlp(inputs)
+
+
+def prod(shape):
+    if isinstance(shape, int):
+        return shape
+    else:
+        return math.prod(shape)

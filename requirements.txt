@@ -4,7 +4,6 @@
 # experiment management
 hydra-core
 mlflow==2.4.1
-tqdm
 pytest
 black==22.3.0
 
@@ -21,8 +20,6 @@ matplotlib
 # project-specific
 xformers
 torch-cluster>=1.6.3
-einops
-opt_einsum
 torchdiffeq
 lgatr[xformers_attention]>=1.2.0
 
