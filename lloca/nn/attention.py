@@ -3,13 +3,11 @@ from typing import Optional, Union
 from math import prod
 import torch
 from torch import Tensor
-from torch.nn.functional import scaled_dot_product_attention as torch_sdpa
-from xformers.ops import AttentionBias, memory_efficient_attention
-from xformers.ops.fmha import BlockDiagonalMask
 
 from ..frames.frames import Frames, InverseFrames, LowerIndicesFrames
 from ..reps.tensorreps import TensorReps
 from ..reps.tensorreps_transform import TensorRepsTransform
+from .attention_backends import get_attention_backend
 
 
 class LLoCaAttention(torch.nn.Module):
@@ -146,87 +144,27 @@ def scaled_dot_product_attention(
     query: Tensor,
     key: Tensor,
     value: Tensor,
-    attn_mask: Optional[Union[AttentionBias, Tensor]] = None,
-    is_causal=False,
-    dropout_p=0.0,
+    **attn_kwargs,
 ) -> Tensor:
-    """Execute (vanilla) scaled dot-product attention.
-
-    Dynamically dispatch to xFormers if attn_mask is an instance of xformers.ops.AttentionBias
-
-    Parameters
-    ----------
-    query : Tensor
-        of shape [batch, head, item, d]
-    key : Tensor
-        of shape [batch, head, item, d]
-    value : Tensor
-        of shape [batch, head, item, d]
-    attn_mask : Optional[Union[AttentionBias, Tensor]]
-        Attention mask
-    is_causal: bool
-
-    Returns
-    -------
-    Tensor
-        of shape [batch, head, item, d]
-    """
-    if isinstance(attn_mask, AttentionBias):
-        in_dtype = query.dtype
-        query, key, value = (
-            query.to(torch.float32),
-            key.to(torch.float32),
-            value.to(torch.float32),
-        )
-        assert (
-            not is_causal
-        ), "is_causal=True not implemented yet for xformers attention"
-        if key.shape[1] != query.shape[1]:  # required to make multi_query work
-            key = key.expand(key.shape[0], query.shape[1], *key.shape[2:])
-            value = value.expand(value.shape[0], query.shape[1], *value.shape[2:])
-        query = query.transpose(
-            1, 2
-        )  # [batch, head, item, d] -> [batch, item, head, d]
-        key = key.transpose(1, 2)
-        value = value.transpose(1, 2)
-        out = memory_efficient_attention(
-            query.contiguous(),
-            key.contiguous(),
-            value.contiguous(),
-            attn_bias=attn_mask,
-        )
-        out = out.transpose(1, 2)  # [batch, item, head, d] -> [batch, head, item, d]
-        return out.to(in_dtype)
-    return torch_sdpa(
-        query, key, value, attn_mask=attn_mask, is_causal=is_causal, dropout_p=dropout_p
-    )
-
-
-def get_xformers_attention_mask(batch, materialize=False, dtype=torch.float32):
-    """
-    Construct attention mask that makes sure that objects only attend to each other
-    within the same batch element, and not across batch elements
+    """Execute scaled dot-product attention.
+    The attention backend is determined dynamically
+    based on the ``attn_kwargs`` provided.
 
     Parameters
     ----------
-    batch: torch.tensor
-        batch object in the torch_geometric.data naming convention
-        contains batch index for each event in a sparse tensor
-    materialize: bool
-        Decides whether a xformers or ('materialized') torch.tensor mask should be returned
-        The xformers mask allows to use the optimized xformers attention kernel, but only runs on gpu
+    query : torch.Tensor
+        Tensor of shape (..., items_out, channels)
+    key : torch.Tensor
+        Tensor of shape (..., items_in, channels)
+    value : torch.Tensor
+        Tensor of shape (..., items_in, channels)
+    **attn_kwargs
+        Optional keyword arguments passed to attention.
 
     Returns
     -------
-    mask: xformers.ops.fmha.attn_bias.BlockDiagonalMask or torch.tensor
-        attention mask, to be used in xformers.ops.memory_efficient_attention
-        or torch.nn.functional.scaled_dot_product_attention
+    torch.Tensor
+        Tensor of shape (..., head, item_out, channels)
     """
-    bincounts = torch.bincount(batch).tolist()
-    mask = BlockDiagonalMask.from_seqlens(bincounts)
-    if materialize:
-        # materialize mask to torch.tensor (only for testing purposes)
-        mask = mask.materialize(shape=(len(batch), len(batch))).to(
-            batch.device, dtype=dtype
-        )
-    return mask
+    attention_backend = get_attention_backend(**attn_kwargs)
+    return attention_backend(query, key, value, **attn_kwargs)

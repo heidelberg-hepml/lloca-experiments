@@ -13,7 +13,7 @@ from lloca.utils.utils import (
     get_edge_index_from_ptr,
     get_edge_attr,
 )
-from lloca.nn.attention import get_xformers_attention_mask
+from lloca.nn.attention_backends.xformers_attention import get_xformers_attention_mask
 from lloca.utils.lorentz import lorentz_eye
 from lloca.reps.tensorreps import TensorReps
 from lloca.reps.tensorreps_transform import TensorRepsTransform
