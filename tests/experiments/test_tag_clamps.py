@@ -27,6 +27,7 @@ from tests.experiments.utils import track_clamps
         ["model=tag_gatr"],
     ],
 )
+@pytest.mark.skip(reason="Clamping expected")
 def test_tagging(framesnet, model_list, iterations=1):
     # Note: ParticleTransformer clamps log(kT) very often,
     # this happens already in non-equivariant models

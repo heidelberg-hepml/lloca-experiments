@@ -38,6 +38,7 @@ def test_amplitudes(
     rand_trafo,
     breaking_list,
     iterations=1,
+    batchsize=64,
 ):
     experiments.logger.LOGGER.disabled = True  # turn off logging
 
@@ -46,6 +47,7 @@ def test_amplitudes(
         overrides = [
             *model_list,
             f"model/framesnet={framesnet}",
+            f"training.batchsize={batchsize}",
             "save=false",
             "cfm.coordinates=Fourmomenta",
             *breaking_list,

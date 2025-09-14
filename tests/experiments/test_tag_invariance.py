@@ -45,6 +45,7 @@ def test_amplitudes(
     framesnet,
     breaking_list,
     iterations=1,
+    batchsize=4,
 ):
     experiments.logger.LOGGER.disabled = True  # turn off logging
 
@@ -53,6 +54,7 @@ def test_amplitudes(
         overrides = [
             *model_list,
             f"model/framesnet={framesnet}",
+            f"training.batchsize={batchsize}",
             "save=false",
             *breaking_list,
         ]

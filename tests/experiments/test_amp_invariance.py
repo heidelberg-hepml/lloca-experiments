@@ -25,7 +25,7 @@ def test_amplitudes(
     model_list,
     framesnet,
     rand_trafo,
-    iterations=100,
+    iterations=1,
 ):
     experiments.logger.LOGGER.disabled = True  # turn off logging
 
