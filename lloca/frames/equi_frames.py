@@ -62,55 +62,11 @@ class LearnedFrames(FramesPredictor):
         return string
 
 
-class LearnedOrthogonalFrames(LearnedFrames):
+class LearnedPDFrames(LearnedFrames):
+    """Construct Frames as learnable polar decomposition (boost+rotation).
+    This is our default approach.
+    LearnedSO13Frames works similarly well, but is less flexible.
     """
-    Local frames from an orthonormal set of vectors
-    constructed from equivariantly predicted vectors
-    """
-
-    def __init__(
-        self,
-        *args,
-        **kwargs,
-    ):
-        super().__init__(*args, n_vectors=3, **kwargs)
-
-    def forward(self, fourmomenta, scalars=None, ptr=None, return_tracker=False):
-        """
-        Parameters
-        ----------
-        fourmomenta: torch.Tensor
-            Tensor of shape (..., 4) containing the four-momenta
-        scalars: torch.Tensor or None
-            Optional tensor of shape (..., n_scalars) containing additional scalar features
-        ptr: torch.Tensor or None
-            Pointer for sparse tensors, or None for dense tensors
-        return_tracker: bool
-            If True, return a tracker dictionary with regularization information
-
-        Returns
-        -------
-        Frames
-            Local frames constructed from the polar decomposition of the four-momenta
-        tracker: dict (optional)
-            Dictionary containing regularization information, if return_tracker is True
-        """
-        self.init_weights_or_not()
-        vecs = self.equivectors(fourmomenta, scalars=scalars, ptr=ptr)
-        vecs = self.globalize_vecs_or_not(vecs, ptr)
-        vecs = [vecs[..., i, :] for i in range(vecs.shape[-2])]
-
-        trafo, reg_lightlike, reg_coplanar = orthogonalize_4d(
-            vecs, **self.ortho_kwargs, return_reg=True
-        )
-
-        tracker = {"reg_lightlike": reg_lightlike, "reg_coplanar": reg_coplanar}
-        frames = Frames(trafo, is_global=self.is_global)
-        return (frames, tracker) if return_tracker else frames
-
-
-class LearnedPolarDecompositionFrames(LearnedFrames):
-    """Construct Frames as learnable polar decomposition (boost+rotation)"""
 
     def __init__(
         self,
@@ -218,6 +174,53 @@ class LearnedPolarDecompositionFrames(LearnedFrames):
         return boost
 
 
+class LearnedSO13Frames(LearnedFrames):
+    """
+    Local frames from an orthonormal set of Lorentz vectors
+    constructed from equivariantly predicted vectors
+    """
+
+    def __init__(
+        self,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(*args, n_vectors=3, **kwargs)
+
+    def forward(self, fourmomenta, scalars=None, ptr=None, return_tracker=False):
+        """
+        Parameters
+        ----------
+        fourmomenta: torch.Tensor
+            Tensor of shape (..., 4) containing the four-momenta
+        scalars: torch.Tensor or None
+            Optional tensor of shape (..., n_scalars) containing additional scalar features
+        ptr: torch.Tensor or None
+            Pointer for sparse tensors, or None for dense tensors
+        return_tracker: bool
+            If True, return a tracker dictionary with regularization information
+
+        Returns
+        -------
+        Frames
+            Local frames constructed from the polar decomposition of the four-momenta
+        tracker: dict (optional)
+            Dictionary containing regularization information, if return_tracker is True
+        """
+        self.init_weights_or_not()
+        vecs = self.equivectors(fourmomenta, scalars=scalars, ptr=ptr)
+        vecs = self.globalize_vecs_or_not(vecs, ptr)
+        vecs = [vecs[..., i, :] for i in range(vecs.shape[-2])]
+
+        trafo, reg_lightlike, reg_coplanar = orthogonalize_4d(
+            vecs, **self.ortho_kwargs, return_reg=True
+        )
+
+        tracker = {"reg_lightlike": reg_lightlike, "reg_coplanar": reg_coplanar}
+        frames = Frames(trafo, is_global=self.is_global)
+        return (frames, tracker) if return_tracker else frames
+
+
 class LearnedRestFrames(LearnedFrames):
     """Rest frame transformation with learnable equivariant rotation.
     This is a special case of LearnedPolarDecompositionFrames
@@ -266,7 +269,7 @@ class LearnedRestFrames(LearnedFrames):
         return (frames, tracker) if return_tracker else frames
 
 
-class LearnedOrthogonal3DFrames(LearnedFrames):
+class LearnedSO3Frames(LearnedFrames):
     """Local frames under rotations for SO(3)-equivariant architectures.
     This is a special case of LearnedPolarDecompositionFrames
     where the first vector is trivial (1,0,0,0)."""
@@ -324,7 +327,7 @@ class LearnedOrthogonal3DFrames(LearnedFrames):
         return (frames, tracker) if return_tracker else frames
 
 
-class LearnedOrthogonal2DFrames(LearnedFrames):
+class LearnedSO2Frames(LearnedFrames):
     """Local frames for SO(2)-equivariant architectures
     (equivariant under rotations around the beam axis).
     This is a special case of LearnedPolarDecompositionFrames

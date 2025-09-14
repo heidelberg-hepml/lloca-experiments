@@ -4,7 +4,7 @@ import hydra
 
 import experiments.logger
 from experiments.tagging.experiment import TopTaggingExperiment
-from lloca.utils.transforms import (
+from lloca.utils.rand_transforms import (
     rand_rotation,
     rand_lorentz,
     rand_xyrotation,
@@ -38,7 +38,7 @@ BREAKING = [
         ]
     ),
 )
-@pytest.mark.parametrize("framesnet", ["polardec", "orthogonal"])
+@pytest.mark.parametrize("framesnet", ["learnedpd", "learnedso13"])
 def test_amplitudes(
     rand_trafo,
     model_list,

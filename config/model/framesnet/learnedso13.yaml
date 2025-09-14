@@ -1,4 +1,4 @@
-_target_: lloca.frames.equi_frames.LearnedOrthogonalFrames
+_target_: lloca.frames.equi_frames.LearnedSO13Frames
 is_global: false
 random: false
 fix_params: false
@@ -9,4 +9,4 @@ ortho_kwargs:
  eps_reg_lightlike: 1e-10
 
 defaults:
- - equivectors: equigraph
+ - equivectors: equimlp

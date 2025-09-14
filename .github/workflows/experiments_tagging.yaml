@@ -30,41 +30,41 @@ jobs:
       run: |
         python run.py model=tag_transformer save=false evaluate=false training.iterations=3
 
-    - name: Transformer + LearnedPolarDecompositionFrames
+    - name: Transformer + LearnedPDFrames
       run: |
-        python run.py model=tag_transformer model/framesnet=polardec save=false evaluate=false training.iterations=3
+        python run.py model=tag_transformer model/framesnet=learnedpd save=false evaluate=false training.iterations=3
 
-    - name: Transformer + LearnedPolarDecompositionFrames no symmetry breaking
+    - name: Transformer + LearnedPDFrames no symmetry breaking
       run: |
-        python run.py model=tag_transformer model/framesnet=polardec save=false evaluate=false training.iterations=3 data.add_tagging_features_framesnet=False data.add_time_reference=false data.beam_reference=null
+        python run.py model=tag_transformer model/framesnet=learnedpd save=false evaluate=false training.iterations=3 data.add_tagging_features_framesnet=False data.add_time_reference=false data.beam_reference=null
 
     - name: GraphNet + IdentityFrames
       run: |
         python run.py save=false evaluate=false training.iterations=3
 
-    - name: GraphNet + LearnedPolarDecompositionFrames
+    - name: GraphNet + LearnedPDFrames
       run: |
-        python run.py model=tag_graphnet model/framesnet=polardec save=false evaluate=false training.iterations=3
+        python run.py model=tag_graphnet model/framesnet=learnedpd save=false evaluate=false training.iterations=3
 
-    - name: GraphNet + LearnedPolarDecompositionFrames with edge attributes
+    - name: GraphNet + LearnedPDFrames with edge attributes
       run: |
-        python run.py model=tag_graphnet model/framesnet=polardec save=false evaluate=false training.iterations=3 model.include_edges=true
+        python run.py model=tag_graphnet model/framesnet=learnedpd save=false evaluate=false training.iterations=3 model.include_edges=true
 
     - name: ParticleNet + Identity
       run: |
         python run.py model=tag_particlenet-lite save=false evaluate=false training.iterations=3
     
-    - name: ParticleNet + LearnedPolarDecompositionFrames
+    - name: ParticleNet + LearnedPDFrames
       run: |
-        python run.py model=tag_particlenet-lite model/framesnet=polardec save=false evaluate=false training.iterations=3
+        python run.py model=tag_particlenet-lite model/framesnet=learnedpd save=false evaluate=false training.iterations=3
 
-    - name: ParT + LearnedPolarDecompositionFrames
+    - name: ParT + LearnedPDFrames
       run: |
-        python run.py model=tag_ParT model/framesnet=polardec save=false evaluate=false training.iterations=3
+        python run.py model=tag_ParT model/framesnet=learnedpd save=false evaluate=false training.iterations=3
 
-    - name: ParT without pairwise features + LearnedPolarDecompositionFrames
+    - name: ParT without pairwise features + LearnedPDFrames
       run: |
-        python run.py model=tag_ParT model/framesnet=polardec save=false evaluate=false training.iterations=3 model.net.pair_input_dim=0
+        python run.py model=tag_ParT model/framesnet=learnedpd save=false evaluate=false training.iterations=3 model.net.pair_input_dim=0
 
     - name: GATr
       run: |

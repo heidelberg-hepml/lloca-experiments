@@ -7,4 +7,4 @@ ortho_kwargs:
  eps_reg: 1e-4
 
 defaults:
- - equivectors: equigraph
+ - equivectors: equimlp

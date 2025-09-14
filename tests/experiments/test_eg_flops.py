@@ -10,7 +10,7 @@ from experiments.eventgen.processes import ttbarExperiment
     "framesnet",
     [
         "identity",
-        "polardec",
+        "learnedpd",
     ],
 )
 @pytest.mark.parametrize(

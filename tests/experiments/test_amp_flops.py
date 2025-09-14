@@ -6,7 +6,7 @@ import experiments.logger
 from experiments.amplitudes.experiment import AmplitudeExperiment
 
 
-@pytest.mark.parametrize("framesnet", ["identity", "polardec"])
+@pytest.mark.parametrize("framesnet", ["identity", "learnedpd"])
 @pytest.mark.parametrize(
     "model_list",
     [

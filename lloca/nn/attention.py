@@ -10,7 +10,7 @@ from xformers.ops.fmha import BlockDiagonalMask
 from ..frames.frames import (
     Frames,
     InverseFrames,
-    LowerIndices,
+    LowerIndicesFrames,
 )
 from ..reps.tensorreps import TensorReps
 from ..reps.tensorreps_transform import TensorRepsTransform
@@ -51,7 +51,7 @@ class LLoCaAttention(torch.nn.Module):
 
             # create inv_frames and lower_inv_frames
             inv_frames = InverseFrames(self.frames)
-            lower_inv_frames = LowerIndices(inv_frames)
+            lower_inv_frames = LowerIndicesFrames(inv_frames)
 
             # qkv = (inv_frames, lower_inv_frames, inv_frames)
             # note that (lower_inv_frames, inv_frames, inv_frames) is equivalent

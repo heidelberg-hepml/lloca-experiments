@@ -1,4 +1,4 @@
-_target_: lloca.frames.equi_frames.LearnedPolarDecompositionFrames
+_target_: lloca.frames.equi_frames.LearnedPDFrames
 is_global: false
 random: false
 fix_params: false
@@ -11,4 +11,4 @@ ortho_kwargs:
  eps_reg: 1e-10
 
 defaults:
- - equivectors: equigraph
+ - equivectors: equimlp

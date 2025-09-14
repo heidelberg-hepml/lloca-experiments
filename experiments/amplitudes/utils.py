@@ -5,7 +5,7 @@ import torch
 from experiments.amplitudes.constants import get_mass
 
 from lloca.utils.lorentz import lorentz_eye
-from lloca.utils.transforms import rand_lorentz
+from lloca.utils.rand_transforms import rand_lorentz
 from lloca.utils.polar_decomposition import restframe_boost
 
 

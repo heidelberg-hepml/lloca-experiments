@@ -3,8 +3,8 @@ import pytest
 from tests.constants import TOLERANCES, LOGM2_MEAN_STD
 from tests.helpers import sample_particle
 
-from lloca.equivectors.equigraph import EquiGraphNet
-from lloca.utils.transforms import rand_lorentz
+from lloca.equivectors.equimlp import EquiMLP
+from lloca.utils.rand_transforms import rand_lorentz
 
 
 @pytest.mark.parametrize("batch_dims", [[100]])
@@ -44,7 +44,7 @@ def test_equivariance(
 
     # input to mlp: only edge attributes
     calc_node_attr = lambda fm: torch.zeros(*fm.shape[:-1], num_scalars, dtype=dtype)
-    equivectors = EquiGraphNet(
+    equivectors = EquiMLP(
         n_vectors=n_vectors,
         num_scalars=num_scalars,
         hidden_channels=hidden_channels,

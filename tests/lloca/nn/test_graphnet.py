@@ -7,7 +7,7 @@ from torch_geometric.utils import dense_to_sparse
 from lloca.nn.graphnet import EdgeConv, GraphNet
 from lloca.reps.tensorreps import TensorReps
 from lloca.reps.tensorreps_transform import TensorRepsTransform
-from lloca.utils.transforms import rand_lorentz
+from lloca.utils.rand_transforms import rand_lorentz
 from lloca.frames.frames import InverseFrames
 
 

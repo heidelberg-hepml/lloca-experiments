@@ -8,10 +8,7 @@ from lloca.utils.polar_decomposition import (
     polar_decomposition,
 )
 from lloca.utils.lorentz import lorentz_squarednorm
-from lloca.utils.transforms import (
-    rand_lorentz,
-    rand_rotation,
-)
+from lloca.utils.rand_transforms import rand_lorentz, rand_rotation
 
 
 @pytest.mark.parametrize("batch_dims", BATCH_DIMS)

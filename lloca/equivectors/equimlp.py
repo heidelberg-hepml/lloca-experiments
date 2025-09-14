@@ -224,7 +224,7 @@ class EquiEdgeConv(MessagePassing):
             )
 
 
-class EquiGraphNet(EquiVectors):
+class EquiMLP(EquiVectors):
     def __init__(
         self,
         n_vectors,

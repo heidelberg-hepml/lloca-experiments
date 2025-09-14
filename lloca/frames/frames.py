@@ -231,7 +231,7 @@ class ChangeOfFrames(Frames):
             )
 
 
-class LowerIndices(Frames):
+class LowerIndicesFrames(Frames):
     """
     Frames with lower indices
     Used in LLoCaAttention to lower the key indices

@@ -5,25 +5,25 @@ from tests.helpers import sample_particle, lorentz_test, equivectors_builder
 
 from lloca.reps.tensorreps import TensorReps
 from lloca.reps.tensorreps_transform import TensorRepsTransform
-from lloca.utils.transforms import rand_lorentz, rand_rotation, rand_xyrotation
+from lloca.utils.rand_transforms import rand_lorentz, rand_rotation, rand_xyrotation
 from lloca.frames.frames import Frames
 from lloca.frames.equi_frames import (
-    LearnedOrthogonalFrames,
+    LearnedSO13Frames,
     LearnedRestFrames,
-    LearnedPolarDecompositionFrames,
-    LearnedOrthogonal3DFrames,
-    LearnedOrthogonal2DFrames,
+    LearnedPDFrames,
+    LearnedSO3Frames,
+    LearnedSO2Frames,
 )
 
 
 @pytest.mark.parametrize(
     "FramesPredictor,rand_trafo",
     [
-        (LearnedOrthogonalFrames, rand_lorentz),
+        (LearnedSO13Frames, rand_lorentz),
         (LearnedRestFrames, rand_lorentz),
-        (LearnedPolarDecompositionFrames, rand_lorentz),
-        (LearnedOrthogonal3DFrames, rand_rotation),
-        (LearnedOrthogonal2DFrames, rand_xyrotation),
+        (LearnedPDFrames, rand_lorentz),
+        (LearnedSO3Frames, rand_rotation),
+        (LearnedSO2Frames, rand_xyrotation),
     ],
 )
 @pytest.mark.parametrize("batch_dims", [[10]])
@@ -69,11 +69,11 @@ def test_frames_transformation(
 @pytest.mark.parametrize(
     "FramesPredictor,rand_trafo",
     [
-        (LearnedOrthogonalFrames, rand_lorentz),
+        (LearnedSO13Frames, rand_lorentz),
         (LearnedRestFrames, rand_lorentz),
-        (LearnedPolarDecompositionFrames, rand_lorentz),
-        (LearnedOrthogonal3DFrames, rand_rotation),
-        (LearnedOrthogonal2DFrames, rand_xyrotation),
+        (LearnedPDFrames, rand_lorentz),
+        (LearnedSO3Frames, rand_rotation),
+        (LearnedSO2Frames, rand_xyrotation),
     ],
 )
 @pytest.mark.parametrize("batch_dims", [[10]])

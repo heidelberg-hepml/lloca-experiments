@@ -3,7 +3,7 @@ import pytest
 from tests.constants import TOLERANCES, MILD_TOLERANCES, BATCH_DIMS
 from tests.helpers import lorentz_test
 
-from lloca.utils.transforms import (
+from lloca.utils.rand_transforms import (
     rand_lorentz,
     rand_rotation,
     rand_xyrotation,

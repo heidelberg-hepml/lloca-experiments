@@ -7,7 +7,7 @@ import experiments.logger
 from experiments.tagging.experiment import TopTaggingExperiment
 
 
-@pytest.mark.parametrize("framesnet", ["identity", "polardec"])
+@pytest.mark.parametrize("framesnet", ["identity", "learnedpd"])
 @pytest.mark.parametrize(
     "model_list",
     [

@@ -30,25 +30,25 @@ jobs:
       run: |
         python run.py -cn ttbar model=eg_mlp save=false evaluate=false training.iterations=3
 
-    - name: MLP + LearnedPolarDecompositionFrames
+    - name: MLP + LearnedPDFrames
       run: |
-        python run.py -cn ttbar model=eg_mlp model/framesnet=polardec save=false evaluate=false training.iterations=3
+        python run.py -cn ttbar model=eg_mlp model/framesnet=learnedpd save=false evaluate=false training.iterations=3
 
     - name: Transformer + IdentityFrames
       run: |
         python run.py -cn ttbar model=eg_transformer save=false evaluate=false training.iterations=3
 
-    - name: Transformer + LearnedPolarDecompositionFrames
+    - name: Transformer + LearnedPDFrames
       run: |
-        python run.py -cn ttbar model=eg_transformer model/framesnet=polardec save=false evaluate=false training.iterations=3
+        python run.py -cn ttbar model=eg_transformer model/framesnet=learnedpd save=false evaluate=false training.iterations=3
 
     - name: GraphNet + IdentityFrames
       run: |
         python run.py -cn ttbar model=eg_graphnet save=false evaluate=false training.iterations=3
 
-    - name: GraphNet + LearnedPolarDecompositionFrames
+    - name: GraphNet + LearnedPDFrames
       run: |
-        python run.py -cn ttbar model=eg_graphnet model/framesnet=polardec save=false evaluate=false training.iterations=3
+        python run.py -cn ttbar model=eg_graphnet model/framesnet=learnedpd save=false evaluate=false training.iterations=3
 
     - name: GATr
       run: |

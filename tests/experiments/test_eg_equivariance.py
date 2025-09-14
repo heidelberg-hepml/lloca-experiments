@@ -4,7 +4,7 @@ import hydra
 
 import experiments.logger
 from experiments.eventgen.processes import ttbarExperiment
-from lloca.utils.transforms import rand_rotation, rand_lorentz, rand_xyrotation
+from lloca.utils.rand_transforms import rand_rotation, rand_lorentz, rand_xyrotation
 
 BREAKING = [
     "data.spurions.beam_reference=null",
@@ -23,7 +23,7 @@ BREAKING = [
         ],
     ),
 )
-@pytest.mark.parametrize("framesnet", ["polardec", "orthogonal"])
+@pytest.mark.parametrize("framesnet", ["learnedpd", "learnedso13"])
 @pytest.mark.parametrize(
     "rand_trafo,breaking_list",
     [

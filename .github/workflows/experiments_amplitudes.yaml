@@ -34,21 +34,21 @@ jobs:
       run: |
         python run.py -cn amplitudes model=amp_transformer save=false evaluate=false training.iterations=3
 
-    - name: Transformer + LearnedPolarDecompositionLFames
+    - name: Transformer + LearnedPDFrames
       run: |
-        python run.py -cn amplitudes model=amp_transformer model/framesnet=polardec save=false evaluate=false training.iterations=3
+        python run.py -cn amplitudes model=amp_transformer model/framesnet=learnedpd save=false evaluate=false training.iterations=3
 
     - name: Transformer + RandomFrames
       run: |
         python run.py -cn amplitudes model=amp_transformer model/framesnet=randomlorentz save=false evaluate=false training.iterations=3
 
-    - name: GraphNet (nodes+edges) + LearnedPolarDecompositionLFames
+    - name: GraphNet (nodes+edges) + LearnedPDFrames
       run: |
-        python run.py -cn amplitudes model=amp_graphnet model/framesnet=polardec save=false evaluate=false training.iterations=3
+        python run.py -cn amplitudes model=amp_graphnet model/framesnet=learnedpd save=false evaluate=false training.iterations=3
 
-    - name: GraphNet (nodes only) + LearnedPolarDecompositionLFames
+    - name: GraphNet (nodes only) + LearnedPDFrames
       run: |
-        python run.py -cn amplitudes model=amp_graphnet model/framesnet=polardec save=false evaluate=false training.iterations=3 model.include_nodes=false
+        python run.py -cn amplitudes model=amp_graphnet model/framesnet=learnedpd save=false evaluate=false training.iterations=3 model.include_nodes=false
 
     - name: GATr + IdentityFrames
       run: |

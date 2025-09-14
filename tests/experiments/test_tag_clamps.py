@@ -12,8 +12,8 @@ from tests.experiments.utils import track_clamps
         "identity",
         "randomrotation",
         "randomlorentz",
-        "orthogonal",
-        "polardec",
+        "learnedso13",
+        "learnedpd",
     ],
 )
 @pytest.mark.parametrize(

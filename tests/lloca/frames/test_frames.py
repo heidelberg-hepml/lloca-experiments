@@ -5,7 +5,7 @@ from tests.constants import TOLERANCES, REPS
 from lloca.frames.frames import Frames, InverseFrames, ChangeOfFrames
 from lloca.reps.tensorreps import TensorReps
 from lloca.reps.tensorreps_transform import TensorRepsTransform
-from lloca.utils.transforms import rand_lorentz
+from lloca.utils.rand_transforms import rand_lorentz
 
 
 @pytest.mark.parametrize("batch_dims", [[1000]])

@@ -13,12 +13,9 @@ from experiments.tagging.embedding import get_tagging_features
 from lloca.nn.particlenet import EdgeConvBlock, ParticleNet
 from lloca.reps.tensorreps import TensorReps
 from lloca.reps.tensorreps_transform import TensorRepsTransform
-from lloca.utils.transforms import rand_lorentz
+from lloca.utils.rand_transforms import rand_lorentz
 from lloca.frames.frames import InverseFrames
-from lloca.frames.equi_frames import (
-    LearnedOrthogonalFrames,
-    LearnedPolarDecompositionFrames,
-)
+from lloca.frames.equi_frames import LearnedSO13Frames, LearnedPDFrames
 
 
 @pytest.mark.parametrize("FramesPredictor", FRAMES_PREDICTOR)
@@ -99,7 +96,7 @@ def test_edgeconvblock_invariance_equivariance(
 
 
 @pytest.mark.parametrize(
-    "FramesPredictor", [LearnedOrthogonalFrames, LearnedPolarDecompositionFrames]
+    "FramesPredictor", [LearnedSO13Frames, LearnedPDFrames]
 )  # RestFrames gives nans sometimes
 @pytest.mark.parametrize("batch_dims", [[10]])
 @pytest.mark.parametrize("logm2_mean,logm2_std", LOGM2_MEAN_STD)

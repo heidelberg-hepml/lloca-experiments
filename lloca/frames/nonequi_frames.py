@@ -2,7 +2,7 @@
 import torch
 
 from .frames import Frames
-from ..utils.transforms import (
+from ..utils.rand_transforms import (
     rand_lorentz,
     rand_rotation,
     rand_xyrotation,

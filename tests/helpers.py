@@ -1,7 +1,7 @@
 import torch
 
 from lloca.utils.lorentz import lorentz_metric
-from lloca.equivectors.equigraph import EquiGraphNet
+from lloca.equivectors.equimlp import EquiMLP
 
 
 def sample_particle(
@@ -30,7 +30,7 @@ def lorentz_test(trafo, **kwargs):
 
 def equivectors_builder(num_scalars=0):
     def builder(n_vectors):
-        return EquiGraphNet(
+        return EquiMLP(
             n_vectors=n_vectors,
             num_scalars=num_scalars,
             hidden_channels=16,
