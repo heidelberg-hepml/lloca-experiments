@@ -2,7 +2,7 @@ from typing import Any, Dict
 import torch
 from torch_geometric.nn import MessagePassing
 
-from ..frames.frames import ChangeOfFrames, Frames, IndexSelectFrames
+from ..framesnet.frames import ChangeOfFrames, Frames, IndexSelectFrames
 from ..reps.tensorreps_transform import TensorRepsTransform
 
 

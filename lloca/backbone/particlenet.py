@@ -18,7 +18,7 @@ import torch.nn as nn
 
 from ..reps.tensorreps import TensorReps
 from ..reps.tensorreps_transform import TensorRepsTransform
-from ..frames.frames import IndexSelectFrames, ChangeOfFrames
+from ..framesnet.frames import IndexSelectFrames, ChangeOfFrames
 
 
 def change_local_frame(x_j_framej, idx, frames, trafo):

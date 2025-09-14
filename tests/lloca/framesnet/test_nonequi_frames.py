@@ -5,7 +5,7 @@ from tests.helpers import sample_particle
 
 from lloca.reps.tensorreps import TensorReps
 from lloca.reps.tensorreps_transform import TensorRepsTransform
-from lloca.frames.nonequi_frames import (
+from lloca.framesnet.nonequi_frames import (
     IdentityFrames,
     RandomFrames,
 )

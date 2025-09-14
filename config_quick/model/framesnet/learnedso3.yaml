@@ -1,4 +1,4 @@
-_target_: lloca.frames.equi_frames.LearnedSO3Frames
+_target_: lloca.framesnet.equi_frames.LearnedSO3Frames
 is_global: false
 random: false
 fix_params: false

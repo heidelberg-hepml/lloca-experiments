@@ -3,11 +3,11 @@ import pytest
 from tests.constants import TOLERANCES, LOGM2_MEAN_STD, REPS, FRAMES_PREDICTOR
 from tests.helpers import sample_particle, equivectors_builder
 
-from lloca.nn.transformer import Transformer
+from lloca.backbone.transformer import Transformer
 from lloca.reps.tensorreps import TensorReps
 from lloca.reps.tensorreps_transform import TensorRepsTransform
 from lloca.utils.rand_transforms import rand_lorentz
-from lloca.frames.frames import InverseFrames
+from lloca.framesnet.frames import InverseFrames
 
 
 @pytest.mark.parametrize("FramesPredictor", FRAMES_PREDICTOR)

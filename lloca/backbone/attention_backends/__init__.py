@@ -16,7 +16,7 @@ def get_device():
 
 
 _REGISTRY = {}
-for ep in metadata.entry_points(group="lloca.nn.attention_backends"):
+for ep in metadata.entry_points(group="lloca.backbone.attention_backends"):
     try:
         # check if entry point code be loaded without ImportError
         module = ep.load()

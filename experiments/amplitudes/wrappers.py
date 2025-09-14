@@ -8,7 +8,7 @@ from lgatr import embed_vector, extract_scalar
 from lloca.reps.tensorreps import TensorReps
 from lloca.reps.tensorreps_transform import TensorRepsTransform
 from lloca.utils.utils import build_edge_index_fully_connected, get_edge_attr
-from lloca.frames.nonequi_frames import IdentityFrames
+from lloca.framesnet.nonequi_frames import IdentityFrames
 
 
 class AmplitudeWrapper(nn.Module):

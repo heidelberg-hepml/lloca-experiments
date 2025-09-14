@@ -1,6 +1,6 @@
 import torch
 
-from ..frames.frames import Frames
+from ..framesnet.frames import Frames
 from .tensorreps import TensorReps
 
 

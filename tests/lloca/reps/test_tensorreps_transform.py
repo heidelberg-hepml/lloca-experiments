@@ -3,7 +3,7 @@ import torch
 from tests.constants import TOLERANCES, BATCH_DIMS
 
 from lloca.utils.rand_transforms import rand_lorentz
-from lloca.frames.frames import Frames
+from lloca.framesnet.frames import Frames
 from lloca.reps.tensorreps import TensorReps
 from lloca.reps.tensorreps_transform import TensorRepsTransform
 

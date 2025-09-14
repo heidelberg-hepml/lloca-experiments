@@ -5,7 +5,7 @@ use_amp: false
 add_fourmomenta_backbone: false
 
 net:
- _target_: lloca.nn.transformer.Transformer
+ _target_: lloca.backbone.transformer.Transformer
  _partial_: true
 
  in_channels: null

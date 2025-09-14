@@ -2,7 +2,7 @@ import torch
 from torch import nn
 import numpy as np
 
-from lloca.nn.mlp import MLP
+from lloca.backbone.mlp import MLP
 
 
 def compute_invariants(particles, eps=1e-4):

@@ -6,8 +6,8 @@ from tests.helpers import sample_particle, equivectors_builder
 
 from lloca.reps.tensorreps import TensorReps
 from lloca.reps.tensorreps_transform import TensorRepsTransform
-from lloca.nn.attention import LLoCaAttention
-from lloca.frames.frames import InverseFrames
+from lloca.backbone.attention import LLoCaAttention
+from lloca.framesnet.frames import InverseFrames
 from lloca.utils.rand_transforms import rand_lorentz
 
 

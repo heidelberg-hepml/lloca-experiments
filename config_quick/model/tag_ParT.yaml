@@ -5,7 +5,7 @@ use_amp: false
 add_fourmomenta_backbone: false
 
 net:
- _target_: lloca.nn.particletransformer.ParticleTransformer
+ _target_: lloca.backbone.particletransformer.ParticleTransformer
  _partial_: true
  input_dim: null
  num_classes: null

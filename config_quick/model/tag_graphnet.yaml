@@ -5,7 +5,7 @@ include_edges: false
 add_fourmomenta_backbone: false
 
 net:
- _target_: lloca.nn.graphnet.GraphNet
+ _target_: lloca.backbone.graphnet.GraphNet
  _partial_: true
 
  in_channels: null

@@ -5,7 +5,7 @@ from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import scatter, softmax
 
 from .base import EquiVectors
-from ..nn.mlp import MLP
+from ..backbone.mlp import MLP
 from ..utils.lorentz import lorentz_squarednorm
 from ..utils.utils import (
     build_edge_index_fully_connected,

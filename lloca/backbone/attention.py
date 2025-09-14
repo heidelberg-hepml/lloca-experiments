@@ -1,10 +1,8 @@
-from typing import Optional, Union
-
 from math import prod
 import torch
 from torch import Tensor
 
-from ..frames.frames import Frames, InverseFrames, LowerIndicesFrames
+from ..framesnet.frames import Frames, InverseFrames, LowerIndicesFrames
 from ..reps.tensorreps import TensorReps
 from ..reps.tensorreps_transform import TensorRepsTransform
 from .attention_backends import get_attention_backend

@@ -6,8 +6,8 @@ from tests.helpers import sample_particle, lorentz_test, equivectors_builder
 from lloca.reps.tensorreps import TensorReps
 from lloca.reps.tensorreps_transform import TensorRepsTransform
 from lloca.utils.rand_transforms import rand_lorentz, rand_rotation, rand_xyrotation
-from lloca.frames.frames import Frames
-from lloca.frames.equi_frames import (
+from lloca.framesnet.frames import Frames
+from lloca.framesnet.equi_frames import (
     LearnedSO13Frames,
     LearnedRestFrames,
     LearnedPDFrames,

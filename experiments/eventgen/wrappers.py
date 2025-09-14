@@ -2,7 +2,7 @@ import torch
 
 from experiments.eventgen.cfm import EventCFM
 from experiments.tagging.embedding import get_spurion
-from lloca.frames.frames import Frames, InverseFrames
+from lloca.framesnet.frames import Frames, InverseFrames
 from lloca.reps.tensorreps import TensorReps
 from lloca.reps.tensorreps_transform import TensorRepsTransform
 from lloca.utils.utils import build_edge_index_fully_connected

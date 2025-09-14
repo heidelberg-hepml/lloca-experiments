@@ -1,4 +1,4 @@
-_target_: lloca.frames.equi_frames.LearnedRestFrames
+_target_: lloca.framesnet.equi_frames.LearnedRestFrames
 is_global: false
 random: false
 ortho_kwargs:

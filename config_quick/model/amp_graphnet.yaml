@@ -5,7 +5,7 @@ include_edges: true
 network_float64: null
 
 net:
- _target_: lloca.nn.graphnet.GraphNet
+ _target_: lloca.backbone.graphnet.GraphNet
 
  in_channels: null
  hidden_reps: "16x0n+4x1n"
