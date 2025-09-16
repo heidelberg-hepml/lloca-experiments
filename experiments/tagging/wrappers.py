@@ -213,9 +213,7 @@ class TransformerWrapper(AggregatedTaggerWrapper):
 
         # network
         with torch.autocast("cuda", enabled=self.use_amp):
-            outputs = self.net(
-                inputs=features_local, frames=frames, attention_mask=mask
-            )
+            outputs = self.net(inputs=features_local, frames=frames, attn_bias=mask)
 
         # aggregation
         outputs = outputs[0, ...]
