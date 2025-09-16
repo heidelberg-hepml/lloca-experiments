@@ -2,7 +2,7 @@
 
 ## Lorentz Local Canonicalization: How to Make Any Network Lorentz-Equivariant
 
-[![pytorch](https://img.shields.io/badge/PyTorch_2.2+-ee4c2c?logo=pytorch&logoColor=white)](https://pytorch.org/get-started/locally/)
+[![pytorch](https://img.shields.io/badge/PyTorch_2.0+-ee4c2c?logo=pytorch&logoColor=white)](https://pytorch.org/get-started/locally/)
 [![hydra](https://img.shields.io/badge/Config-Hydra_1.3-89b8cd)](https://hydra.cc/)
 [![black](https://img.shields.io/badge/Code%20Style-Black-black.svg?labelColor=gray)](https://black.readthedocs.io/en/stable/)
 
@@ -40,7 +40,7 @@ python data/collect_data.py
 
 ## 2. Running tests
 
-Most parts of the code are covered with unit tests. Before running any experiments, you can check that the code is healthy by running these tests
+Most parts of the code are covered with unit tests. Before running any experiments, you can check that your environment is healthy by running these tests
 
 ```bash
 pytest tests
@@ -56,10 +56,17 @@ You can run a quick test toptagging experiment with the following command
 python run.py
 ```
 
-We use hydra for configuration management, allowing to quickly override parameters in e.g. `config_quick/toptagging.yaml`. Configuration files for small test runs are in `config_quick`, if you want to run the big runs you should use `-cn config`. The `model`, `training`, `lframesnet` and `equivectors` option can be selected as follows, and individual keys can be modified with the `.` operator
+We use hydra for configuration management, allowing to quickly override parameters in e.g. `config_quick/toptagging.yaml`. Configuration files for small test runs are in `config_quick` and selected by default, if you want to run the big runs you should use `-cn config`. The `model`, `training`, `framesnet` and `equivectors` option can be selected as follows, and individual keys can be modified with the `.` operator
 
 ```bash
-python run.py -cp config -cn toptagging model=graphnet training=graphnet model/lframesnet=orthogonal model/lframesnet/equivectors=equigraph training.iterations=42
+python run.py -cp config_quick -cn toptagging model=tag_transformer training=default model/framesnet=learnedpd model/framesnet/equivectors=equimlp training.iterations=10 save=false evaluate=false
+```
+
+We recommend the `save=false` key to avoid creating a folder for every test. Typical commands to reproduce the results in the papers are
+```bash  
+python run.py -cp config -cn amplitudesxl model=amp_transformer training=amp_transformer model/framesnet=learnedpd
+python run.py -cp config -cn jctagging model=tag_transformer training=jc_transformer model/framesnet=learnedpd
+python run.py -cp config -cn ttbar model=eg_transformer training=eg_default model/framesnet=learnedpd
 ```
 
 Further, we use mlflow for tracking. You can start a mlflow server based on the saved results in runs/tracking/mlflow.db on port 4242 of your machine with the following command
@@ -74,7 +81,7 @@ An existing run can be reloaded to perform additional tests with the trained mod
 python run.py -cn config -cp runs/toptagging/hello_world_toptagging train=false warm_start_idx=0
 ```
 
-The warm_start_idx specifies which model in the models folder should be loaded and defaults to 0. 
+Note that `-cn` and `-cp` now point to the config file of the past run, and not to the default files in the `config_quick/` or `config/` directory. The warm_start_idx specifies which model in the models folder should be loaded, and defaults to 0. 
 
 ## 4. Citation
 
