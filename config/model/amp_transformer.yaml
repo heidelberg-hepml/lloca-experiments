@@ -3,7 +3,7 @@ particle_type: null
 network_float64: null
 
 net:
- _target_: lloca.nn.transformer.Transformer
+ _target_: lloca.backbone.transformer.Transformer
 
  in_channels: null
  attn_reps: "8x0n+2x1n"
@@ -13,4 +13,4 @@ net:
  num_heads: 8
 
 defaults:
- - lframesnet: identity
+ - framesnet: identity

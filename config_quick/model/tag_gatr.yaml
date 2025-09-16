@@ -22,4 +22,4 @@ net:
   activation: gelu
 
 defaults:
- - lframesnet: identity
+ - framesnet: identity

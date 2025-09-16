@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68", "wheel>=0.42"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lloca"
+version = "1.0.0"
+requires-python = ">=3.10"
+
+[project.entry-points."lloca.backbone.attention_backends"]
+default_attention = "lloca.backbone.attention_backends.default_attention"
+xformers_attention = "lloca.backbone.attention_backends.xformers_attention"
+flex_attention = "lloca.backbone.attention_backends.flex_attention"
+
+[tool.setuptools.packages.find]
+include = ["lloca"]

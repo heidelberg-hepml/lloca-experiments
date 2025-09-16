@@ -1,0 +1,3 @@
+_target_: lloca.framesnet.nonequi_frames.RandomFrames
+is_global: true
+transform_type: rotation

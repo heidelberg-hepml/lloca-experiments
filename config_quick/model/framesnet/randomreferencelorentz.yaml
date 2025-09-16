@@ -1,0 +1,6 @@
+# Only applicable to amplitude regression experiment
+_target_: lloca.framesnet.nonequi_frames.COMRandomFrames
+std_eta: 0.1
+n_max_std_eta: 3.0
+is_global: true
+transform_type: lorentz

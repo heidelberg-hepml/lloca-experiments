@@ -113,11 +113,11 @@ class BaseExperiment:
             f"Instantiated model {type(self.model.net).__name__} with {num_parameters} learnable parameters"
         )
 
-        num_parameters_lframesnet = sum(
-            p.numel() for p in self.model.lframesnet.parameters() if p.requires_grad
+        num_parameters_framesnet = sum(
+            p.numel() for p in self.model.framesnet.parameters() if p.requires_grad
         )
         LOGGER.info(
-            f"LFrames approach: {self.model.lframesnet} ({num_parameters_lframesnet} learnable parameters)"
+            f"Frames approach: {self.model.framesnet} ({num_parameters_framesnet} learnable parameters)"
         )
 
         if self.cfg.ema:
@@ -330,9 +330,9 @@ class BaseExperiment:
                     "weight_decay": self.cfg.training.weight_decay,
                 },
                 {
-                    "params": self.model.lframesnet.parameters(),
-                    "lr": self.cfg.training.lr_factor_lframesnet * self.cfg.training.lr,
-                    "weight_decay": self.cfg.training.weight_decay_lframesnet,
+                    "params": self.model.framesnet.parameters(),
+                    "lr": self.cfg.training.lr_factor_framesnet * self.cfg.training.lr,
+                    "weight_decay": self.cfg.training.weight_decay_framesnet,
                 },
             ]
 
@@ -497,7 +497,7 @@ class BaseExperiment:
             self.train_loss,
             self.val_loss,
             self.grad_norm_train,
-            self.grad_norm_lframes,
+            self.grad_norm_frames,
             self.grad_norm_net,
         ) = (
             [],
@@ -630,9 +630,9 @@ class BaseExperiment:
         self.scaler.scale(loss).backward()
 
         if self.cfg.training.log_grad_norm:
-            grad_norm_lframes = (
+            grad_norm_frames = (
                 torch.nn.utils.clip_grad_norm_(
-                    self.model.lframesnet.parameters(),
+                    self.model.framesnet.parameters(),
                     float("inf"),
                 )
                 .detach()
@@ -647,7 +647,7 @@ class BaseExperiment:
                 .to(self.device)
             )
         else:
-            grad_norm_lframes = torch.tensor(0.0, device=self.device)
+            grad_norm_frames = torch.tensor(0.0, device=self.device)
             grad_norm_net = torch.tensor(0.0, device=self.device)
 
         if self.cfg.training.clip_grad_value is not None:
@@ -669,12 +669,12 @@ class BaseExperiment:
                 .to(self.device)
             )
         else:
-            grad_norm = grad_norm_lframes + grad_norm_net
-        # rescale gradients of the lframesnet only
-        if self.cfg.training.clip_grad_norm_lframesnet is not None:
+            grad_norm = grad_norm_frames + grad_norm_net
+        # rescale gradients of the framesnet only
+        if self.cfg.training.clip_grad_norm_framesnet is not None:
             torch.nn.utils.clip_grad_norm_(
-                self.model.lframesnet.parameters(),
-                self.cfg.training.clip_grad_norm_lframesnet,
+                self.model.framesnet.parameters(),
+                self.cfg.training.clip_grad_norm_framesnet,
             ).detach().to(self.device)
 
         if step > MIN_STEP_SKIP and self.cfg.training.max_grad_norm is not None:
@@ -699,7 +699,7 @@ class BaseExperiment:
         self.train_loss.append(loss.detach().item())
         self.train_lr.append(self.optimizer.param_groups[0]["lr"])
         self.grad_norm_train.append(grad_norm)
-        self.grad_norm_lframes.append(grad_norm_lframes)
+        self.grad_norm_frames.append(grad_norm_frames)
         self.grad_norm_net.append(grad_norm_net)
         for key, value in metrics.items():
             self.train_metrics[key].append(value)
@@ -715,7 +715,7 @@ class BaseExperiment:
                 "lr": self.train_lr[-1],
                 "time_per_step": (time.time() - self.training_start_time) / (step + 1),
                 "grad_norm": grad_norm,
-                "grad_norm_lframes": grad_norm_lframes,
+                "grad_norm_frames": grad_norm_frames,
                 "grad_norm_net": grad_norm_net,
             }
             for key, values in log_dict.items():

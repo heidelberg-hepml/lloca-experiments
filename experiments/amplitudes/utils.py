@@ -5,7 +5,7 @@ import torch
 from experiments.amplitudes.constants import get_mass
 
 from lloca.utils.lorentz import lorentz_eye
-from lloca.utils.transforms import rand_lorentz
+from lloca.utils.rand_transforms import rand_lorentz
 from lloca.utils.polar_decomposition import restframe_boost
 
 
@@ -33,7 +33,7 @@ def undo_preprocess_amplitude(prepd_amplitude, mean, std):
     assert mean is not None and std is not None
     log_amplitude = prepd_amplitude * std + mean
     amplitude = log_amplitude.clamp(max=10).exp()
-    return amplitude
+    return amplitude, log_amplitude
 
 
 def load_file(

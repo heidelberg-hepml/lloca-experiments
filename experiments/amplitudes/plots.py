@@ -37,8 +37,8 @@ def plot_mixer(cfg, plot_path, title, plot_dict):
             )
             plot_metric(
                 out,
-                [plot_dict["grad_norm_lframes"]],
-                "Gradient norm lframesnet",
+                [plot_dict["grad_norm_frames"]],
+                "Gradient norm framesnet",
                 logy=True,
             )
             plot_metric(

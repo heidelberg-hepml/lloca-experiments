@@ -11,14 +11,14 @@ REPS = ["4x0n", "4x1n", "10x0n+5x1n+2x2n"]
 
 LOGM2_MEAN_STD = ((0, 1), (0, 0.1), (-3, 1))
 
-from lloca.lframes.equi_lframes import (
-    LearnedOrthogonalLFrames,
-    LearnedRestLFrames,
-    LearnedPolarDecompositionLFrames,
+from lloca.framesnet.equi_frames import (
+    LearnedSO13Frames,
+    LearnedRestFrames,
+    LearnedPDFrames,
 )
 
-LFRAMES_PREDICTOR = [
-    LearnedOrthogonalLFrames,
-    LearnedRestLFrames,
-    LearnedPolarDecompositionLFrames,
+FRAMES_PREDICTOR = [
+    LearnedSO13Frames,
+    LearnedRestFrames,
+    LearnedPDFrames,
 ]

@@ -37,8 +37,8 @@ def plot_losses(exp, filename, model_label):
         )
         plot_metric(
             file,
-            [torch.stack(exp.grad_norm_lframes).cpu()],
-            "Gradient norm lframesnet",
+            [torch.stack(exp.grad_norm_frames).cpu()],
+            "Gradient norm framesnet",
             logy=True,
         )
         plot_metric(

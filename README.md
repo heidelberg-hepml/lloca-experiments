@@ -7,6 +7,7 @@
 [![black](https://img.shields.io/badge/Code%20Style-Black-black.svg?labelColor=gray)](https://black.readthedocs.io/en/stable/)
 
 [![LLoCa-CS](http://img.shields.io/badge/paper-arxiv.2505.20280-B31B1B.svg)](https://arxiv.org/abs/2505.20280)
+[![LLoCa-HEP](http://img.shields.io/badge/paper-arxiv.2508.14898-B31B1B.svg)](https://arxiv.org/abs/2508.14898)
 
 </div>
 
@@ -28,8 +29,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-In case you want to run our experiments, you first have to collect the datasets. Small test datasets are contained in the `data/` directory. The full datasets can be downloaded from the Heidelberg ITP website ([amplitudes](https://www.thphys.uni-heidelberg.de/~plehn/data/amplitudes.hdf5), [toptagging](https://www.thphys.uni-heidelberg.de/~plehn/data/toptagging_full.npz), [event-generation](https://www.thphys.uni-heidelberg.de/~plehn/data/event_generation_ttbar.hdf5)). 
-<span style="color:red">The 10M and 100M amplitude regression datasets for the plots in the paper are not uploaded yet.</span>
+In case you want to run our experiments, you first have to collect the datasets. Small test datasets are contained in the `data/` directory. The full datasets can be downloaded from the Heidelberg ITP website ([amplitudes](https://www.thphys.uni-heidelberg.de/~plehn/data/amplitudes.hdf5), [toptagging](https://www.thphys.uni-heidelberg.de/~plehn/data/toptagging_full.npz), [event-generation](https://www.thphys.uni-heidelberg.de/~plehn/data/event_generation_ttbar.hdf5)) and from zenodo ([amplitudesXL](https://zenodo.org/records/16793011), [JetClass](https://zenodo.org/records/6619768), [TopTagXL](https://zenodo.org/records/10878355)). 
 hdf5 archives have to be unpacked to npy files for each key in the archive. Finally, keys in the `data` section of the config files have to be adapted to specify where the datasets are located on your machine (`data_path` or `data_dir` depending on the experiment). The following command automates this procedure, and modifying the script allows you to collect only some datasets
 ```bash
 python data/collect_data.py
@@ -88,6 +88,15 @@ If you find this code useful in your research, please cite our paper
     archivePrefix = "arXiv",
     primaryClass = "stat.ML",
     month = "5",
+    year = "2025"
+}
+@article{Favaro:2025pgz,
+    author = "Favaro, Luigi and Gerhartz, Gerrit and Hamprecht, Fred A. and Lippmann, Peter and Pitz, Sebastian and Plehn, Tilman and Qu, Huilin and Spinner, Jonas",
+    title = "{Lorentz-Equivariance without Limitations}",
+    eprint = "2508.14898",
+    archivePrefix = "arXiv",
+    primaryClass = "hep-ph",
+    month = "8",
     year = "2025"
 }
 ```

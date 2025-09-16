@@ -2,7 +2,6 @@ import numpy as np
 import torch
 from torch_geometric.loader import DataLoader
 import os, time
-from torch_geometric.utils import to_dense_batch
 
 from sklearn.metrics import roc_curve, roc_auc_score, accuracy_score
 
@@ -40,7 +39,13 @@ class TaggingExperiment(BaseExperiment):
         elif modelname == "CGENN":
             # CGENN cant handle zero scalar inputs -> give 1 input with zeros
             self.cfg.model.net.in_features_h = 1 + self.extra_scalars
-        else:
+        elif modelname in [
+            "Transformer",
+            "ParticleTransformer",
+            "GraphNet",
+            "ParticleNet",
+            "MIParticleTransformer",
+        ]:
             # LLoCa models
             self.cfg.model.in_channels = 7 + self.extra_scalars
             if self.cfg.model.add_fourmomenta_backbone:
@@ -54,12 +59,14 @@ class TaggingExperiment(BaseExperiment):
                 self.cfg.model.net.hidden_reps_list[
                     0
                 ] = f"{self.cfg.model.in_channels}x0n"
+        else:
+            raise NotImplementedError(f"Model {modelname} not implemented")
 
-        # decide which entries to use for the lframesnet
-        if "equivectors" in self.cfg.model.lframesnet:
-            self.cfg.model.lframesnet.equivectors.num_scalars = self.extra_scalars
-            self.cfg.model.lframesnet.equivectors.num_scalars += (
-                7 if self.cfg.data.add_tagging_features_lframesnet else 0
+        # decide which entries to use for the framesnet
+        if "equivectors" in self.cfg.model.framesnet:
+            self.cfg.model.framesnet.equivectors.num_scalars = self.extra_scalars
+            self.cfg.model.framesnet.equivectors.num_scalars += (
+                7 if self.cfg.data.add_tagging_features_framesnet else 0
             )
 
     def init_data(self):
@@ -111,7 +118,6 @@ class TaggingExperiment(BaseExperiment):
         ]:
             # special treatment for ParT, see
             # https://github.com/hqucms/weaver-core/blob/dev/custom_train_eval/weaver/train.py#L464
-            # have to adapt this for finetuning!!!
             decay, no_decay = {}, {}
             for name, param in self.model.net.named_parameters():
                 if not param.requires_grad:
@@ -140,9 +146,9 @@ class TaggingExperiment(BaseExperiment):
                     "lr": self.cfg.training.lr,
                 },
                 {
-                    "params": self.model.lframesnet.parameters(),
-                    "weight_decay": self.cfg.training.weight_decay_lframesnet,
-                    "lr": self.cfg.training.lr * self.cfg.training.lr_factor_lframesnet,
+                    "params": self.model.framesnet.parameters(),
+                    "weight_decay": self.cfg.training.weight_decay_framesnet,
+                    "lr": self.cfg.training.lr * self.cfg.training.lr_factor_framesnet,
                 },
             ]
 
@@ -182,37 +188,13 @@ class TaggingExperiment(BaseExperiment):
 
         # predictions
         labels_true, labels_predict = [], []
-        lframes_list = []
         self.model.eval()
         for batch in loader:
-            y_pred, label, _, lframes = self._get_ypred_and_label(batch)
+            y_pred, label, _, _ = self._get_ypred_and_label(batch)
             y_pred = torch.nn.functional.sigmoid(y_pred)
             labels_true.append(label.cpu().float())
             labels_predict.append(y_pred.cpu().float())
-
-            if self.cfg.evaluation.save_lframes:
-                lframes = lframes.matrices.cpu()
-                lframes_dense, _ = to_dense_batch(lframes, batch.batch)  # zero-pad
-                lframes_list.append(lframes_dense)
         labels_true, labels_predict = torch.cat(labels_true), torch.cat(labels_predict)
-
-        # save lframes
-        if self.cfg.evaluation.save_lframes and title == "test":
-            # zero-pad across batches
-            max_particles = max(lframes.shape[1] for lframes in lframes_list)
-            lframes_list_pad = [
-                torch.nn.functional.pad(
-                    lframes, (0, 0, 0, 0, 0, max_particles - lframes.shape[1])
-                )
-                for lframes in lframes_list
-            ]
-            lframes_list = torch.cat(lframes_list_pad, dim=0)
-
-            path = os.path.join(self.cfg.run_dir, f"plots_{self.cfg.run_idx}")
-            os.makedirs(path, exist_ok=True)
-            filename = os.path.join(path, f"lframes_{title}.npy")
-            LOGGER.info(f"Saving lframes to {filename}")
-            np.save(filename, lframes_list.numpy())
 
         if mode == "eval":
             metrics["labels_true"], metrics["labels_predict"] = (
@@ -262,13 +244,13 @@ class TaggingExperiment(BaseExperiment):
                 log_mlflow(f"{name}.{key}", value, step=step)
 
         if mode == "eval":
-            lframeString = type(self.model.lframesnet).__name__
+            framesString = type(self.model.framesnet).__name__
             num_parameters = sum(
                 p.numel() for p in self.model.parameters() if p.requires_grad
             )
 
             LOGGER.info(
-                f"table {title}: {lframeString} ({self.cfg.training.iterations} iterations)"
+                f"table {title}: {framesString} ({self.cfg.training.iterations} iterations)"
                 f" & {num_parameters} & {metrics['accuracy']:.4f} & {metrics['auc']:.4f}"
                 f" & {metrics['rej03']:.0f} & {metrics['rej05']:.0f} & {metrics['rej08']:.0f} \\\\"
             )
@@ -299,7 +281,7 @@ class TaggingExperiment(BaseExperiment):
             plot_dict["val_loss"] = self.val_loss
             plot_dict["train_lr"] = self.train_lr
             plot_dict["grad_norm"] = torch.stack(self.grad_norm_train).cpu()
-            plot_dict["grad_norm_lframes"] = torch.stack(self.grad_norm_lframes).cpu()
+            plot_dict["grad_norm_frames"] = torch.stack(self.grad_norm_frames).cpu()
             plot_dict["grad_norm_net"] = torch.stack(self.grad_norm_net).cpu()
             for key, value in self.train_metrics.items():
                 plot_dict[key] = value
@@ -339,9 +321,9 @@ class TaggingExperiment(BaseExperiment):
             self.cfg.data,
         )
         embedding["num_graphs"] = batch.num_graphs
-        y_pred, tracker, lframes = self.model(embedding)
+        y_pred, tracker, frames = self.model(embedding)
         y_pred = y_pred[:, 0]
-        return y_pred, batch.label.to(self.dtype), tracker, lframes
+        return y_pred, batch.label.to(self.dtype), tracker, frames
 
     def _init_metrics(self):
         return {

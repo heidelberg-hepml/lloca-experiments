@@ -195,13 +195,32 @@ class MLPClassifier:
     def evaluate(self):
         # evaluate model on tst set
         self.net.eval()
+
+        def unshuffle_dataloader(loader):
+            return torch.utils.data.DataLoader(
+                loader.dataset,
+                batch_size=self.cfg_training.batchsize,
+                shuffle=False,
+            )
+
         scores_true, scores_fake = [], []
-        for (x,) in self.loaders_tst[0]:
+        for (x,) in unshuffle_dataloader(self.loaders_trn[0]):
             scores_true.append(self.net(x.to(self.device)))
-        for (x,) in self.loaders_tst[1]:
+        for (x,) in unshuffle_dataloader(self.loaders_tst[0]):
+            scores_true.append(self.net(x.to(self.device)))
+        for (x,) in unshuffle_dataloader(self.loaders_val[0]):
+            scores_true.append(self.net(x.to(self.device)))
+        for (x,) in unshuffle_dataloader(self.loaders_trn[1]):
+            scores_fake.append(self.net(x.to(self.device)))
+        for (x,) in unshuffle_dataloader(self.loaders_tst[1]):
+            scores_fake.append(self.net(x.to(self.device)))
+        for (x,) in unshuffle_dataloader(self.loaders_val[1]):
             scores_fake.append(self.net(x.to(self.device)))
         scores_true = torch.cat(scores_true, dim=0).squeeze().cpu()
         scores_fake = torch.cat(scores_fake, dim=0).squeeze().cpu()
+        LOGGER.info(
+            f"Collected {scores_true.shape[0]} true and {scores_fake.shape[0]} fake scores"
+        )
         labels = torch.cat(
             (torch.ones_like(scores_true), torch.zeros_like(scores_fake)), dim=0
         )
@@ -251,22 +270,6 @@ class MLPClassifier:
         }
 
         # evaluate weights on train, test, val sets (only fake) for reweighting plots
-        scores_fake = []
-
-        def unshuffle_dataloader(loader):
-            return torch.utils.data.DataLoader(
-                loader.dataset,
-                batch_size=self.cfg_training.batchsize,
-                shuffle=False,
-            )
-
-        for (x,) in unshuffle_dataloader(self.loaders_trn[1]):
-            scores_fake.append(self.net(x.to(self.device)))
-        for (x,) in unshuffle_dataloader(self.loaders_tst[1]):
-            scores_fake.append(self.net(x.to(self.device)))
-        for (x,) in unshuffle_dataloader(self.loaders_val[1]):
-            scores_fake.append(self.net(x.to(self.device)))
-        scores_fake = torch.cat(scores_fake, dim=0).squeeze().cpu()
         self.weights_fake = self.get_LR(scores_fake).clamp(
             max=100
         )  # likelihood ratio p_true/p_fake

@@ -4,7 +4,7 @@ out_channels: null
 add_fourmomenta_backbone: false
 
 net:
- _target_: lloca.nn.particlenet.ParticleNet
+ _target_: lloca.backbone.particlenet.ParticleNet
  _partial_: true
  num_classes: null
  conv_params: [[7, [32, 32, 32]], [7, [64, 64, 64]]]
@@ -13,4 +13,4 @@ net:
  hidden_reps_list: ["7x0n", "16x0n+4x1n"]
 
 defaults:
- - lframesnet: identity
+ - framesnet: identity

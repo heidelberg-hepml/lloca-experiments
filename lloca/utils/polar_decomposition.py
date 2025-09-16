@@ -7,7 +7,7 @@ from .lorentz import lorentz_squarednorm
 def restframe_boost(fourmomenta):
     """Construct a Lorentz transformation that boosts the given four-momenta
     into their rest frame. This transformation alone does not have the
-    lframes transformation properties, because it does not include a rotation.
+    frames transformation properties, because it does not include a rotation.
 
     Parameters
     ----------

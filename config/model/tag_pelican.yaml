@@ -21,4 +21,4 @@ net:
  checkpoint_blocks: false
  
 defaults:
- - lframesnet: identity
+ - framesnet: identity

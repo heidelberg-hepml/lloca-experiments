@@ -21,4 +21,4 @@ net:
  compile: true
  
 defaults:
- - lframesnet: identity
+ - framesnet: identity

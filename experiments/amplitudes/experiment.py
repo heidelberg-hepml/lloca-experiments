@@ -32,7 +32,7 @@ class AmplitudeExperiment(BaseExperiment):
         self.cfg.model.network_float64 = self.cfg.use_float64
 
         modelname = self.cfg.model.net._target_.rsplit(".", 1)[-1]
-        learnable_lframesnet = "equivectors" in self.cfg.model.lframesnet
+        learnable_framesnet = "equivectors" in self.cfg.model.framesnet
         self.cfg.model.particle_type = particle_type
 
         if modelname == "Transformer":
@@ -54,8 +54,8 @@ class AmplitudeExperiment(BaseExperiment):
         else:
             raise ValueError(f"Model {modelname} not implemented")
 
-        if learnable_lframesnet:
-            self.cfg.model.lframesnet.equivectors.num_scalars = num_particle_types
+        if learnable_framesnet:
+            self.cfg.model.framesnet.equivectors.num_scalars = num_particle_types
         LOGGER.info(f"Using particle_type={particle_type}")
 
     def init_data(self):
@@ -160,14 +160,14 @@ class AmplitudeExperiment(BaseExperiment):
         self.model.eval()
         t0 = time.time()
         amp_truth_prepd, amp_model_prepd = [], []
-        lframes_list = []
+        frames_list = []
         for data in loader:
-            amp_model, amp_truth, _, lframes = self._call_model(data)
+            amp_model, amp_truth, _, frames = self._call_model(data)
             amp_model, amp_truth = amp_model.squeeze(dim=-1), amp_truth.squeeze(dim=-1)
 
             amp_truth_prepd.append(amp_truth.cpu())
             amp_model_prepd.append(amp_model.cpu())
-            lframes_list.append(lframes.matrices.cpu())
+            frames_list.append(frames.matrices.cpu())
         dt = time.time() - t0
         LOGGER.info(
             f"Evaluation time: {dt*1e6/len(loader.dataset):.2f}s for 1M events "
@@ -175,27 +175,23 @@ class AmplitudeExperiment(BaseExperiment):
         )
         amp_truth_prepd = torch.cat(amp_truth_prepd, dim=0)
         amp_model_prepd = torch.cat(amp_model_prepd, dim=0)
-        lframes_list = torch.cat(lframes_list, dim=0)
-
-        # save lframes
-        if self.cfg.evaluation.save_lframes and title == "test":
-            path = os.path.join(self.cfg.run_dir, f"plots_{self.cfg.run_idx}")
-            os.makedirs(path, exist_ok=True)
-            filename = os.path.join(path, f"lframes_{title}.npy")
-            LOGGER.info(f"Saving lframes to {filename}")
-            np.save(filename, lframes_list.numpy())
+        frames_list = torch.cat(frames_list, dim=0)
 
         # MSE over preprocessed amplitudes
         mse_prepd = torch.mean((amp_model_prepd - amp_truth_prepd) ** 2)
         LOGGER.info(f"MSE on {title} dataset: {mse_prepd:.4e}")
 
         # undo preprocessing
-        amp_truth = undo_preprocess_amplitude(
+        amp_truth, log_amp_truth = undo_preprocess_amplitude(
             amp_truth_prepd, self.amp_mean, self.amp_std
         )
-        amp_model = undo_preprocess_amplitude(
+        amp_model, log_amp_model = undo_preprocess_amplitude(
             amp_model_prepd, self.amp_mean, self.amp_std
         )
+
+        # MSE over log amplitudes
+        mse_log = torch.mean((log_amp_model - log_amp_truth) ** 2)
+        LOGGER.info(f"MSE of log-amplitudes on {title} dataset: {mse_log:.4e}")
 
         # MSE over raw amplitudes
         mse_raw = torch.mean((amp_model - amp_truth) ** 2)
@@ -203,6 +199,7 @@ class AmplitudeExperiment(BaseExperiment):
         if self.cfg.use_mlflow:
             log_dict = {
                 f"eval.{title}.mse_prepd": mse_prepd,
+                f"eval.{title}.mse_log": mse_log,
                 f"eval.{title}.mse_raw": mse_raw,
             }
             for key, value in log_dict.items():
@@ -213,6 +210,11 @@ class AmplitudeExperiment(BaseExperiment):
                 "truth": amp_truth.numpy(),
                 "prediction": amp_model.numpy(),
                 "mse": mse_raw,
+            },
+            "log": {
+                "truth": log_amp_truth.numpy(),
+                "prediction": log_amp_model.numpy(),
+                "mse": mse_log,
             },
             "prepd": {
                 "truth": amp_truth_prepd.numpy(),
@@ -240,7 +242,7 @@ class AmplitudeExperiment(BaseExperiment):
             plot_dict["train_lr"] = self.train_lr
             plot_dict["val_metrics"] = self.val_metrics
             plot_dict["grad_norm"] = torch.stack(self.grad_norm_train).cpu()
-            plot_dict["grad_norm_lframes"] = torch.stack(self.grad_norm_lframes).cpu()
+            plot_dict["grad_norm_frames"] = torch.stack(self.grad_norm_frames).cpu()
             plot_dict["grad_norm_net"] = torch.stack(self.grad_norm_net).cpu()
             for key, value in self.train_metrics.items():
                 plot_dict[key] = value
@@ -259,8 +261,8 @@ class AmplitudeExperiment(BaseExperiment):
     def _call_model(self, data):
         amplitude, momentum = data
         amplitude, momentum = amplitude.to(self.device), momentum.to(self.device)
-        amplitude_model, tracker, lframes = self.model(momentum)
-        return amplitude_model, amplitude, tracker, lframes
+        amplitude_model, tracker, frames = self.model(momentum)
+        return amplitude_model, amplitude, tracker, frames
 
     def _init_metrics(self):
         return {

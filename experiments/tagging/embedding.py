@@ -102,7 +102,7 @@ def embed_tagging_data(fourmomenta, scalars, ptr, cfg_data):
         jet_boost = restframe_boost(jet)
         fourmomenta = torch.einsum("ijk,ik->ij", jet_boost, fourmomenta)
 
-    if cfg_data.add_tagging_features_lframesnet:
+    if cfg_data.add_tagging_features_framesnet:
         jet = scatter(fourmomenta, batch, dim=0, reduce="sum").index_select(0, batch)
         global_tagging_features = get_tagging_features(
             fourmomenta,

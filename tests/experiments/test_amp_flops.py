@@ -6,7 +6,7 @@ import experiments.logger
 from experiments.amplitudes.experiment import AmplitudeExperiment
 
 
-@pytest.mark.parametrize("lframesnet", ["identity", "polardec"])
+@pytest.mark.parametrize("framesnet", ["identity", "learnedpd"])
 @pytest.mark.parametrize(
     "model_list",
     [
@@ -19,14 +19,14 @@ from experiments.amplitudes.experiment import AmplitudeExperiment
         ["model=amp_dsi"],
     ],
 )
-def test_amplitudes(lframesnet, model_list):
+def test_amplitudes(framesnet, model_list):
     experiments.logger.LOGGER.disabled = True  # turn off logging
 
     # create experiment environment
     with hydra.initialize(config_path="../../config", version_base=None):
         overrides = [
             *model_list,
-            f"model/lframesnet={lframesnet}",
+            f"model/framesnet={framesnet}",
             "save=false",
             "training.batchsize=1",
             "data.dataset=zgggg_mini",
@@ -54,6 +54,6 @@ def test_amplitudes(lframesnet, model_list):
     print(
         f"flops(batchsize=1)={flops:.2e}; parameters={num_parameters}",
         model_list,
-        lframesnet,
+        framesnet,
     )
     # print(flop_counter.get_table(depth=2))

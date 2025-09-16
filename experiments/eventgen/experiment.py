@@ -65,9 +65,9 @@ class EventGenerationExperiment(BaseExperiment):
             self.cfg.model.cfm = self.cfg.cfm
             self.cfg.model.spurions = self.cfg.data.spurions
 
-        # decide which entries to use for the lframesnet
-        if "equivectors" in self.cfg.model.lframesnet:
-            self.cfg.model.lframesnet.equivectors.num_scalars = (
+        # decide which entries to use for the framesnet
+        if "equivectors" in self.cfg.model.framesnet:
+            self.cfg.model.framesnet.equivectors.num_scalars = (
                 n_particles + self.cfg.cfm.embed_t_dim
             )
 
@@ -181,9 +181,9 @@ class EventGenerationExperiment(BaseExperiment):
                 "weight_decay": self.cfg.training.weight_decay,
             },
             {
-                "params": self.model.lframesnet.parameters(),
-                "lr": self.cfg.training.lr_factor_lframesnet * self.cfg.training.lr,
-                "weight_decay": self.cfg.training.weight_decay_lframesnet,
+                "params": self.model.framesnet.parameters(),
+                "lr": self.cfg.training.lr_factor_framesnet * self.cfg.training.lr,
+                "weight_decay": self.cfg.training.weight_decay_framesnet,
             },
             {
                 "params": self.model.t_embedding.parameters(),
@@ -263,21 +263,27 @@ class EventGenerationExperiment(BaseExperiment):
 
         # save weighted events
         if self.cfg.evaluation.save_samples and self.cfg.save:
-            events_true = classifier.train_test_val_split(self.events_raw)["tst"]
-            events_fake = classifier.train_test_val_split(self.data_raw["gen"])["tst"]
             weights_true = classifier.results["weights"]["true"]
             weights_fake = classifier.results["weights"]["fake"]
+
+            n_data = self.events_raw.shape[0]
+            split_val = int(n_data * self.cfg.data.train_test_val[::-1][0])
+            split_test = int(n_data * sum(self.cfg.data.train_test_val[::-1][:2]))
+            split_train = int(n_data * sum(self.cfg.data.train_test_val[::-1]))
             os.makedirs(os.path.join(self.cfg.run_dir, "samples"), exist_ok=True)
+
             filename = os.path.join(
                 self.cfg.run_dir,
                 "samples",
-                f"samples_weighted_{self.cfg.run_idx}j",
+                f"classifier_{self.cfg.run_idx}",
             )
             np.savez(
                 filename,
-                events_true=events_true,
-                events_fake=events_fake,
-                weights_true=weights_true,
+                events_test=self.events_raw[split_val:split_test],
+                events_train=self.events_raw[split_test:split_train],
+                events_fake=self.data_raw["gen"],
+                weights_test=weights_true[split_val:split_test],
+                weights_train=weights_true[split_test:split_train],
                 weights_fake=weights_fake,
             )
         return classifier
@@ -327,7 +333,11 @@ class EventGenerationExperiment(BaseExperiment):
         samples_raw = self.model.undo_preprocess(samples)
         self.data_raw["gen"] = samples_raw
 
-        if self.cfg.evaluation.save_samples and self.cfg.save:
+        if (
+            self.cfg.evaluation.save_samples
+            and self.cfg.save
+            and not self.cfg.evaluation.classifier
+        ):
             os.makedirs(os.path.join(self.cfg.run_dir, "samples"), exist_ok=True)
             filename = os.path.join(
                 self.cfg.run_dir,
