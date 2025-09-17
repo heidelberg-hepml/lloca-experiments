@@ -8,7 +8,7 @@ from .base import EquiVectors
 from ..backbone.mlp import MLP
 from ..utils.lorentz import lorentz_squarednorm
 from ..utils.utils import (
-    build_edge_index_fully_connected,
+    get_edge_index_from_shape,
     get_edge_index_from_ptr,
     get_edge_attr,
     get_ptr_from_batch,
@@ -284,7 +284,7 @@ class EquiMLP(EquiVectors):
             scalars = torch.zeros_like(fourmomenta[..., []])
         if len(in_shape) > 1:
             assert ptr is None, "ptr only supported for sparse tensors"
-            edge_index, batch = build_edge_index_fully_connected(fourmomenta)
+            edge_index, batch = get_edge_index_from_shape(fourmomenta)
             fourmomenta = fourmomenta.reshape(math.prod(in_shape), 4)
             scalars = scalars.reshape(math.prod(in_shape), scalars.shape[-1])
         else:

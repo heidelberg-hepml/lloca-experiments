@@ -7,7 +7,7 @@ from lgatr import embed_vector, extract_scalar
 
 from lloca.reps.tensorreps import TensorReps
 from lloca.reps.tensorreps_transform import TensorRepsTransform
-from lloca.utils.utils import build_edge_index_fully_connected, get_edge_attr
+from lloca.utils.utils import get_edge_index_from_shape, get_edge_attr
 from lloca.framesnet.nonequi_frames import IdentityFrames
 
 
@@ -112,7 +112,7 @@ class GraphNetWrapper(AmplitudeWrapper):
 
         if self.include_edges:
             # edge feature standardization parameters
-            edge_index, _ = build_edge_index_fully_connected(fourmomenta)
+            edge_index, _ = get_edge_index_from_shape(fourmomenta)
             fourmomenta = fourmomenta.reshape(-1, 4)
             edge_attr = get_edge_attr(fourmomenta, edge_index)
             self.edge_mean = edge_attr.mean()
@@ -131,7 +131,7 @@ class GraphNetWrapper(AmplitudeWrapper):
         node_attr = particle_type
         if self.include_nodes:
             node_attr = torch.cat([node_attr, features_local], dim=-1)
-        edge_index, batch = build_edge_index_fully_connected(node_attr)
+        edge_index, batch = get_edge_index_from_shape(node_attr)
         node_attr = node_attr.view(-1, node_attr.shape[-1])
         frames = frames.reshape(-1, 4, 4)
         if self.include_edges:
