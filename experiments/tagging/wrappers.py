@@ -246,8 +246,13 @@ class TransformerWrapper(AggregatedTaggerWrapper):
         frames = frames.reshape(1, *frames.shape)
 
         # network
+        kwargs = {
+            "attn_mask"
+            if features_local.device == torch.device("cpu")
+            else "attn_bias": mask
+        }
         with torch.autocast("cuda", enabled=self.use_amp):
-            outputs = self.net(inputs=features_local, frames=frames, attn_bias=mask)
+            outputs = self.net(inputs=features_local, frames=frames, **kwargs)
 
         # aggregation
         outputs = outputs[0, ...]
