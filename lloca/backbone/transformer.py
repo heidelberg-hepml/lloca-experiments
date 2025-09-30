@@ -1,5 +1,4 @@
 from functools import partial
-from typing import Optional
 
 import torch
 from torch import nn
@@ -244,7 +243,8 @@ class BaselineTransformerBlock(nn.Module):
     ) -> None:
         super().__init__()
 
-        self.norm = BaselineLayerNorm()
+        self.norm1 = BaselineLayerNorm()
+        self.norm2 = BaselineLayerNorm()
 
         hidden_channels = channels // num_heads * increase_hidden_channels
 
@@ -282,12 +282,12 @@ class BaselineTransformerBlock(nn.Module):
         """
 
         # Residual attention
-        h = self.norm(inputs)
+        h = self.norm1(inputs)
         h = self.attention(h, **attn_kwargs)
         outputs = inputs + h
 
         # Residual MLP
-        h = self.norm(outputs)
+        h = self.norm2(outputs)
         h = self.mlp(h)
         outputs = outputs + h
 
