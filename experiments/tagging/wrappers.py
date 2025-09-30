@@ -251,7 +251,10 @@ class TransformerWrapper(AggregatedTaggerWrapper):
 
         # aggregation
         outputs = outputs[0, ...]
-        score = self.extract_score(outputs, ptr)
+        if self.mean_aggregation:
+            score = self.extract_score(outputs, ptr)
+        else:
+            score = outputs[is_global]
         return score, tracker, frames
 
 
