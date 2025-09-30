@@ -334,7 +334,7 @@ class Transformer(nn.Module):
     ) -> None:
         super().__init__()
         attn_reps = TensorReps(attn_reps)
-        self.hidden_channels = attn_reps.dim * num_heads
+        self.hidden_channels = attn_reps.dim * num_heads // increase_hidden_channels
         self.checkpoint_blocks = checkpoint_blocks
         self.attention = LLoCaAttention(attn_reps, num_heads)
 

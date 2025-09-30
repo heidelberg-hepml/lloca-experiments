@@ -16,6 +16,7 @@ net:
  num_blocks: 10
  num_heads: 8
  mlp_factor: 4
+ increase_hidden_channels: 1
 
 defaults:
  - framesnet: identity
