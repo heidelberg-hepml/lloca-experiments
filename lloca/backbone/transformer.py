@@ -137,6 +137,8 @@ class BaselineSelfAttention(nn.Module):
         Number of attention heads.
     multi_query : bool
         Use multi-query attention instead of multi-head attention.
+    dropout_prob : float
+        Dropout probability for output.
     """
 
     def __init__(
@@ -167,11 +169,7 @@ class BaselineSelfAttention(nn.Module):
         else:
             self.dropout = None
 
-    def forward(
-        self,
-        inputs: torch.Tensor,
-        **attn_kwargs,
-    ) -> torch.Tensor:
+    def forward(self, inputs: torch.Tensor, **attn_kwargs) -> torch.Tensor:
         """Forward pass.
 
         Parameters
@@ -227,8 +225,12 @@ class BaselineTransformerBlock(nn.Module):
     increase_attention : int
         Factor by which the key, query, and value size is increased over the default value of
         hidden_channels / num_heads.
+    increase_mlp : int
+        Factor by which the activation size is increased over the default value of hidden_channels.
     multi_query : bool
         Use multi-query attention instead of multi-head attention.
+    dropout_prob : float
+        Dropout probability for output.
     """
 
     def __init__(
@@ -312,11 +314,17 @@ class Transformer(nn.Module):
         Number of transformer blocks.
     num_heads : int
         Number of attention heads.
+    checkpoint_blocks : bool
+        Use gradient checkpointing for transformer blocks.
     increase_attention : int
         Factor by which the key, query, and value size is increased over the default value of
         hidden_channels / num_heads.
+    increase_mlp : int
+        Factor by which the activation size is increased over the default value of hidden_channels.
     multi_query : bool
         Use multi-query attention instead of multi-head attention.
+    dropout_prob : float
+        Dropout probability for output.
     """
 
     def __init__(
