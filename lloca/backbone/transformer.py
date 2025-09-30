@@ -1,5 +1,4 @@
 from functools import partial
-from typing import Optional
 
 import torch
 from torch import nn
@@ -138,6 +137,8 @@ class BaselineSelfAttention(nn.Module):
         Number of attention heads.
     multi_query : bool
         Use multi-query attention instead of multi-head attention.
+    dropout_prob : float
+        Dropout probability for output.
     """
 
     def __init__(
@@ -168,20 +169,14 @@ class BaselineSelfAttention(nn.Module):
         else:
             self.dropout = None
 
-    def forward(
-        self,
-        inputs: torch.Tensor,
-        attention_mask: Optional[torch.Tensor] = None,
-        is_causal: bool = False,
-    ) -> torch.Tensor:
+    def forward(self, inputs: torch.Tensor, **attn_kwargs) -> torch.Tensor:
         """Forward pass.
 
         Parameters
         ----------
         inputs : Tensor
             Input data
-        attention_mask : None or Tensor or xformers.ops.AttentionBias
-            Optional attention mask
+        **attn_kwargs
 
         Returns
         -------
@@ -197,8 +192,7 @@ class BaselineSelfAttention(nn.Module):
             q.contiguous(),
             k.expand_as(q).contiguous(),
             v.expand_as(q),
-            attn_mask=attention_mask,
-            is_causal=is_causal,
+            **attn_kwargs,
         )
 
         # Concatenate heads and transform linearly
@@ -228,11 +222,15 @@ class BaselineTransformerBlock(nn.Module):
     attention
     num_heads : int
         Number of attention heads.
-    increase_hidden_channels : int
+    attention_factor : int
         Factor by which the key, query, and value size is increased over the default value of
         hidden_channels / num_heads.
+    mlp_factor : int
+        Factor by which the activation size is increased over the default value of hidden_channels.
     multi_query : bool
         Use multi-query attention instead of multi-head attention.
+    dropout_prob : float
+        Dropout probability for output.
     """
 
     def __init__(
@@ -240,16 +238,17 @@ class BaselineTransformerBlock(nn.Module):
         channels,
         attention,
         num_heads: int = 8,
-        increase_hidden_channels=1,
+        attention_factor: int = 1,
         multi_query: bool = True,
-        mlp_factor: int = 2,
+        mlp_factor: int = 4,
         dropout_prob=None,
     ) -> None:
         super().__init__()
 
-        self.norm = BaselineLayerNorm()
+        self.norm1 = BaselineLayerNorm()
+        self.norm2 = BaselineLayerNorm()
 
-        hidden_channels = channels // num_heads * increase_hidden_channels
+        hidden_channels = channels // num_heads * attention_factor
 
         self.attention = BaselineSelfAttention(
             channels,
@@ -269,17 +268,14 @@ class BaselineTransformerBlock(nn.Module):
             nn.Dropout(dropout_prob) if dropout_prob is not None else nn.Identity(),
         )
 
-    def forward(
-        self, inputs: torch.Tensor, attention_mask=None, is_causal=False
-    ) -> torch.Tensor:
+    def forward(self, inputs: torch.Tensor, **attn_kwargs) -> torch.Tensor:
         """Forward pass.
 
         Parameters
         ----------
         inputs : Tensor
             Input data
-        attention_mask : None or Tensor or xformers.ops.AttentionBias
-            Optional attention mask
+        **attn_kwargs
 
         Returns
         -------
@@ -288,12 +284,12 @@ class BaselineTransformerBlock(nn.Module):
         """
 
         # Residual attention
-        h = self.norm(inputs)
-        h = self.attention(h, attention_mask=attention_mask, is_causal=is_causal)
+        h = self.norm1(inputs)
+        h = self.attention(h, **attn_kwargs)
         outputs = inputs + h
 
         # Residual MLP
-        h = self.norm(outputs)
+        h = self.norm2(outputs)
         h = self.mlp(h)
         outputs = outputs + h
 
@@ -318,11 +314,17 @@ class Transformer(nn.Module):
         Number of transformer blocks.
     num_heads : int
         Number of attention heads.
-    increase_hidden_channels : int
+    checkpoint_blocks : bool
+        Use gradient checkpointing for transformer blocks.
+    attention_factor : int
         Factor by which the key, query, and value size is increased over the default value of
         hidden_channels / num_heads.
+    mlp_factor : int
+        Factor by which the activation size is increased over the default value of hidden_channels.
     multi_query : bool
         Use multi-query attention instead of multi-head attention.
+    dropout_prob : float
+        Dropout probability for output.
     """
 
     def __init__(
@@ -333,14 +335,14 @@ class Transformer(nn.Module):
         num_blocks: int,
         num_heads: int,
         checkpoint_blocks: bool = False,
-        increase_hidden_channels=1,
-        mlp_factor: int = 2,
+        attention_factor: int = 1,
+        mlp_factor: int = 4,
         multi_query: bool = False,
         dropout_prob=None,
     ) -> None:
         super().__init__()
         attn_reps = TensorReps(attn_reps)
-        self.hidden_channels = attn_reps.dim * num_heads
+        self.hidden_channels = attn_reps.dim * num_heads // attention_factor
         self.checkpoint_blocks = checkpoint_blocks
         self.attention = LLoCaAttention(attn_reps, num_heads)
 
@@ -351,7 +353,7 @@ class Transformer(nn.Module):
                     self.hidden_channels,
                     attention=self.attention,
                     num_heads=num_heads,
-                    increase_hidden_channels=increase_hidden_channels,
+                    attention_factor=attention_factor,
                     mlp_factor=mlp_factor,
                     multi_query=multi_query,
                     dropout_prob=dropout_prob,
@@ -361,9 +363,7 @@ class Transformer(nn.Module):
         )
         self.linear_out = nn.Linear(self.hidden_channels, out_channels)
 
-    def forward(
-        self, inputs: torch.Tensor, frames, attention_mask=None, is_causal=False
-    ) -> torch.Tensor:
+    def forward(self, inputs: torch.Tensor, frames, **attn_kwargs) -> torch.Tensor:
         """Forward pass.
 
         Parameters
@@ -372,9 +372,7 @@ class Transformer(nn.Module):
             Input data with shape (..., num_items, in_channels)
         frames : Frames
             Local frames used for invariant particle attention
-        attention_mask : None or Tensor or xformers.ops.AttentionBias
-            Optional attention mask
-        is_causal: bool
+        **attn_kwargs
 
         Returns
         -------
@@ -386,9 +384,9 @@ class Transformer(nn.Module):
         h = self.linear_in(inputs)
         for block in self.blocks:
             if self.checkpoint_blocks:
-                fn = partial(block, attention_mask=attention_mask, is_causal=is_causal)
+                fn = partial(block, **attn_kwargs)
                 h = checkpoint(fn, h)
             else:
-                h = block(h, attention_mask=attention_mask, is_causal=is_causal)
+                h = block(h, **attn_kwargs)
         outputs = self.linear_out(h)
         return outputs

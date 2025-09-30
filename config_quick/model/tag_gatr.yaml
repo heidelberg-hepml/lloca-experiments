@@ -18,8 +18,11 @@ net:
  attention:
   num_heads: 2
   multi_query: false
+  increase_hidden_channels: 2
+  head_scale: true
  mlp:
   activation: gelu
+  increase_hidden_channels: 2
 
 defaults:
  - framesnet: identity

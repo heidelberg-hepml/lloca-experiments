@@ -5,7 +5,7 @@ from experiments.tagging.embedding import get_spurion
 from lloca.framesnet.frames import Frames, InverseFrames
 from lloca.reps.tensorreps import TensorReps
 from lloca.reps.tensorreps_transform import TensorRepsTransform
-from lloca.utils.utils import build_edge_index_fully_connected
+from lloca.utils.utils import get_edge_index_from_shape
 from lgatr import embed_vector, extract_vector
 
 
@@ -188,7 +188,7 @@ class GraphNetCFM(CFMWrapper):
             frames,
             tracker,
         ) = super().preprocess_velocity(x, t)
-        edge_index, batch = build_edge_index_fully_connected(x_local)
+        edge_index, batch = get_edge_index_from_shape(x_local)
         fts = torch.cat([x_local, particle_type, t_embedding], dim=-1)
 
         fts_flat = fts.flatten(0, 1)

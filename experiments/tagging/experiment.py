@@ -49,7 +49,11 @@ class TaggingExperiment(BaseExperiment):
             if self.cfg.model.add_fourmomenta_backbone:
                 self.cfg.model.in_channels += 4
 
-            if modelname == "GraphNet":
+            if modelname == "Transformer":
+                self.cfg.model.in_channels += (
+                    0 if self.cfg.model.mean_aggregation else 1
+                )
+            elif "GraphNet":
                 self.cfg.model.net.num_edge_attr = (
                     1 if self.cfg.model.include_edges else 0
                 )
