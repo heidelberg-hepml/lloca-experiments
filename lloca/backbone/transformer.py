@@ -238,7 +238,7 @@ class BaselineTransformerBlock(nn.Module):
         num_heads: int = 8,
         increase_attention: int = 1,
         multi_query: bool = True,
-        increase_mlp: int = 2,
+        increase_mlp: int = 4,
         dropout_prob=None,
     ) -> None:
         super().__init__()
@@ -328,7 +328,7 @@ class Transformer(nn.Module):
         num_heads: int,
         checkpoint_blocks: bool = False,
         increase_attention: int = 1,
-        increase_mlp: int = 2,
+        increase_mlp: int = 4,
         multi_query: bool = False,
         dropout_prob=None,
     ) -> None:

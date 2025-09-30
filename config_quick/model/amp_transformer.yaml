@@ -11,6 +11,7 @@ net:
 
  num_blocks: 2
  num_heads: 2
+ increase_mlp: 2
 
 defaults:
  - framesnet: identity
