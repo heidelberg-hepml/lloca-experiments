@@ -185,10 +185,12 @@ class TransformerWrapper(AggregatedTaggerWrapper):
         net,
         *args,
         use_amp=False,
+        mean_aggregation=True,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.use_amp = use_amp
+        self.mean_aggregation = mean_aggregation
         self.net = net(in_channels=self.in_channels, out_channels=self.out_channels)
 
     def forward(self, embedding):
@@ -200,6 +202,38 @@ class TransformerWrapper(AggregatedTaggerWrapper):
             batch,
             tracker,
         ) = super().forward(embedding)
+
+        # handle global token
+        if self.mean_aggregation:
+            is_global = None
+        else:
+            batchsize = len(ptr) - 1
+            global_idxs = ptr[:-1] + torch.arange(batchsize, device=batch.device)
+            is_global = torch.zeros(
+                features_local.shape[0] + batchsize,
+                dtype=torch.bool,
+                device=ptr.device,
+            )
+            is_global[global_idxs] = True
+            features_local_buffer = features_local.clone()
+            features_local = torch.zeros(
+                is_global.shape[0],
+                *features_local.shape[1:],
+                dtype=features_local.dtype,
+                device=features_local.device,
+            )
+            features_local[~is_global] = features_local_buffer
+            is_global_channel = torch.zeros(
+                features_local.shape[0],
+                1,
+                dtype=features_local.dtype,
+                device=features_local.device,
+            )
+            is_global_channel[is_global] = 1
+            features_local = torch.cat((features_local, is_global_channel), dim=-1)
+
+            ptr[1:] = ptr[1:] + (torch.arange(batchsize, device=ptr.device) + 1)
+            batch = get_batch_from_ptr(ptr)
 
         mask = get_xformers_attention_mask(
             batch,
