@@ -224,7 +224,7 @@ class BaselineTransformerBlock(nn.Module):
     attention
     num_heads : int
         Number of attention heads.
-    increase_hidden_channels : int
+    increase_attention : int
         Factor by which the key, query, and value size is increased over the default value of
         hidden_channels / num_heads.
     multi_query : bool
@@ -236,9 +236,9 @@ class BaselineTransformerBlock(nn.Module):
         channels,
         attention,
         num_heads: int = 8,
-        increase_hidden_channels=1,
+        increase_attention: int = 1,
         multi_query: bool = True,
-        mlp_factor: int = 2,
+        increase_mlp: int = 2,
         dropout_prob=None,
     ) -> None:
         super().__init__()
@@ -246,7 +246,7 @@ class BaselineTransformerBlock(nn.Module):
         self.norm1 = BaselineLayerNorm()
         self.norm2 = BaselineLayerNorm()
 
-        hidden_channels = channels // num_heads * increase_hidden_channels
+        hidden_channels = channels // num_heads * increase_attention
 
         self.attention = BaselineSelfAttention(
             channels,
@@ -259,10 +259,10 @@ class BaselineTransformerBlock(nn.Module):
         )
 
         self.mlp = nn.Sequential(
-            nn.Linear(channels, mlp_factor * channels),
+            nn.Linear(channels, increase_mlp * channels),
             nn.Dropout(dropout_prob) if dropout_prob is not None else nn.Identity(),
             nn.GELU(),
-            nn.Linear(mlp_factor * channels, channels),
+            nn.Linear(increase_mlp * channels, channels),
             nn.Dropout(dropout_prob) if dropout_prob is not None else nn.Identity(),
         )
 
@@ -312,7 +312,7 @@ class Transformer(nn.Module):
         Number of transformer blocks.
     num_heads : int
         Number of attention heads.
-    increase_hidden_channels : int
+    increase_attention : int
         Factor by which the key, query, and value size is increased over the default value of
         hidden_channels / num_heads.
     multi_query : bool
@@ -327,14 +327,14 @@ class Transformer(nn.Module):
         num_blocks: int,
         num_heads: int,
         checkpoint_blocks: bool = False,
-        increase_hidden_channels=1,
-        mlp_factor: int = 2,
+        increase_attention: int = 1,
+        increase_mlp: int = 2,
         multi_query: bool = False,
         dropout_prob=None,
     ) -> None:
         super().__init__()
         attn_reps = TensorReps(attn_reps)
-        self.hidden_channels = attn_reps.dim * num_heads // increase_hidden_channels
+        self.hidden_channels = attn_reps.dim * num_heads // increase_attention
         self.checkpoint_blocks = checkpoint_blocks
         self.attention = LLoCaAttention(attn_reps, num_heads)
 
@@ -345,8 +345,8 @@ class Transformer(nn.Module):
                     self.hidden_channels,
                     attention=self.attention,
                     num_heads=num_heads,
-                    increase_hidden_channels=increase_hidden_channels,
-                    mlp_factor=mlp_factor,
+                    increase_attention=increase_attention,
+                    increase_mlp=increase_mlp,
                     multi_query=multi_query,
                     dropout_prob=dropout_prob,
                 )
