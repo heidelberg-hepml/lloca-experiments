@@ -222,10 +222,10 @@ class BaselineTransformerBlock(nn.Module):
     attention
     num_heads : int
         Number of attention heads.
-    increase_attention : int
+    attention_factor : int
         Factor by which the key, query, and value size is increased over the default value of
         hidden_channels / num_heads.
-    increase_mlp : int
+    mlp_factor : int
         Factor by which the activation size is increased over the default value of hidden_channels.
     multi_query : bool
         Use multi-query attention instead of multi-head attention.
@@ -238,9 +238,9 @@ class BaselineTransformerBlock(nn.Module):
         channels,
         attention,
         num_heads: int = 8,
-        increase_attention: int = 1,
+        attention_factor: int = 1,
         multi_query: bool = True,
-        increase_mlp: int = 4,
+        mlp_factor: int = 4,
         dropout_prob=None,
     ) -> None:
         super().__init__()
@@ -248,7 +248,7 @@ class BaselineTransformerBlock(nn.Module):
         self.norm1 = BaselineLayerNorm()
         self.norm2 = BaselineLayerNorm()
 
-        hidden_channels = channels // num_heads * increase_attention
+        hidden_channels = channels // num_heads * attention_factor
 
         self.attention = BaselineSelfAttention(
             channels,
@@ -261,10 +261,10 @@ class BaselineTransformerBlock(nn.Module):
         )
 
         self.mlp = nn.Sequential(
-            nn.Linear(channels, increase_mlp * channels),
+            nn.Linear(channels, mlp_factor * channels),
             nn.Dropout(dropout_prob) if dropout_prob is not None else nn.Identity(),
             nn.GELU(),
-            nn.Linear(increase_mlp * channels, channels),
+            nn.Linear(mlp_factor * channels, channels),
             nn.Dropout(dropout_prob) if dropout_prob is not None else nn.Identity(),
         )
 
@@ -316,10 +316,10 @@ class Transformer(nn.Module):
         Number of attention heads.
     checkpoint_blocks : bool
         Use gradient checkpointing for transformer blocks.
-    increase_attention : int
+    attention_factor : int
         Factor by which the key, query, and value size is increased over the default value of
         hidden_channels / num_heads.
-    increase_mlp : int
+    mlp_factor : int
         Factor by which the activation size is increased over the default value of hidden_channels.
     multi_query : bool
         Use multi-query attention instead of multi-head attention.
@@ -335,14 +335,14 @@ class Transformer(nn.Module):
         num_blocks: int,
         num_heads: int,
         checkpoint_blocks: bool = False,
-        increase_attention: int = 1,
-        increase_mlp: int = 4,
+        attention_factor: int = 1,
+        mlp_factor: int = 4,
         multi_query: bool = False,
         dropout_prob=None,
     ) -> None:
         super().__init__()
         attn_reps = TensorReps(attn_reps)
-        self.hidden_channels = attn_reps.dim * num_heads // increase_attention
+        self.hidden_channels = attn_reps.dim * num_heads // attention_factor
         self.checkpoint_blocks = checkpoint_blocks
         self.attention = LLoCaAttention(attn_reps, num_heads)
 
@@ -353,8 +353,8 @@ class Transformer(nn.Module):
                     self.hidden_channels,
                     attention=self.attention,
                     num_heads=num_heads,
-                    increase_attention=increase_attention,
-                    increase_mlp=increase_mlp,
+                    attention_factor=attention_factor,
+                    mlp_factor=mlp_factor,
                     multi_query=multi_query,
                     dropout_prob=dropout_prob,
                 )

@@ -11,7 +11,7 @@ net:
 
  num_blocks: 8
  num_heads: 8
- increase_mlp: 2
+ mlp_factor: 2
 
 defaults:
  - framesnet: identity

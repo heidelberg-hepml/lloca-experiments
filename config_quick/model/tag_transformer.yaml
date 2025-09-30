@@ -15,8 +15,8 @@ net:
 
  num_blocks: 2
  num_heads: 2
- increase_mlp: 4
- increase_attention: 1
+ mlp_factor: 4
+ attention_factor: 1
  
 defaults:
  - framesnet: identity
