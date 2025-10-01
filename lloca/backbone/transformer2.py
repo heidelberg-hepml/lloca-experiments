@@ -62,7 +62,7 @@ class MultiHeadQKVLinear(nn.Module):
 
 
 class SelfAttention(nn.Module):
-    """Baseline self-attention layer.
+    """Self-attention layer.
 
     Parameters
     ----------
@@ -158,7 +158,7 @@ class SelfAttention(nn.Module):
 
 
 class TransformerBlock(nn.Module):
-    """Baseline transformer block.
+    """Transformer block.
 
     Inputs are first processed by a block consisting of RMSNorm, multi-head self-attention, and
     residual connection. Then the data is processed by a block consisting of another RMSNorm, an
@@ -255,10 +255,18 @@ class TransformerBlock(nn.Module):
 
 
 class Transformer(nn.Module):
-    """Baseline transformer.
+    """Improved transformer.
 
     Combines num_blocks transformer blocks, each consisting of multi-head self-attention layers, an
     MLP, residual connections, and normalization layers.
+
+    This ``Transformer`` (``transformer2.py``) improves upon our baseline ``Transformer`` (``transformer.py``) with a couple of tricks that aim to enhance stability and performance:
+    - RMSNorm instead of LayerNorm
+    - Two extra normalization layers in each transformer block, inspired by NormFormer (https://arxiv.org/abs/2110.09456)
+    - SwiGLU activation in the MLPs (https://arxiv.org/abs/2002.05202)
+    - Initialize weights with xavier_uniform and biases to zero; rescale weights of fused linears for QKV and GLU according to xavier initialization (common in transformers)
+    - Scale down weights of linear layers entering residual connections and the output layer by 0.1 to increase stability
+    - Option to turn off biases in linear layers
 
     Parameters
     ----------
@@ -276,6 +284,8 @@ class Transformer(nn.Module):
         Use gradient checkpointing for transformer blocks.
     dropout_prob : float
         Dropout probability for output.
+    use_bias : bool
+        Use bias in linear layers.
     """
 
     def __init__(
