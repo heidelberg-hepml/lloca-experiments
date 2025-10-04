@@ -57,19 +57,18 @@ class PELICANVectors(EquiVectors, MessagePassing):
 
         # compute prefactors
         edge_attr = self.get_edge_attr(fourmomenta, edge_index).to(scalars.dtype)
-        prefactor = self.net(
-            in_rank2=edge_attr, in_rank1=scalars, edge_index=edge_index, batch=batch
-        )
 
         # message-passing
-        vecs = self.propagate(edge_index, fm=fourmomenta, pre=prefactor, batch=batch)
+        vecs = self.propagate(
+            edge_index, fm=fourmomenta, s=scalars, edge_attr=edge_attr, batch=batch
+        )
         vecs = vecs.reshape(fourmomenta.shape[0], -1, 4)
 
         # reshape result
         vecs = vecs.reshape(*in_shape, -1, 4)
         return vecs
 
-    def message(self, edge_index, fm_i, fm_j, pre_i, pre_j):
+    def message(self, edge_index, fm_i, fm_j, s_i, s_j, edge_attr, batch):
         # prepare fourmomenta
         fm_rel = self.operation(fm_i, fm_j)
         if self.fm_norm:
@@ -80,7 +79,10 @@ class PELICANVectors(EquiVectors, MessagePassing):
         fm_rel = (fm_rel / fm_rel_norm)[:, None, :4]
 
         # message-passing
-        prefactor = self.nonlinearity(pre_i, batch=edge_index[0])
+        prefactor = self.net(
+            in_rank2=edge_attr, in_rank1=s_i, edge_index=edge_index, batch=batch
+        )
+        prefactor = self.nonlinearity(prefactor, batch=edge_index[0])
         prefactor = prefactor.unsqueeze(-1)
         out = prefactor * fm_rel
         out = out.reshape(out.shape[0], -1)

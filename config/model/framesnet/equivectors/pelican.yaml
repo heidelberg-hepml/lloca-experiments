@@ -19,7 +19,7 @@ net:
  in_rank0: 0
  in_rank1: null
  in_rank2: 1
- out_rank: 1
+ out_rank: 2
  out_channels: null
  factorize: false
  activation: gelu
