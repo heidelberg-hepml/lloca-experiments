@@ -4,7 +4,9 @@ from lgatr.primitives.attention import sdp_attention
 
 from .base import EquiVectors
 from ..utils.utils import get_batch_from_ptr
-from lloca.nn.attention import get_xformers_attention_mask
+from lloca.backbone.attention_backends.xformers_attention import (
+    get_xformers_attention_mask,
+)
 
 
 class LGATrVectors(EquiVectors):

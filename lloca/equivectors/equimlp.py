@@ -242,6 +242,7 @@ class EquiMLP(EquiVectors):
         fourmomenta = fourmomenta.reshape(*in_shape, -1, 4)
         return fourmomenta
 
+
 def safe_softmax(x, ptr):
     """Custom softmax implementation to control numerics."""
     seg_id = torch.arange(ptr.numel() - 1, device=x.device).repeat_interleave(
@@ -261,6 +262,7 @@ def safe_softmax(x, ptr):
     den = scatter(num, seg_id, reduce="sum")[seg_id]
     out = num / den
     return out
+
 
 def get_operation(operation):
     """
@@ -284,6 +286,7 @@ def get_operation(operation):
         raise ValueError(
             f"Invalid operation {operation}. Options are (add, diff, single)."
         )
+
 
 def get_nonlinearity(nonlinearity):
     """

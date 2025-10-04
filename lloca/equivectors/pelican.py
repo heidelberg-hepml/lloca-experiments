@@ -4,13 +4,13 @@ from torch_geometric.nn import MessagePassing
 
 from .base import EquiVectors
 from ..utils.utils import (
-    build_edge_index_fully_connected,
+    get_edge_index_from_shape,
     get_edge_index_from_ptr,
     get_edge_attr,
     get_batch_from_ptr,
 )
 from ..utils.lorentz import lorentz_squarednorm
-from .equigraph import get_operation, get_nonlinearity
+from .equimlp import get_operation, get_nonlinearity
 
 
 class PELICANVectors(EquiVectors, MessagePassing):
@@ -43,7 +43,7 @@ class PELICANVectors(EquiVectors, MessagePassing):
             scalars = torch.zeros_like(fourmomenta[..., []])
         if len(in_shape) > 1:
             assert ptr is None, "ptr only supported for sparse tensors"
-            edge_index, batch = build_edge_index_fully_connected(
+            edge_index, batch = get_edge_index_from_shape(
                 fourmomenta, remove_self_loops=False
             )
             fourmomenta = fourmomenta.reshape(math.prod(in_shape), 4)

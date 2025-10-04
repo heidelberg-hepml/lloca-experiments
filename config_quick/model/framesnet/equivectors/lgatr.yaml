@@ -4,7 +4,7 @@ _partial_: true
 n_vectors: null
 num_scalars: null
 hidden_mv_channels: 0
-hidden_s_channels: ${model.lframesnet.equivectors.net.hidden_s_channels}
+hidden_s_channels: ${model.framesnet.equivectors.net.hidden_s_channels}
 
 net:
  _target_: lgatr.nets.LGATr
