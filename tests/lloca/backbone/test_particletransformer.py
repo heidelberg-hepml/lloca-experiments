@@ -8,7 +8,7 @@ from tests.constants import (
     FRAMES_PREDICTOR,
 )
 from tests.helpers import sample_particle, equivectors_builder
-from experiments.tagging.embedding import get_tagging_features
+from tests.hep import get_tagging_features
 
 from lloca.backbone.particletransformer import ParticleTransformer, Block
 from lloca.reps.tensorreps import TensorReps

@@ -1,4 +1,4 @@
-# Equivariant local frames, constructed in various ways
+"""Equivariant local frames for various symmetry groups."""
 import torch
 from torch_geometric.utils import scatter
 
@@ -63,7 +63,8 @@ class LearnedFrames(FramesPredictor):
 
 
 class LearnedPDFrames(LearnedFrames):
-    """Construct Frames as learnable polar decomposition (boost+rotation).
+    """Frames as learnable polar decompositions.
+
     This is our default approach.
     LearnedSO13Frames works similarly well, but is less flexible.
     """
@@ -175,10 +176,7 @@ class LearnedPDFrames(LearnedFrames):
 
 
 class LearnedSO13Frames(LearnedFrames):
-    """
-    Local frames from an orthonormal set of Lorentz vectors
-    constructed from equivariantly predicted vectors
-    """
+    """Frames as orthonormal set of Lorentz vectors."""
 
     def __init__(
         self,
@@ -222,9 +220,13 @@ class LearnedSO13Frames(LearnedFrames):
 
 
 class LearnedRestFrames(LearnedFrames):
-    """Rest frame transformation with learnable equivariant rotation.
+    """Rest frame transformation with learnable rotation.
+
     This is a special case of LearnedPolarDecompositionFrames
-    where the boost vector is chosen to be the particle momentum."""
+    where the boost vector is chosen to be the particle momentum.
+    Note that the rotation is constructed equivariantly to get
+    the correct transformation behaviour of local frames.
+    """
 
     def __init__(
         self,
@@ -270,7 +272,8 @@ class LearnedRestFrames(LearnedFrames):
 
 
 class LearnedSO3Frames(LearnedFrames):
-    """Local frames under rotations for SO(3)-equivariant architectures.
+    """Frames from SO(3) rotations.
+
     This is a special case of LearnedPolarDecompositionFrames
     where the first vector is trivial (1,0,0,0)."""
 
@@ -328,8 +331,8 @@ class LearnedSO3Frames(LearnedFrames):
 
 
 class LearnedSO2Frames(LearnedFrames):
-    """Local frames for SO(2)-equivariant architectures
-    (equivariant under rotations around the beam axis).
+    """Frames from SO(2) rotations around the beam axis.
+
     This is a special case of LearnedPolarDecompositionFrames
     where the firsts two vectors are trivial (1,0,0,0) and (0,0,0,1)."""
 

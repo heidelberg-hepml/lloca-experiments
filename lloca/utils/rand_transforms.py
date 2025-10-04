@@ -1,3 +1,5 @@
+"""Random Lorentz transformations."""
+
 import torch
 from typing import List
 
@@ -6,12 +8,13 @@ from .polar_decomposition import restframe_boost
 
 
 def get_trafo_type(axis):
-    """Determine whether the transformation is a boost or a rotation.
+    """Determine whether the transformation is a boost or a rotation,
+    based on the spacetime axes that are involved.
 
     Parameters
     ----------
     axis : torch.Tensor
-        Axis of the transformation, should be of shape (2, *dims)
+        Axis of the transformation, should be of shape (2, ...)
 
     Returns
     -------
@@ -26,23 +29,25 @@ def transform(
     angles: List[torch.Tensor],
     use_float64=True,
 ):
-    """Recursively build transformation matrices based on given lists of axes and angles
+    """Recursively build transformation matrices based on given lists of axes and angles.
+    This function is very flexible, but transformations built in this way suffer from
+    numerical inaccuracies when many transformations are chained together.
 
     Parameters
     ----------
     axes : List[torch.Tensor]
         List of axes along which the transformations are performed.
-        Each element should be a tensor of shape (2, *dims).
+        Each element is a tensor of shape (2, ...).
     angles : List[torch.Tensor]
         List of angles used for the transformations.
-        Each element should be a tensor of shape (*dims,).
+        Each element is a tensor of shape (...,).
     use_float64 : bool, optional
         Whether to use float64 for calculations, by default True
 
     Returns
     -------
     final_trafo : torch.Tensor
-        Final transformation matrix of shape (*dims, 4, 4).
+        Final transformation matrix of shape (..., 4, 4).
     """
     assert len(axes) == len(angles)
     dims = angles[0].shape
@@ -84,8 +89,9 @@ def rand_lorentz(
     dtype: torch.dtype = torch.float32,
     generator: torch.Generator = None,
 ):
-    """
-    Create general Lorentz transformations as rotation * boost.
+    """Create general Lorentz transformations as rotation * boost.
+    Any Lorentz transformation can be expressed in this way,
+    see polar decomposition of the Lorentz group.
 
     Parameters
     ----------
@@ -103,7 +109,7 @@ def rand_lorentz(
     Returns
     -------
     final_trafo: torch.tensor
-        The resulting Lorentz transformation matrices of shape (*shape, 4, 4).
+        The resulting Lorentz transformation matrices of shape (..., 4, 4).
     """
     assert std_eta > 0
     boost = rand_boost(
@@ -126,9 +132,7 @@ def rand_xyrotation(
     dtype: torch.dtype = torch.float32,
     generator: torch.Generator = None,
 ):
-    """
-    Create xy-plane rotation matrices embedded in the Lorentz group.
-    This function is a special case of rand_rotation.
+    """Create xy-plane rotation matrices embedded in the Lorentz group.
 
     Parameters
     ----------
@@ -141,7 +145,7 @@ def rand_xyrotation(
     Returns
     -------
     final_trafo: torch.tensor
-        The resulting Lorentz transformation matrices of shape (*shape, 4, 4).
+        The resulting Lorentz transformation matrices of shape (..., 4, 4).
     """
     axis = torch.tensor([1, 2], dtype=torch.long, device=device)
     axis = axis.view(2, *([1] * len(shape))).repeat(1, *shape)
@@ -182,7 +186,7 @@ def rand_ztransform(
     Returns
     -------
     final_trafo: torch.tensor
-        The resulting Lorentz transformation matrices of shape (*shape, 4, 4).
+        The resulting Lorentz transformation matrices of shape (..., 4, 4).
     """
     # rotation around z-axis
     axis1 = torch.tensor([1, 2], dtype=torch.long, device=device)
@@ -216,7 +220,8 @@ def rand_rotation(
 ):
     """
     Create rotation matrices embedded in Lorentz transformations.
-    The rotations are sampled uniformly using quaternions.
+    The rotations are sampled uniformly using quaternions,
+    see https://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation.
 
     Parameters
     ----------
@@ -229,7 +234,7 @@ def rand_rotation(
     Returns
     -------
     final_trafo: torch.tensor
-        The resulting Lorentz transformation matrices of shape (*shape, 4, 4).
+        The resulting Lorentz transformation matrices of shape (..., 4, 4).
     """
     # generate random quaternions
     u = torch.rand(*shape, 3, device=device, dtype=dtype, generator=generator)
@@ -239,7 +244,6 @@ def rand_rotation(
     q0 = torch.sqrt(u[..., 0]) * torch.cos(2 * torch.pi * u[..., 2])
 
     # create rotation matrix from quaternions
-    # see https://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation
     R1 = torch.stack(
         [1 - 2 * (q2**2 + q3**2), 2 * (q1 * q2 - q0 * q3), 2 * (q1 * q3 + q0 * q2)],
         dim=-1,
@@ -267,8 +271,7 @@ def rand_boost(
     dtype: torch.dtype = torch.float32,
     generator: torch.Generator = None,
 ):
-    """
-    Create a general pure boost (symmetric Lorentz transformation).
+    """Create a general pure boost, i.e. a symmetric Lorentz transformation.
 
     Parameters
     ----------
@@ -286,7 +289,7 @@ def rand_boost(
     Returns
     -------
     final_trafo: torch.tensor
-        The resulting Lorentz transformation matrices of shape (*shape, 4, 4).
+        The resulting Lorentz transformation matrices of shape (..., 4, 4).
     """
     shape = list(shape) + [3]
     beta = sample_rapidity(
@@ -313,7 +316,7 @@ def sample_rapidity(
     dtype=torch.float32,
     generator: torch.Generator = None,
 ):
-    """Sample rapidity from a gaussian distribution.
+    """Sample rapidity from a clipped gaussian distribution.
 
     Parameters
     ----------

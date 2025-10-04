@@ -9,25 +9,21 @@ from lloca.utils.rand_transforms import rand_lorentz
 
 @pytest.mark.parametrize("batch_dims", [[100]])
 @pytest.mark.parametrize("jet_size", [10])
-@pytest.mark.parametrize("n_vectors", [2, 3])
-@pytest.mark.parametrize("hidden_channels", [16])
-@pytest.mark.parametrize("num_layers_mlp", [1])
-@pytest.mark.parametrize("num_blocks,hidden_vectors", [(1, None), (2, 1), (2, 2)])
+@pytest.mark.parametrize("n_vectors", [1, 2, 3])
+@pytest.mark.parametrize("hidden_channels,num_layers_mlp", [(16, 1)])
 @pytest.mark.parametrize("logm2_mean,logm2_std", LOGM2_MEAN_STD)
 @pytest.mark.parametrize("num_scalars,include_edges", [(0, True), (1, False)])
 @pytest.mark.parametrize(
     "operation, fm_norm",
     [("diff", True), ("diff", False), ("add", True), ("add", False), ("single", False)],
 )
-@pytest.mark.parametrize("nonlinearity", ["softplus", "exp", "softmax", None])
+@pytest.mark.parametrize("nonlinearity", ["softplus", "exp", "softmax", "softmax_safe"])
 def test_equivariance(
     batch_dims,
     jet_size,
     n_vectors,
     hidden_channels,
     num_layers_mlp,
-    num_blocks,
-    hidden_vectors,
     logm2_std,
     logm2_mean,
     include_edges,
@@ -49,8 +45,6 @@ def test_equivariance(
         num_scalars=num_scalars,
         hidden_channels=hidden_channels,
         num_layers_mlp=num_layers_mlp,
-        num_blocks=num_blocks,
-        hidden_vectors=hidden_vectors,
         include_edges=include_edges,
         operation=operation,
         nonlinearity=nonlinearity,

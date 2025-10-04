@@ -1,3 +1,5 @@
+"""Transforming tensors of different Lorentz group representations."""
+
 import torch
 
 from ..framesnet.frames import Frames
@@ -10,7 +12,7 @@ class TensorRepsTransform(torch.nn.Module):
         reps: TensorReps,
         use_naive=False,
     ):
-        """Initialize tensor representation transformation module.
+        """Tensor representation transformation module.
 
         Parameters
         ----------
@@ -51,7 +53,7 @@ class TensorRepsTransform(torch.nn.Module):
             self.map_rep = [None for _ in range(self.reps.max_rep.rep.order + 1)]
             idx_rep = 0
             for i in range(self.reps.max_rep.rep.order + 1):
-                if reps[idx_rep].rep.order == i:
+                if self.reps[idx_rep].rep.order == i:
                     self.map_rep[i] = idx_rep
                     idx_rep += 1
 
@@ -74,16 +76,22 @@ class TensorRepsTransform(torch.nn.Module):
         torch.Tensor
             The transformed tensor, shape (..., self.reps.dim).
         """
-        assert self.reps.dim == tensor.shape[-1]
+        assert (
+            self.reps.dim == tensor.shape[-1]
+        ), f"Last tensor dimension is {tensor.shape[-1]}, but should be reps.dim={self.reps.dim}."
 
-        if frames.is_identity or self.reps.mul_without_scalars == 0:
+        if frames.is_identity or (
+            self.reps.mul_without_scalars == 0 and self.no_parity_odd
+        ):
             return tensor
 
         in_shape = tensor.shape
         if len(frames.shape) > 3:
             frames = frames.reshape(-1, 4, 4)
         tensor = tensor.reshape(-1, tensor.shape[-1])
-        assert tensor.shape[0] == frames.shape[0]
+        assert (
+            tensor.shape[0] == frames.shape[0]
+        ), f"Batch dimension is {tensor.shape[0]} for tensor, but {frames.shape[0]} for frames."
 
         tensor_transformed = self.transform(tensor, frames)
         tensor_transformed = self.transform_parity(tensor_transformed, frames)
@@ -107,6 +115,7 @@ class TensorRepsTransform(torch.nn.Module):
             The transformed tensor, shape (N, self.reps.dim).
         """
         output = tensor.clone()
+        frames = frames.matrices.clone().to(tensor.dtype)
         for mul_rep, [idx_start, idx_end] in zip(self.reps, self.start_end_idx):
             mul, rep = mul_rep
             if mul == 0 or rep.order == 0:
@@ -115,9 +124,8 @@ class TensorRepsTransform(torch.nn.Module):
             x = tensor[:, idx_start:idx_end].reshape(-1, mul, *([4] * rep.order))
 
             einsum_string = get_einsum_string(rep.order)
-            x_transformed = torch.einsum(
-                einsum_string, *([frames.matrices.to(x.dtype)] * rep.order), x
-            )
+            print(frames.shape, frames.matrices.to(x.dtype).shape)
+            x_transformed = torch.einsum(einsum_string, *([frames] * rep.order), x)
             output[:, idx_start:idx_end] = x_transformed.reshape(-1, mul_rep.dim)
 
         return output
@@ -144,6 +152,7 @@ class TensorRepsTransform(torch.nn.Module):
             The transformed tensor, shape (N, self.reps.dim).
         """
         output = None
+        bframes = frames.matrices.clone().to(tensor.dtype)
         for order in reversed(range(self.reps.max_rep.rep.order + 1)):
             if self.map_rep[order] is not None:
                 # add new contribution to the mix
@@ -159,9 +168,7 @@ class TensorRepsTransform(torch.nn.Module):
 
             if order > 0:
                 # apply transformation, then flatten because transformation is done
-                output = torch.einsum(
-                    "ijk,ilk...->ilj...", frames.matrices.to(output.dtype), output
-                )
+                output = torch.einsum("ijk,ilk...->ilj...", bframes, output)
                 output = output.flatten(start_dim=1, end_dim=2)
 
         return output
@@ -183,6 +190,9 @@ class TensorRepsTransform(torch.nn.Module):
         torch.Tensor
             The transformed tensor, shape (N, self.reps.dim).
         """
+        if self.reps.max_rep.rep.order == 0:
+            return tensor
+
         output = tensor.clone()
         vector_idx_start, vector_idx_end = self.start_end_idx[-1]
         vectors = tensor[:, vector_idx_start:vector_idx_end]

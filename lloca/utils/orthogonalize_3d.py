@@ -1,3 +1,5 @@
+"""Orthogonalization of euclidean vectors."""
+
 import torch
 
 
@@ -19,8 +21,7 @@ def orthogonalize_3d(
         Controls the scale of the regularization for collinear vectors.
         eps_reg**2 defines the selection threshold.
     return_reg : bool
-        If True, return a tuple with the orthogonalized vectors and the number of
-        regularized vectors for collinearity.
+        If True, additionally return the number of regularized vectors for collinearity.
 
     Returns
     -------
@@ -42,7 +43,7 @@ def orthogonalize_3d(
 
 
 def orthogonalize_gramschmidt_3d(vecs, eps_norm=1e-15):
-    """Gram-Schmidt orthogonalization algorithm for O(3) vectors.
+    """Gram-Schmidt orthogonalization algorithm for euclidean vectors.
 
     Parameters
     ----------
@@ -81,8 +82,9 @@ def orthogonalize_gramschmidt_3d(vecs, eps_norm=1e-15):
 
 
 def orthogonalize_cross_3d(vecs, eps_norm=1e-15):
-    """Cross product orthogonalization algorithm for O(3) vectors.
-    This is an alternative to the Gram-Schmidt algorithm, which is more numerically stable.
+    """Cross product orthogonalization algorithm for euclidean vectors.
+    This approach is equivalent to the Gram-Schmidt procedure for unlimited precision,
+    but for limited precision it is more stable.
 
     Parameters
     ----------
@@ -94,7 +96,7 @@ def orthogonalize_cross_3d(vecs, eps_norm=1e-15):
     Returns
     -------
     orthogonal_vecs : list of torch.Tensor
-        List of orthogonalized vectors of shape (..., 3).
+        List of three orthogonalized vectors of shape (..., 3).
     """
     n_vectors = len(vecs)
     assert n_vectors == 2
@@ -138,7 +140,7 @@ def regularize_collinear(vecs, eps_reg=1e-10):
 
 
 def normalize_3d(v, eps_norm=1e-15):
-    """Normalize a 3D vector with numerical stability.
+    """Normalize an euclidean vector with numerical stability.
 
     Parameters
     ----------

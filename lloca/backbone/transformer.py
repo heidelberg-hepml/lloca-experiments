@@ -1,3 +1,4 @@
+"""Baseline LLoCa-Transformer."""
 from functools import partial
 
 import torch
@@ -297,9 +298,9 @@ class BaselineTransformerBlock(nn.Module):
 
 
 class Transformer(nn.Module):
-    """Baseline transformer.
+    """Baseline LLoCa-Transformer.
 
-    Combines num_blocks transformer blocks, each consisting of multi-head self-attention layers, an
+    Combines transformer blocks, each consisting of multi-head self-attention layers, an
     MLP, residual connections, and normalization layers.
 
     Parameters

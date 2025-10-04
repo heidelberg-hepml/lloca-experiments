@@ -1,8 +1,9 @@
-"""Particle Transformer (ParT)
+"""Particle Transformer (ParT) with local frame transformations."""
 
+"""
 Paper: "Particle Transformer for Jet Tagging" - https://arxiv.org/abs/2202.03772
 
-We have to do three things to build a LLoCa-ParT
+We have to do two things to build LLoCa-ParT
 - Construct a LLoCaAttention module for the whole transformer that preprocesses the frames
   and is passed to each attention block during initialization.
 - When evaluating attention, use the LLoCaAttention module.
@@ -10,11 +11,10 @@ We have to do three things to build a LLoCa-ParT
 More comments:
 - We also added an extra clamp in to_ptrapphim to avoid numerical issues from log(0). This case
   might not happen in the original ParT, but it can happen with LLoCa for highly boosted frames.
-- We use LLoCaAttention only for the self-attention blocks, and use default attention (corresponds
-  to scalar messages only) for the class attention blocks.
+- For simplicity, we use LLoCaAttention only for the self-attention blocks, and use
+  default attention (corresponds to scalar messages only) for the class attention blocks.
 
-Use git diff --no-index experiments/baselines/particletransformer.py lloca/nn/particletransformer.py
-to see the changes required to include frame-to-frame transformations
+You can use 'git diff --no-index' to compare this file with the original particletransformer.py file.
 """
 
 import math
@@ -879,6 +879,8 @@ class Block(nn.Module):
 
 
 class ParticleTransformer(nn.Module):
+    """Particle Transformer (ParT) with local frame transformations."""
+
     def __init__(
         self,
         input_dim,

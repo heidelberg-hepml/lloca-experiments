@@ -1,3 +1,5 @@
+"""Tools for graph construction and manipulation."""
+
 import torch
 
 from .lorentz import lorentz_squarednorm
@@ -10,11 +12,13 @@ def get_batch_from_ptr(ptr):
     ----------
     ptr : torch.Tensor
         Pointer tensor indicating the start of each batch.
+        Tensor of shape (B+1,) where B is the number of batches.
 
     Returns
     -------
     torch.Tensor
         A tensor where each element indicates the batch index for each item.
+        Tensor of shape (N,) where N is the total number of items across all batches.
     """
     return torch.arange(len(ptr) - 1, device=ptr.device).repeat_interleave(
         ptr[1:] - ptr[:-1],
@@ -28,11 +32,13 @@ def get_ptr_from_batch(batch):
     ----------
     batch : torch.Tensor
         A tensor where each element indicates the batch index for each item.
+        Tensor of shape (N,) where N is the total number of items across all batches.
 
     Returns
     -------
     torch.Tensor
         A pointer tensor indicating the start of each batch.
+        Tensor of shape (B+1,) where B is the number of batches.
     """
     return torch.cat(
         [
@@ -46,11 +52,14 @@ def get_ptr_from_batch(batch):
 
 def get_edge_index_from_ptr(ptr, remove_self_loops=True):
     """Construct edge index of fully connected graph from pointer (ptr).
+    This function should be used for graphs represented by sparse tensors,
+    i.e. graphs where the number of nodes per graph can vary.
 
     Parameters
     ----------
     ptr : torch.Tensor
         Pointer tensor indicating the start of each batch.
+        Tensor of shape (B+1,) where B is the number of batches.
     remove_self_loops : bool, optional
         Whether to remove self-loops from the edge index, by default True.
 
@@ -86,6 +95,8 @@ def get_edge_index_from_ptr(ptr, remove_self_loops=True):
 def get_edge_index_from_shape(features_ref, remove_self_loops=True):
     """Construct edge index of fully connected graph from reference object.
     Only shape and device of the reference object are used.
+    This function should be used for graphs represented by dense tensors,
+    i.e. graphs where the number of nodes per graph is fixed.
 
     Parameters
     ----------
