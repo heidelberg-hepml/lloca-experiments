@@ -3,6 +3,7 @@ in_channels: null
 out_channels: null
 use_amp: false
 add_fourmomenta_backbone: false
+mean_aggregation: true
 
 net:
  _target_: lloca.backbone.transformer.Transformer
@@ -14,6 +15,8 @@ net:
 
  num_blocks: 2
  num_heads: 2
+ mlp_factor: 4
+ attention_factor: 1
  
 defaults:
  - framesnet: identity

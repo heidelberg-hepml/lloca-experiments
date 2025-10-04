@@ -9,6 +9,7 @@ net:
 
  num_blocks: 6
  num_heads: 8
+ mlp_factor: 2
 
 defaults:
  - framesnet: identity

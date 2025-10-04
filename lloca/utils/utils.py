@@ -83,7 +83,7 @@ def get_edge_index_from_ptr(ptr, remove_self_loops=True):
     return edge_index
 
 
-def build_edge_index_fully_connected(features_ref, remove_self_loops=True):
+def get_edge_index_from_shape(features_ref, remove_self_loops=True):
     """Construct edge index of fully connected graph from reference object.
     Only shape and device of the reference object are used.
 
