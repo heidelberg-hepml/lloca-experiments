@@ -10,4 +10,4 @@ net:
  num_channels_2: 78
  
 defaults:
- - lframesnet: identity
+ - framesnet: identity

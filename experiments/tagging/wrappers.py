@@ -551,7 +551,7 @@ class PELICANWrapper(nn.Module):
     def __init__(
         self,
         net,
-        lframesnet,
+        framesnet,
         out_channels,
     ):
         super().__init__()
@@ -561,8 +561,8 @@ class PELICANWrapper(nn.Module):
         self.register_buffer("edge_mean", torch.tensor(0.0))
         self.register_buffer("edge_std", torch.tensor(1.0))
 
-        self.lframesnet = lframesnet  # not actually used
-        assert isinstance(lframesnet, IdentityFrames)
+        self.framesnet = framesnet  # not actually used
+        assert isinstance(framesnet, IdentityFrames)
 
     def forward(self, embedding):
         # extract embedding (includes spurions)

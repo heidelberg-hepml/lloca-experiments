@@ -211,7 +211,7 @@ class PELICANWrapper(AmplitudeWrapper):
     def __init__(self, net, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = net
-        assert isinstance(self.lframesnet, IdentityFrames)
+        assert isinstance(self.framesnet, IdentityFrames)
 
         self.register_buffer("edge_mean", torch.tensor(0.0))
         self.register_buffer("edge_std", torch.tensor(1.0))
