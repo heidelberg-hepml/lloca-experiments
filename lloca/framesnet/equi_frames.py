@@ -109,13 +109,14 @@ class LearnedPDFrames(LearnedFrames):
         boost = self._deterministic_boost(boost, ptr)
         boost, reg_gammamax, gamma_mean, gamma_max = self._clamp_boost(boost)
 
-        trafo, reg_collinear = polar_decomposition(
+        trafo, reg_lightlike, reg_collinear = polar_decomposition(
             boost,
             rotation_references,
             **self.ortho_kwargs,
             return_reg=True,
         )
         tracker = {
+            "reg_lightlike": reg_lightlike,
             "reg_collinear": reg_collinear,
             "gamma_mean": gamma_mean,
             "gamma_max": gamma_max,

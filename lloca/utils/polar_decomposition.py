@@ -2,6 +2,7 @@ import torch
 
 from .orthogonalize_3d import orthogonalize_3d
 from .lorentz import lorentz_squarednorm
+from .orthogonalize_4d import regularize_lightlike
 
 
 def restframe_boost(fourmomenta):
@@ -91,8 +92,10 @@ def polar_decomposition(
         fourmomenta = fourmomenta.to(torch.float64)
         references = [r.to(torch.float64) for r in references]
 
+    # regularize lightlike fourmomenta
+    fourmomenta, reg_lightlike = regularize_lightlike(fourmomenta, **kwargs)
     # construct rest frame transformation
-    boost = restframe_boost(fourmomenta)
+    boost = restframe_boost(torch.stack(fourmomenta))
 
     # references go into rest frame
     ref_rest = [torch.einsum("...ij,...j->...i", boost, v) for v in references]
@@ -113,4 +116,4 @@ def polar_decomposition(
     if use_float64:
         trafo = trafo.to(original_dtype)
     assert torch.isfinite(trafo).all()
-    return (trafo, reg_collinear) if return_reg else trafo
+    return (trafo, reg_lightlike, reg_collinear) if return_reg else trafo
