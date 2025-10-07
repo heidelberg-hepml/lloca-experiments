@@ -1,16 +1,16 @@
-"""ParticleNet
+"""ParticleNet with local frame transformations."""
 
+"""
 Paper: "ParticleNet: Jet Tagging via Particle Clouds" - https://arxiv.org/abs/1902.08570
 Code: https://github.com/hqucms/weaver-core/blob/main/weaver/nn/model/ParticleNet.py
 
-We have to do three things to build a LLoCa-ParticleNet
+We have to do three things to build LLoCa-ParticleNet
 - Specify the hidden_reps_list for hidden representations in each message-passing layer
-- Pass the frames through the network
+- Pass the frames through the network to have them ready in the message-passing steps
 - During the edge convolution, transform the features from the local to the global frames
   using tools from the lloca code (TensorRepsTransform, IndexSelectFrames, ChangeOfFrames)
 
-Use 'git diff --no-index experiments/baselines/particlenet.py lloca/nn/particlenet.py'
-to see the changes required to include frame-to-frame transformations.
+You can use 'git diff --no-index' to compare this file with the original particlenet.py file.
 """
 
 import torch
@@ -215,6 +215,8 @@ class EdgeConvBlock(nn.Module):
 
 
 class ParticleNet(nn.Module):
+    """ParticleNet with local frame transformations."""
+
     def __init__(
         self,
         input_dims,

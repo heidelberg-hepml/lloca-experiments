@@ -1,4 +1,4 @@
-# Bookkeeping class for convenient access to local frames
+"""Bookkeeping classes to access local frames."""
 import torch
 
 from ..utils.lorentz import lorentz_eye, lorentz_metric
@@ -6,10 +6,12 @@ from ..utils.lorentz import lorentz_eye, lorentz_metric
 
 class Frames:
     """
-    Collection of Lorentz transformations, represented as (*dims, 4, 4) matrices.
-    Expensive properties like det and inv are cached for performance.
+    Bookkeeping class for local frames.
+
+    Collection of Lorentz transformations, represented as (..., 4, 4) matrices.
+    Properties like det and inv are cached for performance.
     Attributes should not be changed after initialization to avoid inconsistencies.
-    Shapes can be modified with e.g. .reshape(), .expand() and .repeat().
+    The object can be modified with e.g. ``.reshape()``, ``.expand()`` and ``.repeat()``, ``.to()``.
     """
 
     def __init__(
@@ -23,21 +25,21 @@ class Frames:
         device: str = None,
         dtype: torch.dtype = None,
     ):
-        """There are 2 ways to initialize an Frames object:
+        """There are 2 ways to initialize an Frames object, with different arguments:
         - From matrices: Set matrices and optionally is_global, det, inv
         - As identity: Set is_identity=True, shape, device, dtype
 
         Parameters
         ----------
         matrices: torch.tensor
-            Transformation matrices of shape (*dims, 4, 4)
+            Transformation matrices of shape (..., 4, 4)
         is_global: bool
             Whether frames are the same for all particles in the point cloud
         inv: torch.Tensor
-            Optional cached inverse of shape (*dims, 4, 4).
+            Optional cached inverse of shape (..., 4, 4).
             If not given, takes a bit of extra time to compute.
         det: torch.Tensor
-            Optional cached determinant of shape (*dims).
+            Optional cached determinant of shape (...).
             If not given, takes a bit of extra time to compute.
         is_identity: bool
             Sets matrices to diagonal.
@@ -87,11 +89,8 @@ class Frames:
         if self.inv is None:
             self.inv = self.metric @ self.matrices.transpose(-1, -2) @ self.metric
 
-    def __repr__(self):
-        return repr(self.matrices)
-
     def reshape(self, *shape):
-        """Reshape the matrices to a new shape.
+        """Reshape the matrices to generate a new object of different shape.
 
         Parameters
         ----------
@@ -112,7 +111,7 @@ class Frames:
         )
 
     def expand(self, *shape):
-        """Expand the matrices to a new shape.
+        """Expand the matrices to generate a new object of different shape.
 
         Parameters
         ----------
@@ -133,7 +132,7 @@ class Frames:
         )
 
     def repeat(self, *shape):
-        """Repeat the matrices to a new shape.
+        """Repeat the matrices to generate a new object of different shape.
 
         Parameters
         ----------
@@ -154,9 +153,13 @@ class Frames:
         )
 
     def to(self, dtype=None, device=None):
+        """Move the matrices to a new device and/or dtype."""
         self.matrices = self.matrices.to(device=device, dtype=dtype)
         self.inv = self.inv.to(device=device, dtype=dtype)
         self.det = self.det.to(device=device, dtype=dtype)
+
+    def __repr__(self):
+        return repr(self.matrices)
 
     @property
     def device(self):
@@ -172,7 +175,7 @@ class Frames:
 
 
 class InverseFrames(Frames):
-    """Inverse of a collection of transformations."""
+    """Inverse of a collection of frames."""
 
     def __init__(self, frames: Frames):
         super().__init__(
@@ -188,7 +191,7 @@ class InverseFrames(Frames):
 
 
 class IndexSelectFrames(Frames):
-    """Index-controlled selection of transformation matrices from an Frames object."""
+    """Index-controlled collection of frames."""
 
     def __init__(self, frames: Frames, indices: torch.Tensor):
         super().__init__(
@@ -205,12 +208,12 @@ class IndexSelectFrames(Frames):
 
 class ChangeOfFrames(Frames):
     """
-    Change of frames between two Frames objects
-    Formally, for L_start and L_end we have
-    L_change = L_end * L_start^-1
+    Change of frames between two Frames objects.
 
-    WARNING: This function does not mix the frames of different point clouds
-    It is used in TFMessagePassing where this mixing is performed using the edge_index
+    Formally, for L_start and L_end we have $L_change = L_end * L_start^{-1}$.
+
+    WARNING: This function does not mix the frames of different point clouds.
+    It is used in TFMessagePassing where this mixing is performed using the edge_index.
     """
 
     def __init__(self, frames_start: Frames, frames_end: Frames):
@@ -233,8 +236,8 @@ class ChangeOfFrames(Frames):
 
 class LowerIndicesFrames(Frames):
     """
-    Frames with lower indices
-    Used in LLoCaAttention to lower the key indices
+    Frames with lower indices, obtained by multiplying with the metric.
+    Used in LLoCaAttention to lower the key indices.
     """
 
     def __init__(self, frames):

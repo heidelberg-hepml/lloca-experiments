@@ -1,4 +1,4 @@
-# Non-equivariant local frames, i.e. non-equivariant networks and data augmentation
+"""Non-equivariant local frames for non-equivariant networks and data augmentation."""
 import torch
 
 from .frames import Frames
@@ -22,7 +22,7 @@ class FramesPredictor(torch.nn.Module):
 
 
 class IdentityFrames(FramesPredictor):
-    """Identity local frames, corresponding to non-equivariant networks"""
+    """Identity frames for non-equivariant networks"""
 
     def __init__(self):
         super().__init__(is_global=True, is_identity=True)
@@ -42,8 +42,7 @@ class IdentityFrames(FramesPredictor):
 
 
 class RandomFrames(FramesPredictor):
-    """Randomly generates a local frame for the whole batch,
-    corresponding to data augmentation."""
+    """Random frames for data augmentation."""
 
     def __init__(
         self,
@@ -52,6 +51,21 @@ class RandomFrames(FramesPredictor):
         std_eta=0.1,
         n_max_std_eta=3.0,
     ):
+        """
+        Parameters
+        ----------
+        transform_type : str
+            Type of random transformation. One of "lorentz", "rotation", "xyrotation", "ztransform".
+        is_global : bool
+            Global or local data augmentations, the default is global.
+            Local data augmentations are a weird thing, we implemented them because we can.
+        std_eta : float
+            Standard deviation of the rapidity eta for the random boost.
+            Only relevant if transform_type is "lorentz" or "ztransform".
+        n_max_std_eta : float
+            Maximum rapidity in units of std_eta.
+            Only relevant if transform_type is "lorentz" or "ztransform".
+        """
         super().__init__(is_global=is_global)
         self.is_global = is_global
         self.std_eta = std_eta
@@ -120,9 +134,10 @@ class RandomFrames(FramesPredictor):
 
 
 class COMRandomFrames(RandomFrames):
-    """Modifies the forward function of RandomFrames such that
-    an additional boost is applied to the whole event.
+    """Special random frame for data augmentation in amplitude regression.
 
+    Modifies the forward function of RandomFrames such that
+    an additional boost is applied to the whole event.
     Only applicable to amplitude regression, the boost changes
     the reference frame to the center of mass of the incoming particles.
     """

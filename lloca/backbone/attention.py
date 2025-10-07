@@ -1,3 +1,4 @@
+"""LLoCa attention module."""
 from math import prod
 import torch
 from torch import Tensor
@@ -9,9 +10,16 @@ from .attention_backends import get_attention_backend
 
 
 class LLoCaAttention(torch.nn.Module):
-    """"""
-
     def __init__(self, attn_reps, num_heads):
+        """Attention with frame-to-frame transformations.
+
+        Parameters
+        ----------
+        attn_reps : TensorReps
+            Tensor representation of a single attention head.
+        num_heads : int
+            Number of attention heads
+        """
         super().__init__()
         self.transform = TensorRepsTransform(TensorReps(attn_reps))
         self.num_heads = num_heads
@@ -79,25 +87,24 @@ class LLoCaAttention(torch.nn.Module):
         3) Transform output back into local frame
 
         Comments
-        - dimensions: *dims (optional), H (head), N (particles), C (channels)
-        - extension to cross-attention is trivial but we don't have this right now for convenience
-          strategy: frames_q for queries (in contrast to frames=frames_kv)
+        - Dimensions: ... (optional), H (head), N (particles), C (channels).
+        - Extension to cross-attention is trivial but we don't have this right now for convenience. Strategy: frames_q for queries (in contrast to frames=frames_kv).
 
         Parameters
         ----------
         q_local: torch.tensor
-            Local queries of shape (*dims, H, N, C)
+            Local queries of shape (..., H, N, C)
         k_local: torch.tensor
-            Local keys of shape (*dims, H, N, C)
+            Local keys of shape (..., H, N, C)
         v_local: torch.tensor
-            Local values of shape (*dims, H, N, C)
-        attn_kwargs: dict
-            Optional arguments that are passed on to attention
+            Local values of shape (..., H, N, C)
+        **attn_kwargs
+            Optional arguments that are passed on to the attention backend
 
         Returns
         -------
         out_local: torch.tensor
-            Attention output in local frame of shape (*dims, H, N, C)
+            Attention output in local frame of shape (..., H, N, C)
         """
         if self.frames.is_global:
             # fallback to standard attention for global frames
@@ -131,7 +138,7 @@ class LLoCaAttention(torch.nn.Module):
             **attn_kwargs,
         )
 
-        out_global = out_global.view(*shape_q)  # (*dims, H, N, C)
+        out_global = out_global.view(*shape_q)  # (..., H, N, C)
 
         # transform result back into local frame
         out_local = self.transform(out_global, self.frames)
@@ -146,7 +153,7 @@ def scaled_dot_product_attention(
 ) -> Tensor:
     """Execute scaled dot-product attention.
     The attention backend is determined dynamically
-    based on the ``attn_kwargs`` provided.
+    based on the ``**attn_kwargs``.
 
     Parameters
     ----------

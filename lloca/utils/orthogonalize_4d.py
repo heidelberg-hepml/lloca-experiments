@@ -1,3 +1,5 @@
+"""Orthogonalization of Minkowski vectors."""
+
 import torch
 
 from .lorentz import (
@@ -9,12 +11,12 @@ from .lorentz import (
 
 
 def orthogonalize_4d(vecs, use_float64=True, return_reg=False, **kwargs):
-    """High-level wrapper for orthogonalization of three Lorentz vectors.
+    """High-level wrapper for orthogonalization of three Minkowski vectors.
 
     Parameters
     ----------
     vecs : list of torch.Tensor
-        List of three Lorentz vectors of shape (..., 4).
+        List of three Minkowski vectors of shape (..., 4).
     use_float64 : bool
         If True, use float64 for numerical stability during orthogonalization.
     return_reg : bool
@@ -65,7 +67,7 @@ def orthogonalize_wrapper_4d(
     Parameters
     ----------
     vecs : list of torch.Tensor
-        List of three Lorentz vectors of shape (..., 4).
+        List of three Minkowski vectors of shape (..., 4).
     method : str
         Method for orthogonalization. Options are "cross" and "gramschmidt".
     eps_norm : float
@@ -83,7 +85,7 @@ def orthogonalize_wrapper_4d(
     Returns
     -------
     orthogonal_vecs : list of torch.Tensor
-        List of orthogonalized Lorentz vectors of shape (..., 4).
+        List of orthogonalized Minkowski vectors of shape (..., 4).
     reg_lightlike : int
         Number of vectors that were regularized due to being lightlike.
     reg_coplanar : int
@@ -111,14 +113,14 @@ def orthogonalize_gramschmidt(vecs, eps_norm=1e-15):
     Parameters
     ----------
     vecs : list of torch.Tensor
-        List of Lorentz vectors of shape (..., 4).
+        List of Minkowski vectors of shape (..., 4).
     eps_norm : float
         Small value to avoid division by zero during normalization.
 
     Returns
     -------
     orthogonal_vecs : list of torch.Tensor
-        List of orthogonalized Lorentz vectors of shape (..., 4).
+        List of orthogonalized Minkowski vectors of shape (..., 4).
     """
     vecs = [normalize_4d(v, eps_norm) for v in vecs]
 
@@ -140,20 +142,20 @@ def orthogonalize_gramschmidt(vecs, eps_norm=1e-15):
 
 def orthogonalize_cross(vecs, eps_norm=1e-15):
     """Orthogonalization algorithm using repeated cross products.
-    This approach gives the same result as orthogonalize_gramschmidt,
-    but we find empirically that the Gram-Schmidt approach is more stable.
+    This approach gives the same result as orthogonalize_gramschmidt for unlimited
+    precision, but we find empirically that the Gram-Schmidt approach is more stable.
 
     Parameters
     ----------
     vecs : list of torch.Tensor
-        List of Lorentz vectors of shape (..., 4).
+        List of Minkowski vectors of shape (..., 4).
     eps_norm : float
         Small value to avoid division by zero during normalization.
 
     Returns
     -------
     orthogonal_vecs : list of torch.Tensor
-        List of orthogonalized Lorentz vectors of shape (..., 4).
+        List of orthogonalized Minkowski vectors of shape (..., 4).
     """
     vecs = [normalize_4d(v, eps_norm) for v in vecs]
 
@@ -204,14 +206,14 @@ def regularize_lightlike(vecs, eps_reg_lightlike=1e-10):
     Parameters
     ----------
     vecs : list of torch.Tensor
-        List of Lorentz vectors of shape (..., 4).
+        List of Minkowski vectors of shape (..., 4).
     eps_reg_lightlike : float
         Small value to control the scale of the regularization for lightlike vectors.
 
     Returns
     -------
     vecs_reg : list of torch.Tensor
-        List of Lorentz vectors of shape (..., 4) with regularization applied.
+        List of Minkowski vectors of shape (..., 4) with regularization applied.
     reg_lightlike : int
         Number of vectors that were regularized due to being lightlike.
     """
@@ -236,14 +238,14 @@ def regularize_coplanar(vecs, eps_reg_coplanar=1e-10):
     Parameters
     ----------
     vecs : list of torch.Tensor
-        List of three Lorentz vectors of shape (..., 4).
+        List of three Minkowski vectors of shape (..., 4).
     eps_reg_coplanar : float
         Small value to control the scale of the regularization for coplanar vectors.
 
     Returns
     -------
     vecs_reg : list of torch.Tensor
-        List of three Lorentz vectors of shape (..., 4) with regularization applied.
+        List of three Minkowski vectors of shape (..., 4) with regularization applied.
     reg_coplanar : int
         Number of vectors that were regularized due to coplanarity.
     """
@@ -261,21 +263,21 @@ def regularize_coplanar(vecs, eps_reg_coplanar=1e-10):
 
 
 def normalize_4d(v, eps=1e-15):
-    """Normalize a Lorentz vector by the absolute value of the Minkowski norm.
+    """Normalize a Minkowski vector by the absolute value of the Minkowski norm.
     Note that this norm can be close to zero.
 
     Parameters
     ----------
     v : torch.Tensor
-        Lorentz vector of shape (..., 4).
+        Minkowski vector of shape (..., 4).
     eps : float
         Small value to avoid division by zero.
 
     Returns
     -------
     torch.Tensor
-        Normalized Lorentz vector of shape (..., 4).
+        Normalized Minkowski vector of shape (..., 4).
     """
     norm = lorentz_squarednorm(v).unsqueeze(-1)
-    norm = norm.abs().sqrt()  # could also multiply by torch.sign(norm)
+    norm = norm.abs().sqrt()
     return v / (norm + eps)

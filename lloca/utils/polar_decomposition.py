@@ -1,3 +1,5 @@
+"""Lorentz transformations from boosts and rotations."""
+
 import torch
 
 from .orthogonalize_3d import orthogonalize_3d
@@ -5,9 +7,7 @@ from .lorentz import lorentz_squarednorm
 
 
 def restframe_boost(fourmomenta):
-    """Construct a Lorentz transformation that boosts the given four-momenta
-    into their rest frame. This transformation alone does not have the
-    frames transformation properties, because it does not include a rotation.
+    """Construct a Lorentz transformation that boosts four-momenta into their rest frame.
 
     Parameters
     ----------

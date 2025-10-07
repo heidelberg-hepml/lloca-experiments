@@ -1,3 +1,4 @@
+"""Baseline LLoCa-GNN."""
 import torch
 from torch import nn
 from torch.utils.checkpoint import checkpoint
@@ -17,6 +18,24 @@ class EdgeConv(LLoCaMessagePassing):
         num_edge_attr=0,
         dropout_prob=None,
     ):
+        """Simple edge convolution layer.
+
+        Parameters
+        ----------
+        reps : TensorReps
+            Tensor representation used during message passing.
+        num_layers_mlp1 : int
+            Number of hidden layers in the first MLP.
+        num_layers_mlp2 : int
+            Number of hidden layers in the second MLP.
+            If 0, no second MLP is used.
+        aggr : str
+            Aggregation method. One of "add", "mean", or "max".
+        num_edge_attr : int
+            Number of edge attributes.
+        dropout_prob : float
+            Dropout probability in the MLPs.
+        """
         super().__init__(aggr=aggr, params_dict={"x": {"type": "local", "rep": reps}})
         self.mlp1 = MLP(
             in_shape=[reps.dim * 2 + num_edge_attr],
@@ -38,6 +57,24 @@ class EdgeConv(LLoCaMessagePassing):
         )
 
     def forward(self, x, frames, edge_index, batch=None, edge_attr=None):
+        """Forward pass.
+
+        Parameters
+        ----------
+        x : Tensor
+            Input data with shape (num_items, reps.dim)
+        frames : Frames
+            Local frames used for message passing
+        edge_index : Tensor
+            Edge index tensor with shape (2, num_edges)
+        batch : Tensor
+            Batch tensorwith shape (num_items,)
+
+        Returns
+        -------
+        x_aggr : Tensor
+            Outputs with shape (num_items, reps.dim)
+        """
         frames = (frames, frames)
 
         x_aggr = self.propagate(
@@ -60,20 +97,24 @@ class EdgeConv(LLoCaMessagePassing):
 
 
 class GraphNet(nn.Module):
-    """Baseline graphnet.
+    """Baseline LLoCa-GNN.
 
-    Combines num_blocks EdgeConv blocks.
+    Simple message-passing graph neural network, consisting of EdgeConv blocks.
 
     Parameters
     ----------
     in_channels : int
         Number of input channels.
     hidden_reps : str
-        Representation during message passing.
+        Tensor representation used in the hidden layers.
     out_channels : int
         Number of output channels.
     num_blocks : int
         Number of EdgeConv blocks.
+    *args
+    checkpoint_blocks : bool
+        Whether to use gradient checkpointing in the EdgeConv blocks.
+    **kwargs
     """
 
     def __init__(
@@ -118,7 +159,7 @@ class GraphNet(nn.Module):
             Batch tensorwith shape (num_items,)
             If None, assumes fully connected graph along the num_items direction.
         edge_attr : Tensor
-            Edge attribute tensor with shape (num_items, num_edge_attr)
+            Edge attribute tensor with shape (num_edges, num_edge_attr)
 
         Returns
         -------

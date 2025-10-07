@@ -35,7 +35,6 @@ def equivectors_builder(num_scalars=0):
             num_scalars=num_scalars,
             hidden_channels=16,
             num_layers_mlp=1,
-            num_blocks=1,
         )
 
     return builder

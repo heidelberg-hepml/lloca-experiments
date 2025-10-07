@@ -1,3 +1,4 @@
+"""Edge convolution with a simple MLP."""
 import torch
 from torch import nn
 import math
@@ -25,13 +26,17 @@ class EquiEdgeConv(MessagePassing):
         num_layers_mlp,
         include_edges=True,
         operation="add",
-        nonlinearity="exp",
-        fm_norm=False,
+        nonlinearity="softmax",
+        fm_norm=True,
+        layer_norm=True,
         dropout_prob=None,
         aggr="sum",
-        layer_norm=False,
     ):
-        """Equivariant edge convolution, implemented using PyTorch Geometric's MessagePassing class.
+        """Equivariant edge convolution, implemented using torch_geometric's MessagePassing class.
+
+        The choice of the parameters ``operation``, ``nonlinearity``, ``fm_norm``, ``aggr``, ``layer_norm`` is critical to the stability of the approach.
+        Bad combinations initialize the ``framesnet`` to predict strongly boosted vectors, leading to strongly boosted frames and unstable training.
+        We recommend to stick to the default parameters, which worked for all our experiments.
 
         Parameters
         ----------
@@ -45,21 +50,33 @@ class EquiEdgeConv(MessagePassing):
             Number of hidden channels in the MLP.
         num_layers_mlp : int
             Number of hidden layers in the MLP.
-        include_edges : bool, optional
+        include_edges : bool
             Whether to include edge attributes in the message passing. If True, edge attributes will be calculated from fourmomenta and standardized. Default is True.
-        operation : str, optional
+        operation : str
             Operation to perform on the fourmomenta. Options are "add", "diff", or "single". Default is "add".
-        nonlinearity : str, optional
-            Nonlinearity to apply to the output of the MLP. Options are None, "exp", "softplus" and "softmax".
+        nonlinearity : str
+            Nonlinearity to apply to the output of the MLP. Options are None, "exp", "softplus", "softmax" and "softmax_safe". Default is "softmax".
+        fm_norm : bool
+            Whether to normalize the relative fourmomentum. Default is True.
+        layer_norm : bool
+            Whether to apply Lorentz-equivariant layer normalization to the output vectors. Default is True.
+        dropout_prob : float
+            Dropout probability for the MLP. If None, no dropout will be applied. Default is None.
+        aggr : str
+            Aggregation method for message passing. Options are "add", "mean", or "max". Default is "sum".
         """
         super().__init__(aggr=aggr, flow="target_to_source")
-        assert num_scalars > 0 or include_edges
+        assert (
+            num_scalars > 0 or include_edges
+        ), "Either num_scalars > 0 or include_edges==True, otherwise there are no inputs."
         self.include_edges = include_edges
         self.layer_norm = layer_norm
         self.operation = self.get_operation(operation)
         self.nonlinearity = self.get_nonlinearity(nonlinearity)
         self.fm_norm = fm_norm
-        assert not (operation == "single" and fm_norm)  # unstable
+        assert not (
+            operation == "single" and fm_norm
+        ), "The setup operation=single and fm_norm==True is unstable"
 
         in_edges = in_vectors if include_edges else 0
         in_channels = 2 * num_scalars + in_edges
@@ -110,8 +127,8 @@ class EquiEdgeConv(MessagePassing):
         else:
             edge_attr = None
 
-        fourmomenta = fourmomenta[:, 0, :]
         # message-passing
+        fourmomenta = fourmomenta.reshape(-1, 4)
         vecs = self.propagate(
             edge_index, s=scalars, fm=fourmomenta, edge_attr=edge_attr, batch=batch
         )
@@ -133,9 +150,9 @@ class EquiEdgeConv(MessagePassing):
         s_j : torch.Tensor
             Scalar features of the target nodes, shape (num_edges, num_scalars).
         fm_i : torch.Tensor
-            Fourmomentum of the source nodes, shape (num_edges, in_vectors*4).
+            Fourmomentum of the source nodes, shape (num_edges, 4*in_vectors).
         fm_j : torch.Tensor
-            Fourmomentum of the target nodes, shape (num_edges, in_vectors*4).
+            Fourmomentum of the target nodes, shape (num_edges, 4*in_vectors).
         edge_attr : torch.Tensor, optional
             Edge attributes tensor. If None, no edge attributes will be used, shape (num_edges, num_edge_attributes).
 
@@ -215,7 +232,7 @@ class EquiEdgeConv(MessagePassing):
 
             def func(x, batch):
                 ptr = get_ptr_from_batch(batch)
-                return safe_softmax(x, ptr=ptr)
+                return softmax_safe(x, ptr=ptr)
 
             return func
         else:
@@ -225,12 +242,12 @@ class EquiEdgeConv(MessagePassing):
 
 
 class EquiMLP(EquiVectors):
+    """Edge convolution with a simple MLP."""
+
     def __init__(
         self,
         n_vectors,
-        num_blocks,
         *args,
-        hidden_vectors=1,
         **kwargs,
     ):
         """
@@ -238,18 +255,17 @@ class EquiMLP(EquiVectors):
         ----------
         n_vectors : int
             Number of output vectors per particle.
-        num_blocks : int
-            Number of EquiEdgeConv blocks to use in the network.
-        hidden_vectors : int, optional
-            Number of hidden vectors in each EquiEdgeConv block. Default is 1.
+            Different FramesPredictor's need different n_vectors,
+            so this parameter should be set dynamically.
         *args
         **kwargs
         """
         super().__init__()
 
-        assert num_blocks >= 1
-        in_vectors = [1] + [hidden_vectors] * (num_blocks - 1)
-        out_vectors = [hidden_vectors] * (num_blocks - 1) + [n_vectors]
+        # This code was originally written to support multiple message-passing blocks.
+        # We found that having many blocks degrades numerical stability, so we now only support a single block.
+        in_vectors = [1]
+        out_vectors = [n_vectors]
         self.blocks = nn.ModuleList(
             [
                 EquiEdgeConv(
@@ -258,7 +274,7 @@ class EquiMLP(EquiVectors):
                     *args,
                     **kwargs,
                 )
-                for i in range(num_blocks)
+                for i in range(1)
             ]
         )
 
@@ -303,7 +319,7 @@ class EquiMLP(EquiVectors):
         return fourmomenta
 
 
-def safe_softmax(x, ptr):
+def softmax_safe(x, ptr):
     """Custom softmax implementation to control numerics."""
     seg_id = torch.arange(ptr.numel() - 1, device=x.device).repeat_interleave(
         ptr[1:] - ptr[:-1]

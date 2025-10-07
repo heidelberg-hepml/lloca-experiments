@@ -1,3 +1,4 @@
+"""Simple MLP module."""
 from typing import List
 
 import math
