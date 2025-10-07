@@ -109,12 +109,11 @@ def aggregate_2to1(edges, edge_index, batch, reduce="mean", **kwargs):
     return ops
 
 
-def aggregate_2to2(edges, edge_index, batch, reduce="mean", perm_T=None, **kwargs):
+def aggregate_2to2(edges, edge_index, batch, reduce="mean", **kwargs):
     _, C = edges.shape
     N = batch.size(0)
     row, col = edge_index
-    if perm_T is None:
-        perm_T = get_transpose(edge_index)
+    perm_T = get_transpose(edge_index)
     edge_batch = batch[row]
     is_diag = row == col
     diag_mask = is_diag.unsqueeze(-1).type_as(edges)

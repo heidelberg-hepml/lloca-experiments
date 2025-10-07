@@ -10,7 +10,6 @@ from .layers import (
     Aggregator2to0,
     PELICANBlock,
 )
-from .primitives import get_transpose
 
 
 class PELICAN(nn.Module):
@@ -117,8 +116,6 @@ class PELICAN(nn.Module):
         edges = torch.cat(edges, dim=-1)
         x = self.in_aggregator_rank2(edges, edge_index, batch)
 
-        perm_T = get_transpose(edge_index)
-
         # process edge features
         for block in self.blocks:
             if self._checkpoint_blocks:
@@ -127,11 +124,10 @@ class PELICAN(nn.Module):
                     x,
                     edge_index=edge_index,
                     batch=batch,
-                    perm_T=perm_T,
                     use_reentrant=False,
                 )
             else:
-                x = block(x, edge_index=edge_index, batch=batch, perm_T=perm_T)
+                x = block(x, edge_index=edge_index, batch=batch)
 
         # extract outputs from edge features
         out = self.out_aggregator(x, edge_index=edge_index, batch=batch, G=num_graphs)
