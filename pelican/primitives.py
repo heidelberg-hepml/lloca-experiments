@@ -18,7 +18,7 @@ def bell_number(n):
         )
 
 
-def aggregate_0to2(graph, edge_index, batch, reduce="mean", **kwargs):
+def aggregate_0to2(graph, edge_index, batch, **kwargs):
     row, col = edge_index
     edge_batch = batch[row]
     is_diag = row == col
@@ -125,6 +125,7 @@ def aggregate_2to2(edges, edge_index, batch, reduce="mean", **kwargs):
     graph_agg = custom_scatter(edges, edge_batch, dim_size=N, C=C, reduce=reduce)
     diag_agg = custom_scatter(diags, row, dim_size=N, C=C, reduce=reduce)
 
+    # Note: creating ops as empty tensor and filling it is ~4% faster but requires ~10% more RAM
     ops = torch.stack(
         [
             edges,

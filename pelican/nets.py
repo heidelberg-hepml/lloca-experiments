@@ -30,7 +30,7 @@ class PELICAN(nn.Module):
         checkpoint_blocks=False,
     ):
         super().__init__()
-        layer_kwargs = dict(factorize=factorize, aggr=aggr, compile=compile)
+        layer_kwargs = dict(factorize=factorize, aggr=aggr)
 
         # embed inputs into edge features
         self.in_aggregator_rank1 = (
@@ -95,6 +95,13 @@ class PELICAN(nn.Module):
             )
         else:
             raise NotImplementedError
+
+        if compile:
+            # ugly hack to make torch.compile convenient for users
+            # the clean solution is model = torch.compile(model, **kwargs) outside of the constructor
+            self.__class__ = torch.compile(
+                self.__class__, dynamic=True, fullgraph=True, mode="default"
+            )
 
     def forward(
         self, in_rank2, edge_index, batch, in_rank1=None, in_rank0=None, num_graphs=None

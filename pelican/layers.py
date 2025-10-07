@@ -30,7 +30,6 @@ class GeneralAggregator(nn.Module):
         out_channels,
         factorize=True,
         aggr="mean",
-        compile=False,
     ):
         super().__init__()
         num_maps = bell_number(in_rank + out_rank)
@@ -55,11 +54,6 @@ class GeneralAggregator(nn.Module):
             )
             scale = math.sqrt(6.0 / (in_channels * num_maps))
             torch.nn.init.uniform_(self.coeffs_direct, a=-scale, b=scale)
-
-        if compile:
-            self.__class__ = torch.compile(
-                self.__class__, dynamic=True, fullgraph=True, mode="default"
-            )
 
     @property
     def coeffs(self):
