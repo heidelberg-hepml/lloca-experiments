@@ -118,8 +118,8 @@ class EquiEdgeConv(MessagePassing):
         # equivariant layer normalization
         if self.layer_norm:
             norm = lorentz_squarednorm(vecs.reshape(fourmomenta.shape[0], -1, 4))
-            norm = norm.sum(dim=-1).unsqueeze(-1)
-            vecs = vecs / norm.clamp(min=1e-5).sqrt()
+            norm = norm.sum(dim=-1, keepdim=True)
+            vecs = vecs / norm.abs().sqrt().clamp(min=1e-5)
         return vecs
 
     def message(self, edge_index, s_i, s_j, fm_i, fm_j, edge_attr=None):

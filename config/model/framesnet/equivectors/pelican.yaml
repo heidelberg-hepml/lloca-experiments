@@ -8,6 +8,7 @@ operation: add
 nonlinearity: softmax
 aggr: sum
 fm_norm: false
+layer_norm: false
 
 net:
  _target_: pelican.nets.PELICAN

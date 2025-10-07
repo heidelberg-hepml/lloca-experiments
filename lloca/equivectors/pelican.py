@@ -23,6 +23,7 @@ class PELICANVectors(EquiVectors, MessagePassing):
         nonlinearity="softmax",
         aggr="sum",
         fm_norm=False,
+        layer_norm=False,
     ):
         super().__init__(aggr=aggr)
         self.net = net(in_rank1=num_scalars, out_channels=n_vectors)
@@ -34,6 +35,7 @@ class PELICANVectors(EquiVectors, MessagePassing):
         self.operation = get_operation(operation)
         self.nonlinearity = get_nonlinearity(nonlinearity)
         self.fm_norm = fm_norm
+        self.layer_norm = layer_norm
         assert not (operation == "single" and fm_norm)  # unstable
 
     def forward(self, fourmomenta, scalars=None, ptr=None):
@@ -63,6 +65,10 @@ class PELICANVectors(EquiVectors, MessagePassing):
             edge_index, fm=fourmomenta, s=scalars, edge_attr=edge_attr, batch=batch
         )
         vecs = vecs.reshape(fourmomenta.shape[0], -1, 4)
+
+        if self.layer_norm:
+            norm = lorentz_squarednorm(vecs).sum(dim=-1, keepdim=True).unsqueeze(-1)
+            vecs = vecs / norm.abs().sqrt().clamp(min=1e-5)
 
         # reshape result
         vecs = vecs.reshape(*in_shape, -1, 4)
