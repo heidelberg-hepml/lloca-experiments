@@ -17,8 +17,8 @@ net:
  factorize: true
  activation: gelu
  aggr: mean
+ compile: false
  checkpoint_blocks: false
- compile: true
  
 defaults:
  - framesnet: identity
