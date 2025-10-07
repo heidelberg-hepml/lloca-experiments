@@ -19,8 +19,6 @@ def bell_number(n):
 
 
 def aggregate_0to2(graph, edge_index, batch, reduce="mean", **kwargs):
-    _, C = graph.shape
-    E = edge_index.size(1)
     row, col = edge_index
     edge_batch = batch[row]
     is_diag = row == col
@@ -112,7 +110,7 @@ def aggregate_2to1(edges, edge_index, batch, reduce="mean", **kwargs):
 
 
 def aggregate_2to2(edges, edge_index, batch, reduce="mean", perm_T=None, **kwargs):
-    E, C = edges.shape
+    _, C = edges.shape
     N = batch.size(0)
     row, col = edge_index
     if perm_T is None:
