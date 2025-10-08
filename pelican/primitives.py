@@ -2,6 +2,11 @@ import torch
 
 
 def bell_number(n):
+    """Compute the Bell number for small n (0 <= n <= 4).
+    The Bell number is the number of ways to partition a set of n elements.
+    In PELICAN, it corresponds to the number of aggregation maps
+    for a given rank n = in_rank + out_rank.
+    """
     if n == 0:
         return 1
     elif n == 1:
@@ -19,6 +24,23 @@ def bell_number(n):
 
 
 def aggregate_0to2(graph, edge_index, batch, **kwargs):
+    """Aggregate from graph (rank 0) to edges (rank 2).
+
+    Parameters
+    ----------
+    graph : torch.Tensor
+        Graph-level features of shape (G, C).
+    edge_index : torch.Tensor
+        Edge index tensor of shape (2, E).
+    batch : torch.Tensor
+        Batch tensor of shape (N).
+    **kwargs
+
+    Returns
+    -------
+    ops : torch.Tensor
+        Aggregated features of shape (E, C, 2).
+    """
     row, col = edge_index
     edge_batch = batch[row]
     is_diag = row == col
@@ -35,6 +57,25 @@ def aggregate_0to2(graph, edge_index, batch, **kwargs):
 
 
 def aggregate_1to2(nodes, edge_index, batch, reduce="mean", **kwargs):
+    """Aggregate from nodes (rank 1) to edges (rank 2).
+
+    Parameters
+    ----------
+    nodes : torch.Tensor
+        Node-level features of shape (N, C).
+    edge_index : torch.Tensor
+        Edge index tensor of shape (2, E).
+    batch : torch.Tensor
+        Batch tensor of shape (N).
+    reduce : str, optional
+        Reduction method to use ('mean', 'sum', 'prod', 'amin', 'amax'), by default 'mean'.
+    **kwargs
+
+    Returns
+    -------
+    ops : torch.Tensor
+        Aggregated features of shape (E, C, 5).
+    """
     _, C = nodes.shape
     E = edge_index.size(1)
     row, col = edge_index
@@ -59,6 +100,27 @@ def aggregate_1to2(nodes, edge_index, batch, reduce="mean", **kwargs):
 
 
 def aggregate_2to0(edges, edge_index, batch, reduce="mean", G=None, **kwargs):
+    """Aggregate from edges (rank 2) to graph (rank 0).
+
+    Parameters
+    ----------
+    edges : torch.Tensor
+        Edge-level features of shape (E, C).
+    edge_index : torch.Tensor
+        Edge index tensor of shape (2, E).
+    batch : torch.Tensor
+        Batch tensor of shape (N).
+    reduce : str, optional
+        Reduction method to use ('mean', 'sum', 'prod', 'amin', 'amax'), by default 'mean'.
+    G : int, optional
+        Number of graphs in the batch. If None, it will be inferred from the batch tensor.
+    **kwargs
+
+    Returns
+    -------
+    ops : torch.Tensor
+        Aggregated features of shape (G, C, 2).
+    """
     _, C = edges.shape
     if G is None:
         # host synchronization causes slowdown; maybe there is a better way?
@@ -83,6 +145,25 @@ def aggregate_2to0(edges, edge_index, batch, reduce="mean", G=None, **kwargs):
 
 
 def aggregate_2to1(edges, edge_index, batch, reduce="mean", **kwargs):
+    """Aggregate from edges (rank 2) to nodes (rank 1).
+
+    Parameters
+    ----------
+    edges : torch.Tensor
+        Edge-level features of shape (E, C).
+    edge_index : torch.Tensor
+        Edge index tensor of shape (2, E).
+    batch : torch.Tensor
+        Batch tensor of shape (N).
+    reduce : str, optional
+        Reduction method to use ('mean', 'sum', 'prod', 'amin', 'amax'), by default 'mean'.
+    **kwargs
+
+    Returns
+    -------
+    ops : torch.Tensor
+        Aggregated features of shape (N, C, 5).
+    """
     _, C = edges.shape
     N = batch.size(0)
     row, col = edge_index
@@ -110,6 +191,25 @@ def aggregate_2to1(edges, edge_index, batch, reduce="mean", **kwargs):
 
 
 def aggregate_2to2(edges, edge_index, batch, reduce="mean", **kwargs):
+    """Aggregate from edges (rank 2) to edges (rank 2).
+
+    Parameters
+    ----------
+    edges : torch.Tensor
+        Edge-level features of shape (E, C).
+    edge_index : torch.Tensor
+         Edge index tensor of shape (2, E).
+    batch : torch.Tensor
+        Batch tensor of shape (N).
+    reduce : str, optional
+        Reduction method to use ('mean', 'sum', 'prod', 'amin', 'amax'), by default 'mean'.
+    **kwargs
+
+    Returns
+    -------
+    ops : torch.Tensor
+        Aggregated features of shape (E, C, 15).
+    """
     _, C = edges.shape
     N = batch.size(0)
     row, col = edge_index
@@ -150,6 +250,7 @@ def aggregate_2to2(edges, edge_index, batch, reduce="mean", **kwargs):
 
 
 def get_transpose(edge_index):
+    """Get the permutation that transposes the edge index."""
     row, col = edge_index
     key = (row << 32) | col
     rev_key = (col << 32) | row
@@ -159,6 +260,7 @@ def get_transpose(edge_index):
 
 
 def custom_scatter(src, index, dim_size, C, reduce):
+    """Custom scatter function to conveniently aggregate features, falling back to scatter_reduce_."""
     out = src.new_zeros(dim_size, C)
     out.scatter_reduce_(
         0, index.unsqueeze(-1).expand(-1, C), src, reduce=reduce, include_self=False

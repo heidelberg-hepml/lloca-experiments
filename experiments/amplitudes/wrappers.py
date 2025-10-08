@@ -220,9 +220,7 @@ class PELICANWrapper(AmplitudeWrapper):
         super().init_standardization(fourmomenta)
 
         # edge feature standardization parameters
-        edge_index, _ = build_edge_index_fully_connected(
-            fourmomenta, remove_self_loops=False
-        )
+        edge_index, _ = get_edge_index_from_shape(fourmomenta, remove_self_loops=False)
         fourmomenta = fourmomenta.reshape(-1, 4)
         edge_attr = get_edge_attr(fourmomenta, edge_index)
         self.edge_mean = edge_attr.mean()
@@ -238,7 +236,7 @@ class PELICANWrapper(AmplitudeWrapper):
         ) = super().forward(fourmomenta_global)
         num_graphs = fourmomenta_local.shape[0]
 
-        edge_index, batch = build_edge_index_fully_connected(
+        edge_index, batch = get_edge_index_from_shape(
             particle_type, remove_self_loops=False
         )
         fourmomenta = fourmomenta_local.reshape(-1, 4)

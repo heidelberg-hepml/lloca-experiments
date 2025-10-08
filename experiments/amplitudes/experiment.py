@@ -50,7 +50,7 @@ class AmplitudeExperiment(BaseExperiment):
         elif modelname == "DSI":
             self.cfg.model.net.type_token_list = particle_type
         elif modelname == "PELICAN":
-            self.cfg.model.net.in_rank1 = num_particle_types
+            self.cfg.model.net.in_channels_rank1 = num_particle_types
         else:
             raise ValueError(f"Model {modelname} not implemented")
 

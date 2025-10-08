@@ -17,9 +17,9 @@ net:
  num_blocks: 1
  hidden_channels: 16
  increase_hidden_channels: 1
- in_rank0: 0
- in_rank1: null
- in_rank2: 1
+ in_channels_rank0: 0
+ in_channels_rank1: null
+ in_channels_rank2: 1
  out_rank: 2
  out_channels: null
  factorize: false

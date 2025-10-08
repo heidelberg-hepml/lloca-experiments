@@ -1,5 +1,7 @@
 import pytest
 import math
+from .utils import generate_batch
+
 from pelican.layers import (
     Aggregator2to2,
     Aggregator2to1,
@@ -8,7 +10,6 @@ from pelican.layers import (
     Aggregator0to2,
     PELICANBlock,
 )
-from .utils import generate_batch
 
 
 @pytest.mark.parametrize("aggr", ["sum", "prod", "mean", "amax", "amin"])

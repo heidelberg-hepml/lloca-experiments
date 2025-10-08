@@ -33,7 +33,7 @@ class TaggingExperiment(BaseExperiment):
         elif modelname == "LorentzNet":
             self.cfg.model.net.n_scalar = self.extra_scalars
         elif modelname == "PELICAN":
-            self.cfg.model.net.in_rank1 = self.extra_scalars
+            self.cfg.model.net.in_channels_rank1 = self.extra_scalars
         elif modelname == "PELICANOfficial":
             self.cfg.model.net.num_scalars = self.extra_scalars
         elif modelname == "CGENN":

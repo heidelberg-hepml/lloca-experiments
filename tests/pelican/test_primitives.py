@@ -1,4 +1,6 @@
 import pytest
+from .utils import generate_batch
+
 from pelican.primitives import (
     aggregate_0to2,
     aggregate_1to2,
@@ -6,7 +8,6 @@ from pelican.primitives import (
     aggregate_2to1,
     aggregate_2to2,
 )
-from .utils import generate_batch
 
 
 @pytest.mark.parametrize("reduce", ["sum", "prod", "mean", "amax", "amin"])

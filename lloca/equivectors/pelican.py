@@ -26,7 +26,7 @@ class PELICANVectors(EquiVectors, MessagePassing):
         layer_norm=False,
     ):
         super().__init__(aggr=aggr)
-        self.net = net(in_rank1=num_scalars, out_channels=n_vectors)
+        self.net = net(in_channels_rank1=num_scalars, out_channels=n_vectors)
 
         self.register_buffer("edge_inited", torch.tensor(False, dtype=torch.bool))
         self.register_buffer("edge_mean", torch.tensor(0.0))
