@@ -556,7 +556,6 @@ class PELICANWrapper(nn.Module):
     ):
         super().__init__()
         self.net = net(out_channels=out_channels)
-        self.net = torch.compile(self.net, dynamic=True, fullgraph=True, mode="default")
 
         self.register_buffer("edge_inited", torch.tensor(False))
         self.register_buffer("edge_mean", torch.tensor(0.0))
