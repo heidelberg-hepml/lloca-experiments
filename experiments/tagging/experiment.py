@@ -314,17 +314,26 @@ class TaggingExperiment(BaseExperiment):
         metrics = tracker
         return loss, metrics
 
-    def _get_ypred_and_label(self, batch):
+    def _extract_batch(self, batch):
         batch = batch.to(self.device)
+        fourmomenta = batch.x.to(self.momentum_dtype)
+        scalars = batch.scalars.to(self.dtype)
+        ptr = batch.ptr
+        label = batch.label.to(self.dtype)
+        return fourmomenta, scalars, ptr, label
+
+    def _get_ypred_and_label(self, batch):
+        fourmomenta, scalars, ptr, label = self._extract_batch(batch)
         embedding = embed_tagging_data(
-            batch.x.to(self.momentum_dtype),
-            batch.scalars.to(self.dtype),
-            batch.ptr,
+            fourmomenta,
+            scalars,
+            ptr,
             self.cfg.data,
         )
         y_pred, tracker, frames = self.model(embedding)
-        y_pred = y_pred[:, 0]
-        return y_pred, batch.label.to(self.dtype), tracker, frames
+        if isinstance(self.loss, torch.nn.BCEWithLogitsLoss):
+            y_pred = y_pred[:, 0]
+        return y_pred, label, tracker, frames
 
     def _init_metrics(self):
         return {
