@@ -114,12 +114,17 @@ def get_edge_index_from_shape(features_ref, remove_self_loops=True):
     device = features_ref.device
 
     nodes = torch.arange(N, device=device)
-    row = nodes.repeat_interleave(N)
-    col = nodes.repeat(N)
 
     if remove_self_loops:
-        mask = row != col
-        row, col = row[mask], col[mask]
+        row = nodes.repeat_interleave(N - 1)
+        base = torch.arange(N - 1, device=device)
+        i = nodes.unsqueeze(1)
+        col_2d = base.unsqueeze(0).expand(N, -1)
+        col_2d = col_2d + (col_2d >= i)
+        col = col_2d.reshape(-1)
+    else:
+        row = nodes.repeat_interleave(N)
+        col = nodes.repeat(N)
 
     edge_base = torch.stack([row, col], dim=0)
 
