@@ -101,3 +101,23 @@ def get_edge_index_from_ptr(ptr, remove_self_loops=True):
         edge_index = edge_index[:, row != col]
 
     return edge_index
+
+
+def permute_single_graph(
+    edge_index, graph=None, nodes=None, edges=None, permutation=None
+):
+    # this code assumes a single graph (G=1)
+    N = edge_index.max().item() + 1
+    if permutation is None:
+        permutation = torch.randperm(N)
+
+    permutation_inverse = torch.empty_like(permutation)
+    permutation_inverse[permutation] = torch.arange(N)
+    edge_index_perm = permutation_inverse[edge_index]
+    key = edge_index_perm[0] * N + edge_index_perm[1]
+    order = key.argsort()
+
+    graph_perm = graph if graph is not None else None
+    nodes_perm = nodes[permutation] if nodes is not None else None
+    edges_perm = edges[order] if edges is not None else None
+    return permutation, graph_perm, nodes_perm, edges_perm, edge_index_perm[:, order]
