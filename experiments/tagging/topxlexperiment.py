@@ -127,6 +127,8 @@ class TopXLTaggingExperiment(TaggingExperiment):
             **self.loader_kwargs,
         )
 
+        self.init_standardization()
+
     def _extract_batch(self, batch):
         fourmomenta = batch[0]["pf_vectors"].to(self.device, self.momentum_dtype)
         if self.cfg.data.features == "fourmomenta":

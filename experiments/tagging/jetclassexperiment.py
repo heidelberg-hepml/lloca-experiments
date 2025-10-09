@@ -151,6 +151,8 @@ class JetClassTaggingExperiment(TaggingExperiment):
             **self.loader_kwargs,
         )
 
+        self.init_standardization()
+
     @torch.no_grad()
     def _evaluate_single(self, loader, title, mode, step=None):
         assert mode in ["val", "eval"]

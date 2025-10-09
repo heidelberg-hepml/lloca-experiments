@@ -41,6 +41,16 @@ class CFMWrapper(EventCFM):
         )
         self.n_spurions = self.spurions.shape[0]
 
+    def init_standardization(self, fourmomenta, reduce_size=None):
+        # framesnet equivectors edge_attr standardization (if applicable)
+        if hasattr(self.framesnet, "equivectors") and hasattr(
+            self.framesnet.equivectors, "init_standardization"
+        ):
+            fourmomenta_reduced = (
+                fourmomenta[:reduce_size] if reduce_size is not None else fourmomenta
+            )
+            self.framesnet.equivectors.init_standardization(fourmomenta_reduced)
+
     def preprocess_velocity(self, x, t):
         t_embedding = self.t_embedding(t).expand(x.shape[0], x.shape[1], -1)
         particle_type = self.encode_particle_type(x.shape)

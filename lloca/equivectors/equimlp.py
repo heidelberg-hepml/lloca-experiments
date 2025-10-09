@@ -93,6 +93,15 @@ class EquiEdgeConv(MessagePassing):
             self.register_buffer("edge_mean", torch.tensor(0.0))
             self.register_buffer("edge_std", torch.tensor(1.0))
 
+    def init_standardization(self, fourmomenta, edge_index):
+        assert not self.edge_inited
+        if self.include_edges and not self.edge_inited:
+            fourmomenta = fourmomenta.reshape(-1, 1, 4)
+            edge_attr = get_edge_attr(fourmomenta, edge_index)
+            self.edge_mean = edge_attr.mean().detach()
+            self.edge_std = edge_attr.std().clamp(min=1e-5).detach()
+            self.edge_inited.fill_(True)
+
     def forward(self, fourmomenta, scalars, edge_index, batch=None):
         """
         Parameters
@@ -112,13 +121,10 @@ class EquiEdgeConv(MessagePassing):
             Tensor of shape (num_particles, out_vectors*4) containing the predicted vectors for each edge.
         """
         # calculate and standardize edge attributes
-        fourmomenta = fourmomenta.reshape(scalars.shape[0], -1, 4)
+        fourmomenta = fourmomenta.reshape(-1, 1, 4)
         if self.include_edges:
+            assert self.edge_inited
             edge_attr = get_edge_attr(fourmomenta, edge_index)
-            if not self.edge_inited:
-                self.edge_mean = edge_attr.mean().detach()
-                self.edge_std = edge_attr.std().clamp(min=1e-5).detach()
-                self.edge_inited.fill_(True)
             edge_attr = (edge_attr - self.edge_mean) / self.edge_std
             edge_attr = edge_attr.reshape(edge_attr.shape[0], -1)
 
@@ -264,19 +270,31 @@ class EquiMLP(EquiVectors):
 
         # This code was originally written to support multiple message-passing blocks.
         # We found that having many blocks degrades numerical stability, so we now only support a single block.
-        in_vectors = [1]
-        out_vectors = [n_vectors]
-        self.blocks = nn.ModuleList(
-            [
-                EquiEdgeConv(
-                    in_vectors=in_vectors[i],
-                    out_vectors=out_vectors[i],
-                    *args,
-                    **kwargs,
-                )
-                for i in range(1)
-            ]
+        in_vectors = 1
+        out_vectors = n_vectors
+        self.block = EquiEdgeConv(
+            in_vectors=in_vectors,
+            out_vectors=out_vectors,
+            *args,
+            **kwargs,
         )
+
+    def get_edge_index_and_batch(self, fourmomenta, ptr):
+        in_shape = fourmomenta.shape[:-1]
+        if len(in_shape) > 1:
+            assert ptr is None, "ptr only supported for sparse tensors"
+            edge_index, batch = get_edge_index_from_shape(fourmomenta)
+        else:
+            if ptr is None:
+                # assume batch contains only one particle
+                ptr = torch.tensor([0, len(fourmomenta)], device=fourmomenta.device)
+            edge_index = get_edge_index_from_ptr(ptr)
+            batch = None
+        return edge_index, batch
+
+    def init_standardization(self, fourmomenta, ptr=None):
+        edge_index, _ = self.get_edge_index_and_batch(fourmomenta, ptr)
+        self.block.init_standardization(fourmomenta, edge_index)
 
     def forward(self, fourmomenta, scalars=None, ptr=None):
         """
@@ -298,23 +316,14 @@ class EquiMLP(EquiVectors):
         in_shape = fourmomenta.shape[:-1]
         if scalars is None:
             scalars = torch.zeros_like(fourmomenta[..., []])
+        edge_index, batch = self.get_edge_index_and_batch(fourmomenta, ptr)
         if len(in_shape) > 1:
-            assert ptr is None, "ptr only supported for sparse tensors"
-            edge_index, batch = get_edge_index_from_shape(fourmomenta)
-            fourmomenta = fourmomenta.reshape(math.prod(in_shape), 4)
             scalars = scalars.reshape(math.prod(in_shape), scalars.shape[-1])
-        else:
-            if ptr is None:
-                # assume batch contains only one particle
-                ptr = torch.tensor([0, len(fourmomenta)], device=fourmomenta.device)
-            edge_index = get_edge_index_from_ptr(ptr)
-            batch = None
 
-        # pass through blocks
-        for block in self.blocks:
-            fourmomenta = block(
-                fourmomenta, scalars=scalars, edge_index=edge_index, batch=batch
-            )
+        # pass through block
+        fourmomenta = self.block(
+            fourmomenta, scalars=scalars, edge_index=edge_index, batch=batch
+        )
         fourmomenta = fourmomenta.reshape(*in_shape, -1, 4)
         return fourmomenta
 

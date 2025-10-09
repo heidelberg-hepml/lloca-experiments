@@ -113,6 +113,20 @@ class TaggingExperiment(BaseExperiment):
             f"batch_size={self.cfg.training.batchsize} (training), {self.cfg.evaluation.batchsize} (evaluation)"
         )
 
+        self.init_standardization()
+
+    def init_standardization(self):
+        if hasattr(self.model, "init_standardization"):
+            batch = next(iter(self.train_loader))
+            fourmomenta, scalars, ptr, _ = self._extract_batch(batch)
+            embedding = embed_tagging_data(
+                fourmomenta,
+                scalars,
+                ptr,
+                self.cfg.data,
+            )
+            self.model.init_standardization(embedding["fourmomenta"], embedding["ptr"])
+
     def _init_optimizer(self, param_groups=None):
         if self.cfg.model.net._target_.rsplit(".", 1)[-1] in [
             "ParticleTransformer",

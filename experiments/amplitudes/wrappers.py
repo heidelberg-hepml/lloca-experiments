@@ -28,8 +28,18 @@ class AmplitudeWrapper(nn.Module):
 
         self.trafo_fourmomenta = TensorRepsTransform(TensorReps("1x1n"))
 
-    def init_standardization(self, fourmomenta):
+    def init_standardization(self, fourmomenta, reduce_size=None):
+        # momentum standardization for backbone input
         _, self.mom_mean, self.mom_std = standardize_momentum(fourmomenta)
+
+        # framesnet equivectors edge_attr standardization (if applicable)
+        if hasattr(self.framesnet, "equivectors") and hasattr(
+            self.framesnet.equivectors, "init_standardization"
+        ):
+            fourmomenta_reduced = (
+                fourmomenta[:reduce_size] if reduce_size is not None else fourmomenta
+            )
+            self.framesnet.equivectors.init_standardization(fourmomenta_reduced)
 
     def forward(self, fourmomenta):
         particle_type = self.encode_particle_type(fourmomenta.shape[0]).to(
