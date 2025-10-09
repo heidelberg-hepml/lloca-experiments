@@ -124,7 +124,6 @@ class TensorRepsTransform(torch.nn.Module):
             x = tensor[:, idx_start:idx_end].reshape(-1, mul, *([4] * rep.order))
 
             einsum_string = get_einsum_string(rep.order)
-            print(frames.shape, frames.matrices.to(x.dtype).shape)
             x_transformed = torch.einsum(einsum_string, *([frames] * rep.order), x)
             output[:, idx_start:idx_end] = x_transformed.reshape(-1, mul_rep.dim)
 
