@@ -103,8 +103,6 @@ class GeneralAggregator(nn.Module):
         x = self.aggregator(x, *args, reduce=self.aggr, **kwargs)
 
         in_objects, in_channels, num_maps = x.shape
-        assert in_channels == self.in_channels
-        assert num_maps == self.num_maps
         x_flat = x.reshape(in_objects, in_channels * num_maps)
         coeffs_flat = self.coeffs.reshape(-1, in_channels * num_maps).contiguous()
         out = torch.nn.functional.linear(x_flat, coeffs_flat)
