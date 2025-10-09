@@ -171,15 +171,16 @@ def aggregate_2to1(edges, edge_index, batch, reduce="mean", **kwargs):
     is_diag = row == col
     diag_mask = is_diag.unsqueeze(-1).type_as(edges)
 
-    diags = edges * diag_mask
+    diags_padded = edges * diag_mask
+    diags = custom_scatter(diags_padded, row, dim_size=N, C=C, reduce="sum")
     row_agg = custom_scatter(edges, row, dim_size=N, C=C, reduce=reduce)
     col_agg = custom_scatter(edges, col, dim_size=N, C=C, reduce=reduce)
     graph_agg = custom_scatter(edges, edge_batch, dim_size=N, C=C, reduce=reduce)
-    diag_agg = custom_scatter(diags, row, dim_size=N, C=C, reduce=reduce)
+    diag_agg = custom_scatter(diags_padded, edge_batch, dim_size=N, C=C, reduce=reduce)
 
     ops = torch.stack(
         [
-            edges[is_diag],
+            diags,
             row_agg,
             col_agg,
             graph_agg[batch],
@@ -218,21 +219,21 @@ def aggregate_2to2(edges, edge_index, batch, reduce="mean", **kwargs):
     is_diag = row == col
     diag_mask = is_diag.unsqueeze(-1).type_as(edges)
 
-    diags = edges * diag_mask
-
+    diags_padded = edges * diag_mask
+    diags = custom_scatter(diags_padded, row, dim_size=N, C=C, reduce="sum")
     row_agg = custom_scatter(edges, row, dim_size=N, C=C, reduce=reduce)
     col_agg = custom_scatter(edges, col, dim_size=N, C=C, reduce=reduce)
     graph_agg = custom_scatter(edges, edge_batch, dim_size=N, C=C, reduce=reduce)
-    diag_agg = custom_scatter(diags, row, dim_size=N, C=C, reduce=reduce)
+    diag_agg = custom_scatter(diags_padded, edge_batch, dim_size=N, C=C, reduce=reduce)
 
     # Note: creating ops as empty tensor and filling it is ~4% faster but requires ~10% more RAM
     ops = torch.stack(
         [
             edges,
             edges[perm_T],
-            diags,
-            diag_agg[row],
-            diag_agg[col],
+            diags_padded,
+            diags[row],
+            diags[col],
             col_agg[row] * diag_mask,
             row_agg[col] * diag_mask,
             col_agg[row],
