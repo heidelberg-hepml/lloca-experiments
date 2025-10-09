@@ -5,7 +5,7 @@ from .utils import generate_batch
 from pelican.nets import PELICAN
 
 
-def run_test(
+def run_shape_test(
     num_blocks,
     hidden_channels,
     increase_hidden_channels,
@@ -27,17 +27,9 @@ def run_test(
     G = batch[-1].item() + 1
     N = batch.size(0)
     E = edge_index.size(1)
+    out_objs = {0: G, 1: N, 2: E}[out_rank]
 
-    if out_rank == 0:
-        out_objs = G
-    elif out_rank == 1:
-        out_objs = N
-    elif out_rank == 2:
-        out_objs = E
-    else:
-        raise ValueError(f"Unsupported out_rank={out_rank}")
-
-    handler = PELICAN(
+    net = PELICAN(
         num_blocks=num_blocks,
         hidden_channels=hidden_channels,
         increase_hidden_channels=increase_hidden_channels,
@@ -49,7 +41,7 @@ def run_test(
         compile=compile,
         checkpoint_blocks=checkpoint_blocks,
     )
-    out = handler(
+    out = net(
         in_rank2=edges,
         in_rank1=nodes,
         in_rank0=graph,
@@ -82,7 +74,7 @@ def test_shape(
     checkpoint_blocks,
     compile=False,
 ):
-    run_test(
+    run_shape_test(
         num_blocks,
         hidden_channels,
         increase_hidden_channels,
@@ -108,7 +100,7 @@ def test_compile(
     checkpoint_blocks=False,
     compile=True,
 ):
-    run_test(
+    run_shape_test(
         num_blocks,
         hidden_channels,
         increase_hidden_channels,

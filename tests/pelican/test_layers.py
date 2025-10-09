@@ -33,23 +33,8 @@ def test_shape_aggregator(
     N = batch.size(0)
     E = edge_index.size(1)
 
-    if in_rank == 0:
-        in_data = graph
-    elif in_rank == 1:
-        in_data = nodes
-    elif in_rank == 2:
-        in_data = edges
-    else:
-        raise ValueError(f"Unsupported in_rank={in_rank}")
-
-    if out_rank == 0:
-        out_objs = G
-    elif out_rank == 1:
-        out_objs = N
-    elif out_rank == 2:
-        out_objs = E
-    else:
-        raise ValueError(f"Unsupported out_rank={out_rank}")
+    in_data = {0: graph, 1: nodes, 2: edges}[in_rank]
+    out_objs = {0: G, 1: N, 2: E}[out_rank]
 
     handler = aggregator(
         in_channels=in_channels,
