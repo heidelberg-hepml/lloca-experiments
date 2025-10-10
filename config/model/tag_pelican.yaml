@@ -15,6 +15,7 @@ net:
  hidden_channels: 132
  increase_hidden_channels: 0.59
 
+ map_multipliers: true
  factorize: true
  activation: gelu
  aggr: mean

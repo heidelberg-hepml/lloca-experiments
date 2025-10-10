@@ -13,6 +13,7 @@ from pelican.layers import (
 
 
 @pytest.mark.parametrize("aggr", ["sum", "prod", "mean", "amax", "amin"])
+@pytest.mark.parametrize("map_multipliers", [True, False])
 @pytest.mark.parametrize("factorize", [True, False])
 @pytest.mark.parametrize(
     "aggregator,in_rank,out_rank",
@@ -26,7 +27,14 @@ from pelican.layers import (
 )
 @pytest.mark.parametrize("in_channels,out_channels", [(16, 16), (7, 13)])
 def test_shape_aggregator(
-    aggregator, in_rank, out_rank, in_channels, out_channels, factorize, aggr
+    aggregator,
+    in_rank,
+    out_rank,
+    in_channels,
+    out_channels,
+    map_multipliers,
+    factorize,
+    aggr,
 ):
     batch, edge_index, graph, nodes, edges = generate_batch(C=in_channels)
     G = batch[-1].item() + 1
@@ -39,6 +47,7 @@ def test_shape_aggregator(
     handler = aggregator(
         in_channels=in_channels,
         out_channels=out_channels,
+        map_multipliers=map_multipliers,
         factorize=factorize,
         aggr=aggr,
     )
@@ -50,12 +59,18 @@ def test_shape_aggregator(
 @pytest.mark.parametrize(
     "activation", ["relu", "gelu", "leaky_relu", "tanh", "sigmoid", "silu"]
 )
+@pytest.mark.parametrize("map_multipliers", [True, False])
 @pytest.mark.parametrize("factorize", [True, False])
 @pytest.mark.parametrize(
     "hidden_channels,increase_hidden_channels", [(16, 1), (13, math.pi), (19, 0.123)]
 )
 def test_shape_block(
-    factorize, aggr, activation, hidden_channels, increase_hidden_channels
+    map_multipliers,
+    factorize,
+    aggr,
+    activation,
+    hidden_channels,
+    increase_hidden_channels,
 ):
     batch, edge_index, _, _, edges = generate_batch(C=hidden_channels)
     E = edge_index.size(1)
@@ -64,6 +79,7 @@ def test_shape_block(
         hidden_channels=hidden_channels,
         increase_hidden_channels=increase_hidden_channels,
         activation=activation,
+        map_multipliers=map_multipliers,
         factorize=factorize,
         aggr=aggr,
     )

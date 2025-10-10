@@ -15,6 +15,8 @@ def run_shape_test(
     in_channels_rank2,
     out_rank,
     out_channels,
+    map_multipliers,
+    factorize,
     compile,
     checkpoint_blocks,
 ):
@@ -39,6 +41,8 @@ def run_shape_test(
         in_channels_rank2=in_channels_rank2,
         out_rank=out_rank,
         out_channels=out_channels,
+        map_multipliers=map_multipliers,
+        factorize=factorize,
         compile=compile,
         checkpoint_blocks=checkpoint_blocks,
     )
@@ -62,6 +66,8 @@ def run_shape_test(
     [(0, 0, 1), (1, 0, 0), (0, 1, 0), (1, 1, 1)],
 )
 @pytest.mark.parametrize("out_rank,out_channels", [(0, 1), (1, 2), (2, 3)])
+@pytest.mark.parametrize("map_multipliers", [True, False])
+@pytest.mark.parametrize("factorize", [True, False])
 @pytest.mark.parametrize("checkpoint_blocks", [False, True])
 def test_shape(
     num_blocks,
@@ -72,6 +78,8 @@ def test_shape(
     in_channels_rank2,
     out_rank,
     out_channels,
+    map_multipliers,
+    factorize,
     checkpoint_blocks,
     compile=False,
 ):
@@ -84,6 +92,8 @@ def test_shape(
         in_channels_rank2,
         out_rank,
         out_channels,
+        map_multipliers,
+        factorize,
         compile,
         checkpoint_blocks,
     )
@@ -98,6 +108,8 @@ def test_shape(
     [(0, 0, 1), (1, 0, 0), (0, 1, 0), (1, 1, 1)],
 )
 @pytest.mark.parametrize("out_rank,out_channels", [(0, 1), (1, 2), (2, 3)])
+@pytest.mark.parametrize("map_multipliers", [True, False])
+@pytest.mark.parametrize("factorize", [True, False])
 @pytest.mark.parametrize("checkpoint_blocks", [False, True])
 def test_permutation_equivariance(
     num_blocks,
@@ -108,6 +120,8 @@ def test_permutation_equivariance(
     in_channels_rank2,
     out_rank,
     out_channels,
+    map_multipliers,
+    factorize,
     checkpoint_blocks,
     compile=False,
 ):
@@ -130,6 +144,8 @@ def test_permutation_equivariance(
         in_channels_rank2=in_channels_rank2,
         out_rank=out_rank,
         out_channels=out_channels,
+        map_multipliers=map_multipliers,
+        factorize=factorize,
         compile=compile,
         checkpoint_blocks=checkpoint_blocks,
     )
@@ -186,6 +202,8 @@ def test_compile(
     in_channels_rank2=1,
     out_rank=2,
     out_channels=3,
+    map_multipliers=True,
+    factorize=False,
     checkpoint_blocks=False,
     compile=True,
 ):
@@ -198,6 +216,8 @@ def test_compile(
         in_channels_rank2,
         out_rank,
         out_channels,
+        map_multipliers,
+        factorize,
         compile,
         checkpoint_blocks,
     )

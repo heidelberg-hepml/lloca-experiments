@@ -30,6 +30,7 @@ class GeneralAggregator(nn.Module):
         out_rank,
         in_channels,
         out_channels,
+        map_multipliers=True,
         factorize=False,
         aggr="mean",
     ):
@@ -46,6 +47,8 @@ class GeneralAggregator(nn.Module):
             Number of input channels.
         out_channels : int
             Number of output channels.
+        map_multipliers : bool
+            Whether to use learnable multipliers for each aggregation map, by default True.
         factorize : bool
             Whether to use factorized coefficients, by default False.
             Factorization reduces the number of parameters.
@@ -59,6 +62,10 @@ class GeneralAggregator(nn.Module):
         self.aggr = aggr
         self.aggregator = aggregator
         self.factorize = factorize
+
+        self.map_multipliers = (
+            nn.Parameter(torch.ones(self.num_maps)) if map_multipliers else None
+        )
 
         if factorize:
             self.coeffs00 = nn.Parameter(torch.empty(in_channels, self.num_maps))
@@ -78,11 +85,14 @@ class GeneralAggregator(nn.Module):
     @property
     def coeffs(self):
         if self.factorize:
-            return self.coeffs00.unsqueeze(1) * self.coeffs10.unsqueeze(
+            coeffs = self.coeffs00.unsqueeze(1) * self.coeffs10.unsqueeze(
                 2
             ) + self.coeffs01.unsqueeze(0) * self.coeffs11.unsqueeze(2)
         else:
-            return self.coeffs_direct
+            coeffs = self.coeffs_direct
+        if self.map_multipliers is not None:
+            coeffs = coeffs * self.map_multipliers.view(1, 1, self.num_maps)
+        return coeffs
 
     def forward(self, x, *args, **kwargs):
         """Forward pass of the aggregator.

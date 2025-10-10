@@ -22,6 +22,7 @@ net:
  in_channels_rank2: 1
  out_rank: 2
  out_channels: null
+ map_multipliers: true
  factorize: false
  activation: gelu
  aggr: mean

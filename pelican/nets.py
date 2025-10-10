@@ -30,6 +30,7 @@ class PELICAN(nn.Module):
         num_blocks,
         hidden_channels,
         increase_hidden_channels=1.0,
+        map_multipliers=True,
         factorize=False,
         activation="gelu",
         dropout_prob=None,
@@ -56,6 +57,8 @@ class PELICAN(nn.Module):
             Number of hidden channels.
         increase_hidden_channels : float
             Factor to increase hidden channels in the feedforward network. Default is 1.0.
+        map_multipliers : bool
+            Whether to use learnable multipliers for each aggregation map. Default is True.
         factorize : bool
             Whether to use factorized linear layers in the feedforward network. Default is False.
         activation : str
@@ -72,7 +75,9 @@ class PELICAN(nn.Module):
             Whether to use gradient checkpointing for PELICAN blocks to save memory. Default is False.
         """
         super().__init__()
-        layer_kwargs = dict(factorize=factorize, aggr=aggr)
+        layer_kwargs = dict(
+            factorize=factorize, map_multipliers=map_multipliers, aggr=aggr
+        )
 
         # embed inputs into edge features
         self.in_aggregator_rank1 = (
