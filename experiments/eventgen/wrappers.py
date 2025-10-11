@@ -198,7 +198,7 @@ class GraphNetCFM(CFMWrapper):
             frames,
             tracker,
         ) = super().preprocess_velocity(x, t)
-        edge_index, batch = get_edge_index_from_shape(x_local)
+        edge_index, batch = get_edge_index_from_shape(x_local.shape, x_local.device)
         fts = torch.cat([x_local, particle_type, t_embedding], dim=-1)
 
         fts_flat = fts.flatten(0, 1)

@@ -21,6 +21,7 @@ class AmplitudeWrapper(nn.Module):
         super().__init__()
         self.framesnet = framesnet
         self.network_dtype = torch.float64 if network_float64 else torch.float32
+        self.num_particle_types = max(particle_type) + 1
 
         self.register_buffer("particle_type", torch.tensor(particle_type))
         self.register_buffer("mom_mean", torch.tensor(0.0))
@@ -67,7 +68,7 @@ class AmplitudeWrapper(nn.Module):
 
     def encode_particle_type(self, batchsize):
         particle_type = torch.nn.functional.one_hot(
-            self.particle_type, num_classes=self.particle_type.max() + 1
+            self.particle_type, num_classes=self.num_particle_types
         )
         particle_type = particle_type.unsqueeze(0).repeat(batchsize, 1, 1)
         return particle_type
@@ -122,7 +123,9 @@ class GraphNetWrapper(AmplitudeWrapper):
 
         if self.include_edges:
             # edge feature standardization parameters
-            edge_index, _ = get_edge_index_from_shape(fourmomenta)
+            edge_index, _ = get_edge_index_from_shape(
+                fourmomenta.shape, fourmomenta.device
+            )
             fourmomenta = fourmomenta.reshape(-1, 4)
             edge_attr = get_edge_attr(fourmomenta, edge_index)
             self.edge_mean = edge_attr.mean()
@@ -141,7 +144,7 @@ class GraphNetWrapper(AmplitudeWrapper):
         node_attr = particle_type
         if self.include_nodes:
             node_attr = torch.cat([node_attr, features_local], dim=-1)
-        edge_index, batch = get_edge_index_from_shape(node_attr)
+        edge_index, batch = get_edge_index_from_shape(node_attr.shape, node_attr.device)
         node_attr = node_attr.view(-1, node_attr.shape[-1])
         frames = frames.reshape(-1, 4, 4)
         if self.include_edges:
@@ -159,7 +162,8 @@ class GraphNetWrapper(AmplitudeWrapper):
             batch=batch,
             edge_attr=edge_attr,
         )
-        amp = self.aggregator(output, index=batch)
+        B = fourmomenta_local.shape[0]
+        amp = self.aggregator(output, index=batch, dim_size=B)
         return amp, tracker, frames
 
     def get_edge_attr(self, fourmomenta, edge_index):

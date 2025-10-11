@@ -50,7 +50,7 @@ def get_ptr_from_batch(batch):
     )
 
 
-def get_edge_index_from_ptr(ptr, remove_self_loops=True):
+def get_edge_index_from_ptr(ptr, shape, remove_self_loops=True):
     """Construct edge index of fully connected graph from pointer (ptr).
     This function should be used for graphs represented by sparse tensors,
     i.e. graphs where the number of nodes per graph can vary.
@@ -60,6 +60,8 @@ def get_edge_index_from_ptr(ptr, remove_self_loops=True):
     ptr : torch.Tensor
         Pointer tensor indicating the start of each batch.
         Tensor of shape (B+1,) where B is the number of batches.
+    shape : torch.Size
+        Shape of the node tensor, expected to be (N, C)
     remove_self_loops : bool, optional
         Whether to remove self-loops from the edge index, by default True.
 
@@ -68,40 +70,47 @@ def get_edge_index_from_ptr(ptr, remove_self_loops=True):
     torch.Tensor
         A tensor of shape (2, E) where E is the number of edges, representing the edge index.
     """
-    row = torch.arange(ptr.max(), device=ptr.device)
+    N = shape[0]
+
     diff = ptr[1:] - ptr[:-1]
-    repeats = (diff).repeat_interleave(diff)
-    row = row.repeat_interleave(repeats)
+    starts = torch.zeros(N, dtype=torch.long, device=ptr.device)
+    starts.scatter_(0, ptr[:-1], torch.ones_like(ptr[:-1]))
+    node2graph = starts.cumsum(0) - 1
 
-    repeater = torch.stack(
-        (-diff + 1, torch.ones_like(diff, device=ptr.device))
-    ).T.reshape(-1)
-    extras = repeater.repeat_interleave(repeater.abs())
-    integ = torch.ones(row.shape[0], dtype=torch.long, device=ptr.device)
-    mask = (row[1:] - row[:-1]).to(torch.bool)
-    integ[0] = 0
-    integ[1:][mask] = extras[:-1]
-    col = torch.cumsum(integ, 0)
+    counts = diff[node2graph] - (1 if remove_self_loops else 0)
+    E = counts.sum()
+    row = torch.repeat_interleave(counts, output_size=E)
 
-    edge_index = torch.stack((row, col))
+    g = node2graph[row]
+    offset = ptr[g]
+    row_local = row - offset
+
+    start = counts.cumsum(0) - counts
+    idx = torch.arange(row.numel(), device=ptr.device, dtype=torch.long)
+    pos = idx - start[row]
 
     if remove_self_loops:
-        row, col = edge_index
-        edge_index = edge_index[:, row != col]
+        col_local = pos + (pos >= row_local).to(torch.long)
+    else:
+        col_local = pos
+    col = col_local + offset
 
+    edge_index = torch.stack([row, col], dim=0)
     return edge_index
 
 
-def get_edge_index_from_shape(features_ref, remove_self_loops=True):
-    """Construct edge index of fully connected graph from reference object.
-    Only shape and device of the reference object are used.
+def get_edge_index_from_shape(shape, device, remove_self_loops=True):
+    """Construct edge index of fully connected graph from the shape of a corresponding dense tensor.
     This function should be used for graphs represented by dense tensors,
     i.e. graphs where the number of nodes per graph is fixed.
 
     Parameters
     ----------
-    features_ref : torch.Tensor
-        Reference tensor from which the shape and device are derived.
+    shape : torch.Size
+        Shape of the dense node tensor, expected to be (B, N, C)
+        where B is the batch size and N is the number of nodes.
+    device : torch.device
+        Device on which the tensors are allocated.
     remove_self_loops : bool, optional
         Whether to remove self-loops from the edge index, by default True.
 
@@ -110,8 +119,7 @@ def get_edge_index_from_shape(features_ref, remove_self_loops=True):
     torch.Tensor
         A tensor of shape (2, E) where E is the number of edges, representing the edge index.
     """
-    B, N, _ = features_ref.shape
-    device = features_ref.device
+    B, N, _ = shape
 
     nodes = torch.arange(N, device=device)
 

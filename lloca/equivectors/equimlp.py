@@ -283,12 +283,16 @@ class EquiMLP(EquiVectors):
         in_shape = fourmomenta.shape[:-1]
         if len(in_shape) > 1:
             assert ptr is None, "ptr only supported for sparse tensors"
-            edge_index, batch = get_edge_index_from_shape(fourmomenta)
+            edge_index, batch = get_edge_index_from_shape(
+                fourmomenta.shape, fourmomenta.device, remove_self_loops=True
+            )
         else:
             if ptr is None:
                 # assume batch contains only one particle
                 ptr = torch.tensor([0, len(fourmomenta)], device=fourmomenta.device)
-            edge_index = get_edge_index_from_ptr(ptr)
+            edge_index = get_edge_index_from_ptr(
+                ptr, shape=fourmomenta.shape, remove_self_loops=True
+            )
             batch = None
         return edge_index, batch
 

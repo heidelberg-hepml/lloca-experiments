@@ -130,7 +130,8 @@ class AggregatedTaggerWrapper(TaggerWrapper):
         self.aggregator = MeanAggregation()
 
     def extract_score(self, features, ptr):
-        score = self.aggregator(features, ptr=ptr)
+        B = ptr.numel() - 1
+        score = self.aggregator(features, ptr=ptr, dim_size=B)
         return score
 
 
@@ -160,7 +161,9 @@ class GraphNetWrapper(AggregatedTaggerWrapper):
             tracker,
         ) = super().forward(embedding)
 
-        edge_index = get_edge_index_from_ptr(ptr)
+        edge_index = get_edge_index_from_ptr(
+            ptr, features_local.shape, remove_self_loops=True
+        )
         if self.include_edges:
             edge_attr = self.get_edge_attr(fourmomenta_local, edge_index).to(
                 features_local.dtype
@@ -433,7 +436,8 @@ class LGATrWrapper(nn.Module):
         out = extract_scalar(mv_outputs)[0, :, :, 0]
 
         if self.aggregator is not None:
-            logits = self.aggregator(out, index=batch)
+            B = ptr.numel() - 1
+            logits = self.aggregator(out, index=batch, dim_size=B)
         else:
             logits = out[is_global]
         return logits, {}, None
@@ -551,7 +555,9 @@ class LorentzNetWrapper(nn.Module):
         # rescale fourmomenta (but not the spurions)
         fourmomenta[~is_spurion] = fourmomenta[~is_spurion] / 20
 
-        edge_index = get_edge_index_from_ptr(ptr)
+        edge_index = get_edge_index_from_ptr(
+            ptr, fourmomenta.shape, remove_self_loops=True
+        )
         fourmomenta = fourmomenta.to(scalars.dtype)
         output = self.net(scalars, fourmomenta, edges=edge_index, batch=batch)
         return output, {}, None
@@ -599,7 +605,9 @@ class CGENNWrapper(nn.Module):
         batch = embedding["batch"]
         ptr = embedding["ptr"]
         is_spurion = embedding["is_spurion"]
-        edge_index = get_edge_index_from_ptr(ptr)
+        edge_index = get_edge_index_from_ptr(
+            ptr, fourmomenta.shape, remove_self_loops=True
+        )
 
         # rescale fourmomenta (but not the spurions)
         fourmomenta[~is_spurion] = fourmomenta[~is_spurion] / 20

@@ -82,7 +82,7 @@ def transform(
 
 
 def rand_lorentz(
-    shape: List[int],
+    shape: torch.Size,
     std_eta: float = 0.1,
     n_max_std_eta: float = 3.0,
     device: str = "cpu",
@@ -95,7 +95,7 @@ def rand_lorentz(
 
     Parameters
     ----------
-    shape: List[int]
+    shape: torch.Size
         Shape of the transformation matrices
     std_eta: float
         Standard deviation of rapidity
@@ -127,7 +127,7 @@ def rand_lorentz(
 
 
 def rand_xyrotation(
-    shape: List[int],
+    shape: torch.Size,
     device: str = "cpu",
     dtype: torch.dtype = torch.float32,
     generator: torch.Generator = None,
@@ -136,7 +136,7 @@ def rand_xyrotation(
 
     Parameters
     ----------
-    shape: List[int]
+    shape: torch.Size
         Shape of the transformation matrices
     device: str
     dtype: torch.dtype
@@ -149,16 +149,13 @@ def rand_xyrotation(
     """
     axis = torch.tensor([1, 2], dtype=torch.long, device=device)
     axis = axis.view(2, *([1] * len(shape))).repeat(1, *shape)
-    angle = (
-        torch.rand(*shape, device=device, dtype=dtype, generator=generator)
-        * 2
-        * torch.pi
-    )
+    u = rand_wrapper(shape, device, dtype, generator=generator)
+    angle = 2 * torch.pi * u
     return transform([axis], [angle])
 
 
 def rand_ztransform(
-    shape: List[int],
+    shape: torch.Size,
     std_eta: float = 0.1,
     n_max_std_eta: float = 3.0,
     device: str = "cpu",
@@ -172,7 +169,7 @@ def rand_ztransform(
 
     Parameters
     ----------
-    shape: List[int]
+    shape: torch.Size
         Shape of the transformation matrices
     std_eta: float
         Standard deviation of rapidity
@@ -191,11 +188,8 @@ def rand_ztransform(
     # rotation around z-axis
     axis1 = torch.tensor([1, 2], dtype=torch.long, device=device)
     axis1 = axis1.view(2, *([1] * len(shape))).repeat(1, *shape)
-    angle1 = (
-        torch.rand(*shape, device=device, dtype=dtype, generator=generator)
-        * 2
-        * torch.pi
-    )
+    u = rand_wrapper(shape, device, dtype, generator=generator)
+    angle1 = 2 * torch.pi * u
 
     # boost along z-axis
     axis2 = torch.tensor([0, 3], dtype=torch.long, device=device)
@@ -213,7 +207,7 @@ def rand_ztransform(
 
 
 def rand_rotation(
-    shape: List[int],
+    shape: torch.Size,
     device: str = "cpu",
     dtype: torch.dtype = torch.float32,
     generator: torch.Generator = None,
@@ -225,7 +219,7 @@ def rand_rotation(
 
     Parameters
     ----------
-    shape: List[int]
+    shape: torch.Size
         Shape of the transformation matrices
     device: str
     dtype: torch.dtype
@@ -237,7 +231,8 @@ def rand_rotation(
         The resulting Lorentz transformation matrices of shape (..., 4, 4).
     """
     # generate random quaternions
-    u = torch.rand(*shape, 3, device=device, dtype=dtype, generator=generator)
+    shape2 = torch.Size((*shape, 3))
+    u = rand_wrapper(shape2, device, dtype, generator=generator)
     q1 = torch.sqrt(1 - u[..., 0]) * torch.sin(2 * torch.pi * u[..., 1])
     q2 = torch.sqrt(1 - u[..., 0]) * torch.cos(2 * torch.pi * u[..., 1])
     q3 = torch.sqrt(u[..., 0]) * torch.sin(2 * torch.pi * u[..., 2])
@@ -264,7 +259,7 @@ def rand_rotation(
 
 
 def rand_boost(
-    shape: List[int],
+    shape: torch.Size,
     std_eta: float = 0.1,
     n_max_std_eta: float = 3.0,
     device: str = "cpu",
@@ -275,7 +270,7 @@ def rand_boost(
 
     Parameters
     ----------
-    shape: List[int]
+    shape: torch.Size
         Shape of the transformation matrices
     std_eta: float
         Standard deviation of rapidity
@@ -291,7 +286,7 @@ def rand_boost(
     final_trafo: torch.tensor
         The resulting Lorentz transformation matrices of shape (..., 4, 4).
     """
-    shape = list(shape) + [3]
+    shape = torch.Size((*shape, 3))
     beta = sample_rapidity(
         shape,
         std_eta,
@@ -309,18 +304,18 @@ def rand_boost(
 
 
 def sample_rapidity(
-    shape,
-    std_eta,
-    n_max_std_eta=3.0,
-    device="cpu",
-    dtype=torch.float32,
+    shape: torch.Size,
+    std_eta: float = 0.1,
+    n_max_std_eta: float = 3.0,
+    device: str = "cpu",
+    dtype: torch.dtype = torch.float32,
     generator: torch.Generator = None,
 ):
     """Sample rapidity from a clipped gaussian distribution.
 
     Parameters
     ----------
-    shape: List[int]
+    shape: torch.Size
         Shape of the output tensor
     std_eta: float
         Standard deviation of the rapidity
@@ -330,15 +325,29 @@ def sample_rapidity(
     dtype: torch.dtype
     generator: torch.Generator
     """
-    angle = (
-        torch.randn(*shape, device=device, dtype=dtype, generator=generator) * std_eta
-    )
-    truncate_mask = torch.abs(angle) > std_eta * n_max_std_eta
-    while truncate_mask.any():
-        new_angle = (
-            torch.randn(*shape, device=device, dtype=dtype, generator=generator)
-            * std_eta
-        )
-        angle[truncate_mask] = new_angle[truncate_mask]
-        truncate_mask = torch.abs(angle) > std_eta * n_max_std_eta
+    eta = randn_wrapper(shape, device, dtype, generator=generator)
+    angle = eta * std_eta
+    angle.clamp(min=-std_eta * n_max_std_eta, max=std_eta * n_max_std_eta)
     return angle
+
+
+def rand_wrapper(shape, device, dtype, generator=None):
+    # ugly solution to make the code work with torch.compile
+    # torch.compile doesn't accept the generator argument,
+    # but we also don't use the generator argument in compiled code.
+    # But we may use the generator in uncompiled code, so we have to keep it.
+    if generator is None:
+        return torch.rand(shape, device=device, dtype=dtype)
+    else:
+        return torch.rand(shape, device=device, dtype=dtype, generator=generator)
+
+
+def randn_wrapper(shape, device, dtype, generator=None):
+    # ugly solution to make the code work with torch.compile
+    # torch.compile doesn't accept the generator argument,
+    # but we also don't use the generator argument in compiled code.
+    # But we may use the generator in uncompiled code, so we have to keep it.
+    if generator is None:
+        return torch.randn(shape, device=device, dtype=dtype)
+    else:
+        return torch.randn(shape, device=device, dtype=dtype, generator=generator)
