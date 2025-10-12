@@ -2,6 +2,7 @@ _target_: lloca.framesnet.equi_frames.LearnedSO2Frames
 is_global: false
 random: false
 fix_params: false
+compile: false
 ortho_kwargs:
  method: gramschmidt
  eps_norm: 1e-10

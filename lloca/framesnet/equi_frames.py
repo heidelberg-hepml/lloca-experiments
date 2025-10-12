@@ -75,12 +75,20 @@ class LearnedPDFrames(LearnedFrames):
         gamma_max=None,
         gamma_hardness=None,
         deterministic_boost=None,
+        compile=False,
         **kwargs,
     ):
         super().__init__(*args, n_vectors=3, **kwargs)
         self.gamma_max = gamma_max
         self.gamma_hardness = gamma_hardness
         self.deterministic_boost = deterministic_boost
+
+        if compile:
+            self.polar_decomposition = torch.compile(
+                polar_decomposition, dynamic=True, fullgraph=True
+            )
+        else:
+            self.polar_decomposition = polar_decomposition
 
     def forward(self, fourmomenta, scalars=None, ptr=None, return_tracker=False):
         """
@@ -110,7 +118,7 @@ class LearnedPDFrames(LearnedFrames):
         boost = self._deterministic_boost(boost, ptr)
         boost, reg_gammamax, gamma_mean, gamma_max = self._clamp_boost(boost)
 
-        trafo, reg_collinear = polar_decomposition(
+        trafo, reg_collinear = self.polar_decomposition(
             boost,
             rotation_references,
             **self.ortho_kwargs,
@@ -182,9 +190,16 @@ class LearnedSO13Frames(LearnedFrames):
     def __init__(
         self,
         *args,
+        compile=False,
         **kwargs,
     ):
         super().__init__(*args, n_vectors=3, **kwargs)
+        if compile:
+            self.orthogonalize_4d = torch.compile(
+                orthogonalize_4d, dynamic=True, fullgraph=True
+            )
+        else:
+            self.orthogonalize_4d = orthogonalize_4d
 
     def forward(self, fourmomenta, scalars=None, ptr=None, return_tracker=False):
         """
@@ -210,7 +225,7 @@ class LearnedSO13Frames(LearnedFrames):
         vecs = self.equivectors(fourmomenta, scalars=scalars, ptr=ptr)
         vecs = self.globalize_vecs_or_not(vecs, ptr)
 
-        trafo, reg_lightlike, reg_coplanar = orthogonalize_4d(
+        trafo, reg_lightlike, reg_coplanar = self.orthogonalize_4d(
             vecs, **self.ortho_kwargs, return_reg=True
         )
 
@@ -231,9 +246,16 @@ class LearnedRestFrames(LearnedFrames):
     def __init__(
         self,
         *args,
+        compile=False,
         **kwargs,
     ):
         super().__init__(*args, n_vectors=2, **kwargs)
+        if compile:
+            self.polar_decomposition = torch.compile(
+                polar_decomposition, dynamic=True, fullgraph=True
+            )
+        else:
+            self.polar_decomposition = polar_decomposition
 
     def forward(self, fourmomenta, scalars=None, ptr=None, return_tracker=False):
         """
@@ -259,7 +281,7 @@ class LearnedRestFrames(LearnedFrames):
         references = self.equivectors(fourmomenta, scalars=scalars, ptr=ptr)
         references = self.globalize_vecs_or_not(references, ptr)
 
-        trafo, reg_collinear = polar_decomposition(
+        trafo, reg_collinear = self.polar_decomposition(
             fourmomenta,
             references,
             **self.ortho_kwargs,
@@ -279,6 +301,7 @@ class LearnedSO3Frames(LearnedFrames):
     def __init__(
         self,
         *args,
+        compile=False,
         **kwargs,
     ):
         self.n_vectors = 2
@@ -287,6 +310,12 @@ class LearnedSO3Frames(LearnedFrames):
             n_vectors=self.n_vectors,
             **kwargs,
         )
+        if compile:
+            self.polar_decomposition = torch.compile(
+                polar_decomposition, dynamic=True, fullgraph=True
+            )
+        else:
+            self.polar_decomposition = self.polar_decomposition
 
     def forward(self, fourmomenta, scalars=None, ptr=None, return_tracker=False):
         """
@@ -317,7 +346,7 @@ class LearnedSO3Frames(LearnedFrames):
             ..., 0
         ]  # only difference compared to LearnedPolarDecompositionFrames
 
-        trafo, reg_collinear = polar_decomposition(
+        trafo, reg_collinear = self.polar_decomposition(
             fourmomenta,
             references,
             **self.ortho_kwargs,
@@ -337,6 +366,7 @@ class LearnedSO2Frames(LearnedFrames):
     def __init__(
         self,
         *args,
+        compile=False,
         **kwargs,
     ):
         self.n_vectors = 1
@@ -345,6 +375,12 @@ class LearnedSO2Frames(LearnedFrames):
             n_vectors=self.n_vectors,
             **kwargs,
         )
+        if compile:
+            self.polar_decomposition = torch.compile(
+                polar_decomposition, dynamic=True, fullgraph=True
+            )
+        else:
+            self.polar_decomposition = polar_decomposition
 
     def forward(self, fourmomenta, scalars=None, ptr=None, return_tracker=False):
         """
@@ -385,7 +421,7 @@ class LearnedSO2Frames(LearnedFrames):
             [spurion_references, extra_references[..., 0, :]], dim=-2
         )
 
-        trafo, reg_collinear = polar_decomposition(
+        trafo, reg_collinear = self.polar_decomposition(
             fourmomenta,
             references,
             **self.ortho_kwargs,
