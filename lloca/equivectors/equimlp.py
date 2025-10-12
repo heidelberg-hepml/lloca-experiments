@@ -94,7 +94,6 @@ class EquiEdgeConv(MessagePassing):
             self.register_buffer("edge_std", torch.tensor(1.0))
 
     def init_standardization(self, fourmomenta, edge_index):
-        assert not self.edge_inited
         if self.include_edges and not self.edge_inited:
             fourmomenta = fourmomenta.reshape(-1, 1, 4)
             edge_attr = get_edge_attr(fourmomenta, edge_index)
