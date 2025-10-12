@@ -5,11 +5,11 @@ fix_params: false
 gamma_max: null
 gamma_hardness: 10
 deterministic_boost: null
+eps_reg_lightlike: 1e-10
 ortho_kwargs:
  method: gramschmidt
  eps_norm: 1e-15
  eps_reg: 1e-10
- eps_reg_lightlike: 1e-10
 
 defaults:
  - equivectors: equimlp

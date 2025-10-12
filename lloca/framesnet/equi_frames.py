@@ -74,12 +74,14 @@ class LearnedPDFrames(LearnedFrames):
         gamma_max=None,
         gamma_hardness=None,
         deterministic_boost=None,
+        eps_reg_lightlike=1.0e-10,
         **kwargs,
     ):
         super().__init__(*args, n_vectors=3, **kwargs)
         self.gamma_max = gamma_max
         self.gamma_hardness = gamma_hardness
         self.deterministic_boost = deterministic_boost
+        self.eps_reg_lightlike = eps_reg_lightlike
 
     def forward(self, fourmomenta, scalars=None, ptr=None, return_tracker=False):
         """
@@ -113,6 +115,7 @@ class LearnedPDFrames(LearnedFrames):
             boost,
             rotation_references,
             **self.ortho_kwargs,
+            eps_reg_lightlike=self.eps_reg_lightlike,
             return_reg=True,
         )
         tracker = {
@@ -230,9 +233,11 @@ class LearnedRestFrames(LearnedFrames):
     def __init__(
         self,
         *args,
+        eps_reg_lightlike=1.0e-10,
         **kwargs,
     ):
         super().__init__(*args, n_vectors=2, **kwargs)
+        self.eps_reg_lightlike = eps_reg_lightlike
 
     def forward(self, fourmomenta, scalars=None, ptr=None, return_tracker=False):
         """
@@ -259,13 +264,14 @@ class LearnedRestFrames(LearnedFrames):
         references = self.globalize_vecs_or_not(references, ptr)
         references = [references[..., i, :] for i in range(references.shape[-2])]
 
-        trafo, reg_collinear = polar_decomposition(
+        trafo, reg_lightlike, reg_collinear = polar_decomposition(
             fourmomenta,
             references,
             **self.ortho_kwargs,
+            eps_reg_lightlike=self.eps_reg_lightlike,
             return_reg=True,
         )
-        tracker = {"reg_collinear": reg_collinear}
+        tracker = {"reg_lightlike": reg_lightlike, "reg_collinear": reg_collinear}
         frames = Frames(trafo, is_global=self.is_global)
         return (frames, tracker) if return_tracker else frames
 
@@ -278,6 +284,7 @@ class LearnedSO3Frames(LearnedFrames):
     def __init__(
         self,
         *args,
+        eps_reg_lightlike=1.0e-10,
         **kwargs,
     ):
         self.n_vectors = 2
@@ -286,6 +293,7 @@ class LearnedSO3Frames(LearnedFrames):
             n_vectors=self.n_vectors,
             **kwargs,
         )
+        self.eps_reg_lightlike = eps_reg_lightlike
 
     def forward(self, fourmomenta, scalars=None, ptr=None, return_tracker=False):
         """
@@ -317,13 +325,14 @@ class LearnedSO3Frames(LearnedFrames):
         ]  # only difference compared to LearnedPolarDecompositionFrames
         references = [references[..., i, :] for i in range(self.n_vectors)]
 
-        trafo, reg_collinear = polar_decomposition(
+        trafo, reg_lightlike, reg_collinear = polar_decomposition(
             fourmomenta,
             references,
             **self.ortho_kwargs,
+            eps_reg_lightlike=self.eps_reg_lightlike,
             return_reg=True,
         )
-        tracker = {"reg_collinear": reg_collinear}
+        tracker = {"reg_lightlike": reg_lightlike, "reg_collinear": reg_collinear}
         frames = Frames(trafo, is_global=self.is_global)
         return (frames, tracker) if return_tracker else frames
 
@@ -337,6 +346,7 @@ class LearnedSO2Frames(LearnedFrames):
     def __init__(
         self,
         *args,
+        eps_reg_lightlike=1.0e-10,
         **kwargs,
     ):
         self.n_vectors = 1
@@ -345,6 +355,7 @@ class LearnedSO2Frames(LearnedFrames):
             n_vectors=self.n_vectors,
             **kwargs,
         )
+        self.eps_reg_lightlike = eps_reg_lightlike
 
     def forward(self, fourmomenta, scalars=None, ptr=None, return_tracker=False):
         """
@@ -383,14 +394,15 @@ class LearnedSO2Frames(LearnedFrames):
         ]  # difference 2 compared LearnedPolarDecompositionFrames
         references.append(extra_references[..., 0, :])
 
-        trafo, reg_collinear = polar_decomposition(
+        trafo, reg_lightlike, reg_collinear = polar_decomposition(
             fourmomenta,
             references,
             **self.ortho_kwargs,
+            eps_reg_lightlike=self.eps_reg_lightlike,
             return_reg=True,
         )
 
-        tracker = {"reg_collinear": reg_collinear}
+        tracker = {"reg_lightlike": reg_lightlike, "reg_collinear": reg_collinear}
         frames = Frames(trafo, is_global=self.is_global)
         return (frames, tracker) if return_tracker else frames
 

@@ -59,7 +59,12 @@ def restframe_boost(fourmomenta):
 
 
 def polar_decomposition(
-    fourmomenta, references, use_float64=True, return_reg=False, **kwargs
+    fourmomenta,
+    references,
+    use_float64=True,
+    return_reg=False,
+    eps_reg_lightlike=1.0e-10,
+    **kwargs
 ):
     """Construct a Lorentz transformation as a polar decomposition of a
     boost and a rotation.
@@ -93,7 +98,7 @@ def polar_decomposition(
         references = [r.to(torch.float64) for r in references]
 
     # regularize lightlike fourmomenta
-    fourmomenta, reg_lightlike = regularize_lightlike(fourmomenta, **kwargs)
+    fourmomenta, reg_lightlike = regularize_lightlike(fourmomenta, eps_reg_lightlike)
     # construct rest frame transformation
     boost = restframe_boost(torch.stack(fourmomenta))
 
