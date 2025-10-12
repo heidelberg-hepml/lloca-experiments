@@ -16,9 +16,9 @@ def lorentz_inner(v1, v2):
     torch.Tensor
         Lorentz inner product of shape (..., )
     """
-    prod = v1 * v2
-    prod *= torch.tensor([1, -1, -1, -1], device=v1.device, dtype=v1.dtype)
-    return prod.sum(dim=-1)
+    t = v1[..., 0] * v2[..., 0]
+    s = (v1[..., 1:] * v2[..., 1:]).sum(dim=-1)
+    return t - s
 
 
 def lorentz_squarednorm(v):
@@ -55,8 +55,8 @@ def lorentz_eye(dims, device=torch.device("cpu"), dtype=torch.float32):
     torch.Tensor
         Identity matrix of shape (..., 4, 4)
     """
-    eye = torch.eye(4, dtype=dtype, device=device)
-    eye = eye.view((1,) * len(dims) + eye.shape).repeat(*dims, 1, 1)
+    base_eye = torch.eye(4, dtype=dtype, device=device)
+    eye = base_eye.view((1,) * len(dims) + (4, 4)).expand(*dims, 4, 4)
     return eye
 
 
@@ -78,10 +78,10 @@ def lorentz_metric(dims, device=torch.device("cpu"), dtype=torch.float32):
     torch.Tensor
         Metric tensor of shape (..., 4, 4)
     """
-    eye = torch.eye(4, device=device, dtype=dtype)
-    eye[1:, 1:] *= -1
-    eye = eye.view((1,) * len(dims) + eye.shape).repeat(*dims, 1, 1)
-    return eye
+    diag = torch.tensor((1, -1, -1, -1), device=device, dtype=dtype)
+    M = torch.diag_embed(diag)
+    M = M.reshape((1,) * len(dims) + (4, 4)).expand(*dims, 4, 4)
+    return M
 
 
 def lorentz_cross(v1, v2, v3):

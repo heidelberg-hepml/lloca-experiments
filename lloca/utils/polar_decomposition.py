@@ -24,36 +24,27 @@ def restframe_boost(fourmomenta):
         lorentz_squarednorm(fourmomenta) > 0
     ).all(), "Trying to boost spacelike vectors into their restframe (not possible). Consider changing the nonlinearity in equivectors."
 
-    beta = fourmomenta[..., 1:] / fourmomenta[..., [0]].clamp(min=1e-10)
-    beta2 = (beta**2).sum(dim=-1, keepdim=True)
-    gamma = 1 / (1 - beta2).clamp(min=1e-10).sqrt()
-
-    # prepare entries of the trafo
+    # compute relevant quantities
+    t0 = fourmomenta.narrow(-1, 0, 1)
+    beta = fourmomenta[..., 1:] / t0.clamp_min(1e-10)
+    beta2 = beta.square().sum(dim=-1, keepdim=True)
+    one_minus_beta2 = torch.clamp_min(1 - beta2, min=1e-10)
+    gamma = torch.rsqrt(one_minus_beta2)
     boost = -gamma * beta
-    eye = torch.eye(3, device=fourmomenta.device, dtype=fourmomenta.dtype)
-    eye = eye.view(*(1,) * len(fourmomenta.shape[:-1]), 3, 3).repeat(
-        *fourmomenta.shape[:-1], 1, 1
-    )
-    rot = eye + (
-        (gamma[..., None] - 1)
-        * beta[..., None]
-        * beta[..., None, :]
-        / beta2[..., None].clamp(min=1e-10)
-    )
 
-    # put trafo together
-    trafo = torch.empty(
-        *fourmomenta.shape[:-1],
-        4,
-        4,
-        device=fourmomenta.device,
-        dtype=fourmomenta.dtype
+    # prepare rotation part
+    eye3 = torch.eye(3, device=fourmomenta.device, dtype=fourmomenta.dtype)
+    eye3 = eye3.reshape(*(1,) * len(fourmomenta.shape[:-1]), 3, 3).expand(
+        *fourmomenta.shape[:-1], 3, 3
     )
-    trafo[..., 0, 0] = gamma[..., 0]
-    trafo[..., 1:, 1:] = rot
-    trafo[..., 0, 1:] = boost
-    trafo[..., 1:, 0] = boost
-    assert torch.isfinite(trafo).all()
+    scale = (gamma - 1) / torch.clamp_min(beta2, min=1e-10)
+    outer = beta.unsqueeze(-1) * beta.unsqueeze(-2)
+    rot = eye3 + scale.unsqueeze(-1) * outer
+
+    # collect trafo
+    row0 = torch.cat((gamma, boost), dim=-1)
+    lower = torch.cat((boost.unsqueeze(-1), rot), dim=-1)
+    trafo = torch.cat((row0.unsqueeze(-2), lower), dim=-2)
     return trafo
 
 
@@ -67,9 +58,8 @@ def polar_decomposition(
     ----------
     fourmomenta : torch.Tensor
         Tensor of shape (..., 4) representing the four-momenta that define the rest frames.
-    references : List[torch.Tensor]
-        List of two tensors of shape (..., 4) representing the reference four-momenta
-        to construct the rotation.
+    references : torch.Tensor
+        Two tensors of shape (..., 2, 4) representing the reference four-momenta to construct the rotation.
     use_float64 : bool
         If True, use float64 for calculations to avoid numerical issues.
     return_reg : bool
@@ -83,22 +73,21 @@ def polar_decomposition(
     reg_collinear : torch.Tensor, optional
         Tensor indicating if the references were collinear (only returned if `return_reg` is True).
     """
-    assert len(references) == 2
-    assert all(r.shape == fourmomenta.shape for r in references)
+    assert fourmomenta.shape[:-1] == references.shape[:-2]
 
     if use_float64:
         original_dtype = fourmomenta.dtype
         fourmomenta = fourmomenta.to(torch.float64)
-        references = [r.to(torch.float64) for r in references]
+        references = references.to(torch.float64)
 
     # construct rest frame transformation
     boost = restframe_boost(fourmomenta)
 
     # references go into rest frame
-    ref_rest = [torch.einsum("...ij,...j->...i", boost, v) for v in references]
+    ref_rest = torch.matmul(references, boost.transpose(-1, -2))
 
     # construct rotation
-    ref3_rest = [r[..., 1:] for r in ref_rest]
+    ref3_rest = ref_rest[..., 1:]
     out = orthogonalize_3d(ref3_rest, return_reg=return_reg, **kwargs)
     if return_reg:
         orthogonal_vec3, reg_collinear = out
@@ -106,11 +95,10 @@ def polar_decomposition(
         orthogonal_vec3 = out
     rotation = torch.zeros_like(boost)
     rotation[..., 0, 0] = 1
-    rotation[..., 1:, 1:] = torch.stack(orthogonal_vec3, dim=-2)
+    rotation[..., 1:, 1:] = orthogonal_vec3
 
     # combine rotation and boost
-    trafo = torch.einsum("...ij,...jk->...ik", rotation, boost)
+    trafo = torch.matmul(rotation, boost)
     if use_float64:
         trafo = trafo.to(original_dtype)
-    assert torch.isfinite(trafo).all()
     return (trafo, reg_collinear) if return_reg else trafo

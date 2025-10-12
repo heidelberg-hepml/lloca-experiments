@@ -106,7 +106,7 @@ class LearnedPDFrames(LearnedFrames):
         vecs = self.equivectors(fourmomenta, scalars=scalars, ptr=ptr)
         vecs = self.globalize_vecs_or_not(vecs, ptr)
         boost = vecs[..., 0, :]
-        rotation_references = [vecs[..., i, :] for i in range(1, vecs.shape[-2])]
+        rotation_references = vecs[..., 1:, :]
         boost = self._deterministic_boost(boost, ptr)
         boost, reg_gammamax, gamma_mean, gamma_max = self._clamp_boost(boost)
 
@@ -128,17 +128,18 @@ class LearnedPDFrames(LearnedFrames):
 
     def _clamp_boost(self, x):
         mass = lorentz_squarednorm(x).clamp(min=0).sqrt().unsqueeze(-1)
-        beta = x[..., 1:] / x[..., [0]].clamp(min=1e-10)
-        gamma = x[..., [0]] / mass
-        gamma_max = gamma.max().detach().cpu()
-        gamma_mean = gamma.detach().mean().cpu()
+        t0 = x.narrow(-1, 0, 1)
+        beta = x[..., 1:] / t0.clamp_min(1e-10)
+        gamma = t0 / mass
+        gamma_max = gamma.max().detach()
+        gamma_mean = gamma.mean().detach()
 
         if self.gamma_max is None:
             return x, None, gamma_mean, gamma_max
 
         else:
             # carefully clamp gamma to keep boosts under control
-            reg_gammamax = (gamma > self.gamma_max).sum().cpu()
+            reg_gammamax = (gamma > self.gamma_max).sum().detach()
             gamma_reg = soft_clamp(
                 gamma, min=1, max=self.gamma_max, hardness=self.gamma_hardness
             )
@@ -208,7 +209,6 @@ class LearnedSO13Frames(LearnedFrames):
         self.init_weights_or_not()
         vecs = self.equivectors(fourmomenta, scalars=scalars, ptr=ptr)
         vecs = self.globalize_vecs_or_not(vecs, ptr)
-        vecs = [vecs[..., i, :] for i in range(vecs.shape[-2])]
 
         trafo, reg_lightlike, reg_coplanar = orthogonalize_4d(
             vecs, **self.ortho_kwargs, return_reg=True
@@ -258,7 +258,6 @@ class LearnedRestFrames(LearnedFrames):
         self.init_weights_or_not()
         references = self.equivectors(fourmomenta, scalars=scalars, ptr=ptr)
         references = self.globalize_vecs_or_not(references, ptr)
-        references = [references[..., i, :] for i in range(references.shape[-2])]
 
         trafo, reg_collinear = polar_decomposition(
             fourmomenta,
@@ -317,7 +316,6 @@ class LearnedSO3Frames(LearnedFrames):
         )[
             ..., 0
         ]  # only difference compared to LearnedPolarDecompositionFrames
-        references = [references[..., i, :] for i in range(self.n_vectors)]
 
         trafo, reg_collinear = polar_decomposition(
             fourmomenta,
@@ -376,14 +374,16 @@ class LearnedSO2Frames(LearnedFrames):
         )[
             ..., 0
         ]  # difference 1 compared LearnedPolarDecompositionFrames
-        references = [
-            lorentz_eye(
-                fourmomenta.shape[:-1],
-                device=fourmomenta.device,
-                dtype=fourmomenta.dtype,
-            )[..., 3]
+        spurion_references = lorentz_eye(
+            fourmomenta.shape[:-1],
+            device=fourmomenta.device,
+            dtype=fourmomenta.dtype,
+        )[
+            ..., 3
         ]  # difference 2 compared LearnedPolarDecompositionFrames
-        references.append(extra_references[..., 0, :])
+        references = torch.stack(
+            [spurion_references, extra_references[..., 0, :]], dim=-2
+        )
 
         trafo, reg_collinear = polar_decomposition(
             fourmomenta,

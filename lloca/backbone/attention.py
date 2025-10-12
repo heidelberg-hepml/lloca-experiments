@@ -56,7 +56,7 @@ class LLoCaAttention(torch.nn.Module):
             # qkv = (inv_frames, lower_inv_frames, inv_frames)
             # note that (lower_inv_frames, inv_frames, inv_frames) is equivalent
             self.frames_qkv = Frames(
-                matrices=torch.stack(
+                matrices=torch.cat(
                     [
                         inv_frames.matrices,
                         lower_inv_frames.matrices,
@@ -66,10 +66,10 @@ class LLoCaAttention(torch.nn.Module):
                 ),
                 is_identity=inv_frames.is_identity,
                 is_global=inv_frames.is_global,
-                det=torch.stack(
+                det=torch.cat(
                     [inv_frames.det, lower_inv_frames.det, inv_frames.det], dim=0
                 ),
-                inv=torch.stack(
+                inv=torch.cat(
                     [inv_frames.inv, lower_inv_frames.inv, inv_frames.inv], dim=0
                 ),
             )

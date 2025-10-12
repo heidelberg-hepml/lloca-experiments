@@ -323,7 +323,6 @@ class TaggingExperiment(BaseExperiment):
     def _batch_loss(self, batch):
         y_pred, label, tracker, _ = self._get_ypred_and_label(batch)
         loss = self.loss(y_pred, label)
-        assert torch.isfinite(loss).all()
 
         metrics = tracker
         return loss, metrics

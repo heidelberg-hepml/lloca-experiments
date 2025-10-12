@@ -1,7 +1,7 @@
 """Bookkeeping classes to access local frames."""
 import torch
 
-from ..utils.lorentz import lorentz_eye, lorentz_metric
+from ..utils.lorentz import lorentz_eye
 
 
 class Frames:
@@ -81,13 +81,12 @@ class Frames:
             self.inv = inv
 
         # cache expensive properties
-        self.metric = lorentz_metric(
-            self.shape[:-2], device=self.device, dtype=self.dtype
-        )
         if self.det is None:
             self.det = torch.linalg.det(self.matrices)
         if self.inv is None:
-            self.inv = self.metric @ self.matrices.transpose(-1, -2) @ self.metric
+            self.inv = self.matrices.transpose(-1, -2).clone()
+            self.inv[..., 1:, :] *= -1
+            self.inv[..., :, 1:] *= -1
 
     def reshape(self, *shape):
         """Reshape the matrices to generate a new object of different shape.
@@ -160,6 +159,14 @@ class Frames:
 
     def __repr__(self):
         return repr(self.matrices)
+
+    @property
+    def metric(self):
+        diag = self.matrices.new_tensor((1, -1, -1, -1))
+        base = torch.diag_embed(diag)
+        return base.reshape(*(1,) * (self.matrices.ndim - 2), 4, 4).expand(
+            *self.shape[:-2], 4, 4
+        )
 
     @property
     def device(self):
@@ -241,10 +248,16 @@ class LowerIndicesFrames(Frames):
     """
 
     def __init__(self, frames):
+        matrices = frames.matrices.clone()
+        matrices[..., 1:, :] *= -1
+        inv = frames.inv.clone()
+        inv[..., :, 1:] *= -1
+        det = -frames.det
+
         super().__init__(
-            matrices=frames.metric @ frames.matrices,
-            inv=frames.inv @ frames.metric,
-            det=-frames.det,
+            matrices=matrices,
+            inv=inv,
+            det=det,
             is_global=frames.is_global,
             is_identity=frames.is_identity,
             device=frames.device,

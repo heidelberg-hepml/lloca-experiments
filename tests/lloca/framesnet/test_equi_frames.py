@@ -39,6 +39,9 @@ def test_frames_transformation(
     predictor = FramesPredictor(equivectors=equivectors).to(dtype=dtype)
     call_predictor = lambda fm: predictor(fm)
 
+    fm_test = sample_particle(batch_dims, logm2_std, logm2_mean, dtype=dtype)
+    predictor.equivectors.init_standardization(fm_test)
+
     # sample Lorentz vectors
     fm = sample_particle(batch_dims, logm2_std, logm2_mean, dtype=dtype)
 
@@ -88,6 +91,9 @@ def test_feature_invariance(
     equivectors = equivectors_builder()
     predictor = FramesPredictor(equivectors=equivectors).to(dtype=dtype)
     call_predictor = lambda fm: predictor(fm)
+
+    fm_test = sample_particle(batch_dims, logm2_std, logm2_mean, dtype=dtype)
+    predictor.equivectors.init_standardization(fm_test)
 
     reps = TensorReps("1x1n")
     trafo = TensorRepsTransform(TensorReps(reps))

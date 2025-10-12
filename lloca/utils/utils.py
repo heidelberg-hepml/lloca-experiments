@@ -40,7 +40,7 @@ def get_ptr_from_batch(batch):
         A pointer tensor indicating the start of each batch.
         Tensor of shape (B+1,) where B is the number of batches.
     """
-    return torch.cat(
+    ptr = torch.cat(
         [
             torch.tensor([0], device=batch.device),
             torch.where(batch[1:] - batch[:-1] != 0)[0] + 1,
@@ -48,6 +48,39 @@ def get_ptr_from_batch(batch):
         ],
         0,
     )
+    return ptr
+
+
+def get_node_to_edge_ptr_fully_connected(ptr, batch):
+    """Get pointer (ptr) mapping nodes to edges in a fully connected graph.
+
+    Parameters
+    ----------
+    ptr : torch.Tensor
+        Pointer tensor indicating the start of each batch.
+        Tensor of shape (B+1,) where B is the number of batches.
+    batch : torch.Tensor
+        A tensor where each element indicates the batch index for each node.
+        Tensor of shape (N,) where N is the total number of nodes across all batches.
+
+    Returns
+    -------
+    torch.Tensor
+        A pointer tensor mapping nodes to edges in a fully connected graph.
+        Tensor of shape (N,) where N is the total number of nodes across all batches.
+    """
+    N = batch.numel()
+    diff = ptr[1:] - ptr[:-1]
+    w = diff - 1
+
+    delta = batch.new_zeros(N + 1)
+    delta.index_add_(0, ptr[:-1], w)
+    delta.index_add_(0, ptr[1:], -w)
+
+    r = delta[:-1].cumsum(0)
+    out = batch.new_zeros(N + 1)
+    torch.cumsum(r, 0, out=out[1:])
+    return out
 
 
 def get_edge_index_from_ptr(ptr, shape, remove_self_loops=True):
