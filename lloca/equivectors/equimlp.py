@@ -1,9 +1,8 @@
 """Edge convolution with a simple MLP."""
 import torch
-from torch import nn
 import math
 from torch_geometric.nn import MessagePassing
-from torch_geometric.utils import scatter, softmax, segment
+from torch_geometric.utils import softmax, segment
 
 from .base import EquiVectors
 from ..backbone.mlp import MLP
@@ -353,7 +352,7 @@ class EquiMLP(EquiVectors):
         return fourmomenta
 
 
-def softmax(src, ptr=None, dim=0, index=None):
+def softmax(src, index=None, ptr=None, dim=0):
     r"""Adapted version of the torch_geometric softmax function
     https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/utils/_softmax.html.
     Use the index argument in output_size of torch.repeat_interleave to avoid GPU/CPU sync.
@@ -362,22 +361,23 @@ def softmax(src, ptr=None, dim=0, index=None):
     ----------
     src : torch.Tensor
         Source tensor of shape (N,) where N is the number of elements.
+    index : torch.Tensor, optional
+        Index tensor indicating the batch index for each element.
+        Tensor of shape (N,) where N is the number of elements.
     ptr : torch.Tensor
         Pointer tensor indicating the start of each batch.
         Tensor of shape (B+1,) where B is the number of batches.
     dim : int, optional
         Dimension along which to apply the softmax. Default is 0.
-    index : torch.Tensor, optional
-        Index tensor indicating the batch index for each element.
-        Tensor of shape (N,) where N is the number of elements.
     """
     dim = dim + src.dim() if dim < 0 else dim
     size = ([1] * dim) + [-1]
     count = ptr[1:] - ptr[:-1]
     ptr = ptr.view(size)
+    output_size = index.shape[dim] if index is not None else None
     src_max = segment(src.detach(), ptr, reduce="max")
-    src_max = src_max.repeat_interleave(count, dim=dim, output_size=index.shape[0])
+    src_max = src_max.repeat_interleave(count, dim=dim, output_size=output_size)
     out = (src - src_max).exp()
     out_sum = segment(out, ptr, reduce="sum") + 1e-16
-    out_sum = out_sum.repeat_interleave(count, dim=dim, output_size=index.shape[0])
+    out_sum = out_sum.repeat_interleave(count, dim=dim, output_size=output_size)
     return out / out_sum
