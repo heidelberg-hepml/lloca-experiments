@@ -22,6 +22,7 @@ xformers
 torch-cluster>=1.6.3
 torchdiffeq
 lgatr[xformers_attention]>=1.2.0
+pelican-hep
 
 #weaver packages
 tqdm>=4.41.0
