@@ -742,7 +742,7 @@ class BaseExperiment:
 
                 losses.append(loss.cpu().item())
                 for key, value in metric.items():
-                    metrics[key].append(value)
+                    metrics[key].append(value.cpu().item())
         val_loss = np.mean(losses)
         self.val_loss.append(val_loss)
         for key, values in metrics.items():

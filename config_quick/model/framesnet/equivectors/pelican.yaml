@@ -7,7 +7,7 @@ num_scalars: null
 operation: add
 nonlinearity: softmax
 aggr: sum
-fm_norm: false
+fm_norm: true
 layer_norm: false
 
 net:
