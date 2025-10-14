@@ -10,7 +10,7 @@ from ..utils.utils import (
     get_batch_from_ptr,
 )
 from ..utils.lorentz import lorentz_squarednorm
-from .equimlp import get_operation, get_nonlinearity
+from .equimlp import get_operation, get_nonlinearity, get_edge_index_and_batch
 
 
 class PELICANVectors(EquiVectors, MessagePassing):
@@ -38,31 +38,38 @@ class PELICANVectors(EquiVectors, MessagePassing):
         self.layer_norm = layer_norm
         assert not (operation == "single" and fm_norm)  # unstable
 
+    def init_standardization(self, fourmomenta, ptr=None):
+        if not self.edge_inited:
+            edge_index, _, _ = get_edge_index_and_batch(fourmomenta, ptr)
+            fourmomenta = fourmomenta.reshape(-1, 1, 4)
+            edge_attr = get_edge_attr(fourmomenta, edge_index)
+            self.edge_mean = edge_attr.mean().detach()
+            self.edge_std = edge_attr.std().clamp(min=1e-5).detach()
+            self.edge_inited.fill_(True)
+
     def forward(self, fourmomenta, scalars=None, ptr=None):
         # move to sparse tensors
         in_shape = fourmomenta.shape[:-1]
         if scalars is None:
             scalars = torch.zeros_like(fourmomenta[..., []])
+        edge_index, batch, ptr = get_edge_index_and_batch(
+            fourmomenta, ptr, remove_self_loops=False
+        )
         if len(in_shape) > 1:
-            assert ptr is None, "ptr only supported for sparse tensors"
-            edge_index, batch = get_edge_index_from_shape(
-                fourmomenta, remove_self_loops=False
-            )
             fourmomenta = fourmomenta.reshape(math.prod(in_shape), 4)
             scalars = scalars.reshape(math.prod(in_shape), scalars.shape[-1])
-        else:
-            if ptr is None:
-                # assume batch contains only one particle
-                ptr = torch.tensor([0, len(fourmomenta)], device=fourmomenta.device)
-            edge_index = get_edge_index_from_ptr(ptr, remove_self_loops=False)
-            batch = get_batch_from_ptr(ptr)
 
         # compute prefactors
         edge_attr = self.get_edge_attr(fourmomenta, edge_index).to(scalars.dtype)
 
         # message-passing
         vecs = self.propagate(
-            edge_index, fm=fourmomenta, s=scalars, edge_attr=edge_attr, batch=batch
+            edge_index,
+            fm=fourmomenta,
+            s=scalars,
+            edge_attr=edge_attr,
+            batch=batch,
+            node_ptr=ptr,
         )
         vecs = vecs.reshape(fourmomenta.shape[0], -1, 4)
 
@@ -74,7 +81,7 @@ class PELICANVectors(EquiVectors, MessagePassing):
         vecs = vecs.reshape(*in_shape, -1, 4)
         return vecs
 
-    def message(self, edge_index, fm_i, fm_j, s_i, s_j, edge_attr, batch):
+    def message(self, edge_index, fm_i, fm_j, s_i, s_j, node_ptr, batch, edge_attr):
         # prepare fourmomenta
         fm_rel = self.operation(fm_i, fm_j)
         if self.fm_norm:
@@ -88,7 +95,13 @@ class PELICANVectors(EquiVectors, MessagePassing):
         prefactor = self.net(
             in_rank2=edge_attr, in_rank1=s_i, edge_index=edge_index, batch=batch
         )
-        prefactor = self.nonlinearity(prefactor, batch=edge_index[0])
+        prefactor = self.nonlinearity(
+            prefactor,
+            index=edge_index[0],
+            node_ptr=node_ptr,
+            node_batch=batch,
+            remove_self_loops=False,
+        )
         prefactor = prefactor.unsqueeze(-1)
         out = prefactor * fm_rel
         out = out.reshape(out.shape[0], -1)
@@ -96,10 +109,6 @@ class PELICANVectors(EquiVectors, MessagePassing):
 
     def get_edge_attr(self, fourmomenta, edge_index):
         edge_attr = get_edge_attr(fourmomenta, edge_index)
-        if not self.edge_inited:
-            self.edge_mean = edge_attr.mean().detach()
-            self.edge_std = edge_attr.std().clamp(min=1e-5).detach()
-            self.edge_inited.fill_(True)
         edge_attr = (edge_attr - self.edge_mean) / self.edge_std
         edge_attr = edge_attr.reshape(edge_attr.shape[0], -1)
         return edge_attr

@@ -1,20 +1,21 @@
+"""Orthogonalization of Minkowski vectors."""
+
 import torch
 
 from .lorentz import (
     lorentz_inner,
     lorentz_squarednorm,
-    lorentz_metric,
     lorentz_cross,
 )
 
 
 def orthogonalize_4d(vecs, use_float64=True, return_reg=False, **kwargs):
-    """High-level wrapper for orthogonalization of three Lorentz vectors.
+    """High-level wrapper for orthogonalization of three Minkowski vectors.
 
     Parameters
     ----------
-    vecs : list of torch.Tensor
-        List of three Lorentz vectors of shape (..., 4).
+    vecs : torch.Tensor
+        Tensor containing three Minkowski vectors of shape (..., 3, 4).
     use_float64 : bool
         If True, use float64 for numerical stability during orthogonalization.
     return_reg : bool
@@ -35,18 +36,18 @@ def orthogonalize_4d(vecs, use_float64=True, return_reg=False, **kwargs):
     """
     if use_float64:
         original_dtype = vecs[0].dtype
-        vecs = [v.to(torch.float64) for v in vecs]
+        vecs = vecs.to(torch.float64)
 
     out = orthogonalize_wrapper_4d(vecs, return_reg=return_reg, **kwargs)
     if return_reg:
         orthogonal_vecs, *reg = out
     else:
         orthogonal_vecs = out
-    trafo = torch.stack(orthogonal_vecs, dim=-2)
+    trafo = orthogonal_vecs
 
     trafo = timelike_first(trafo)
-    metric = lorentz_metric(trafo.shape[:-2], device=trafo.device, dtype=trafo.dtype)
-    trafo = metric @ trafo @ metric
+    scale = trafo.new_tensor((1, -1, -1, -1))
+    trafo = trafo * torch.outer(scale, scale)
     if use_float64:
         trafo = trafo.to(original_dtype)
     return (trafo, *reg) if return_reg else trafo
@@ -64,8 +65,8 @@ def orthogonalize_wrapper_4d(
 
     Parameters
     ----------
-    vecs : list of torch.Tensor
-        List of three Lorentz vectors of shape (..., 4).
+    vecs : torch.Tensor
+        Tensor containing list of three Minkowski vectors of shape (..., 3, 4).
     method : str
         Method for orthogonalization. Options are "cross" and "gramschmidt".
     eps_norm : float
@@ -82,16 +83,13 @@ def orthogonalize_wrapper_4d(
 
     Returns
     -------
-    orthogonal_vecs : list of torch.Tensor
-        List of orthogonalized Lorentz vectors of shape (..., 4).
+    orthogonal_vecs : torch.Tensor
+        Four orthogonalized Minkowski vectors of shape (..., 4, 4).
     reg_lightlike : int
         Number of vectors that were regularized due to being lightlike.
     reg_coplanar : int
         Number of vectors that were regularized due to coplanarity.
     """
-    assert len(vecs) == 3
-    assert all(v.shape == vecs[0].shape for v in vecs)
-
     vecs, reg_lightlike = regularize_lightlike(vecs, eps_reg_lightlike)
     vecs, reg_coplanar = regularize_coplanar(vecs, eps_reg_coplanar)
 
@@ -110,18 +108,35 @@ def orthogonalize_gramschmidt(vecs, eps_norm=1e-15):
 
     Parameters
     ----------
-    vecs : list of torch.Tensor
-        List of Lorentz vectors of shape (..., 4).
+    vecs : torch.Tensor
+        List of three Minkowski vectors of shape (..., 3, 4).
     eps_norm : float
         Small value to avoid division by zero during normalization.
 
     Returns
     -------
-    orthogonal_vecs : list of torch.Tensor
-        List of orthogonalized Lorentz vectors of shape (..., 4).
+    orthogonal_vecs : torch.Tensor
+        List of four orthogonalized Minkowski vectors of shape (..., 4, 4).
     """
-    vecs = [normalize_4d(v, eps_norm) for v in vecs]
+    vecs = normalize_4d(vecs, eps_norm)
+    e0, v1, v2 = vecs.unbind(dim=-2)
 
+    denom0 = lorentz_squarednorm(e0).unsqueeze(-1) + eps_norm
+    inner01 = lorentz_inner(v1, e0).unsqueeze(-1)
+    u1 = v1 - e0 * inner01 / denom0
+    e1 = normalize_4d(u1, eps_norm)
+
+    inner02 = lorentz_inner(v2, e0).unsqueeze(-1)
+    u2 = v2 - e0 * inner02 / denom0
+    denom1 = lorentz_squarednorm(e1).unsqueeze(-1) + eps_norm
+    inner21 = lorentz_inner(v2, e1).unsqueeze(-1)
+    u2 = u2 - e1 * inner21 / denom1
+    e2 = normalize_4d(u2, eps_norm)
+
+    e3 = lorentz_cross(e0, e1, e2)
+    return torch.stack([e0, e1, e2, e3], dim=-2)
+
+    """
     v_nexts = [v for v in vecs]
     orthogonal_vecs = [vecs[0]]
     for i in range(1, len(vecs)):
@@ -136,34 +151,33 @@ def orthogonalize_gramschmidt(vecs, eps_norm=1e-15):
     orthogonal_vecs.append(last_vec)
 
     return orthogonal_vecs
+    """
 
 
 def orthogonalize_cross(vecs, eps_norm=1e-15):
     """Orthogonalization algorithm using repeated cross products.
-    This approach gives the same result as orthogonalize_gramschmidt,
-    but we find empirically that the Gram-Schmidt approach is more stable.
+    This approach gives the same result as orthogonalize_gramschmidt for unlimited
+    precision, but we find empirically that the Gram-Schmidt approach is more stable.
 
     Parameters
     ----------
-    vecs : list of torch.Tensor
-        List of Lorentz vectors of shape (..., 4).
+    vecs : torch.Tensor
+        List of three Minkowski vectors of shape (..., 3, 4).
     eps_norm : float
         Small value to avoid division by zero during normalization.
 
     Returns
     -------
-    orthogonal_vecs : list of torch.Tensor
-        List of orthogonalized Lorentz vectors of shape (..., 4).
+    orthogonal_vecs : torch.Tensor
+        List of four orthogonalized Minkowski vectors of shape (..., 4, 4).
     """
-    vecs = [normalize_4d(v, eps_norm) for v in vecs]
+    vecs = normalize_4d(vecs, eps_norm)
+    e0, v1, v2 = vecs.unbind(dim=-2)
 
-    orthogonal_vecs = [vecs[0]]
-    for i in range(1, len(vecs) + 1):
-        v_next = lorentz_cross(*orthogonal_vecs, *vecs[i:])
-        assert torch.isfinite(v_next).all()
-        orthogonal_vecs.append(normalize_4d(v_next, eps_norm))
-
-    return orthogonal_vecs
+    e1 = normalize_4d(lorentz_cross(e0, v1, v2), eps_norm)
+    e2 = normalize_4d(lorentz_cross(e0, e1, v2), eps_norm)
+    e3 = normalize_4d(lorentz_cross(e0, e1, e2), eps_norm)
+    return torch.stack([e0, e1, e2, e3], dim=-2)
 
 
 def timelike_first(trafo):
@@ -185,15 +199,18 @@ def timelike_first(trafo):
     """
     vecs = [trafo[..., i, :] for i in range(4)]
     norm = torch.stack([lorentz_squarednorm(v) for v in vecs], dim=-1)
-    pos_norm = norm > 0
-    num_pos_norm = pos_norm.sum(dim=-1)
-    assert (
-        num_pos_norm == 1
-    ).all(), f"Don't always have exactly 1 timelike vector: {(num_pos_norm==0).sum().item()} (#0), {(num_pos_norm==1).sum().item()} (#1), {(num_pos_norm==2).sum().item()} (#2), {(num_pos_norm==3).sum().item()} (#3)"
-    old_trafo = trafo.clone()
-    trafo[..., 0, :] = old_trafo[pos_norm].view(*trafo.shape[:-2], 4)
-    trafo[..., 1:, :] = old_trafo[~pos_norm].view(*trafo.shape[:-2], 3, 4)
-    return trafo
+    num_pos_norm = (norm > 0).sum(dim=-1)
+    assert (num_pos_norm == 1).all(), "Don't always have exactly 1 timelike vector"
+
+    idx = (norm > 0).to(torch.long).argmax(dim=-1)
+    base3 = torch.arange(3, device=trafo.device)
+    i = idx.unsqueeze(-1)
+    others = base3 + (base3 >= i)
+    order = torch.cat([i, others], dim=-1)
+
+    idx_rows = order.unsqueeze(-1).expand(*order.shape, trafo.size(-1))
+    trafo_reordered = trafo.gather(dim=-2, index=idx_rows)
+    return trafo_reordered
 
 
 def regularize_lightlike(vecs, eps_reg_lightlike=1e-10):
@@ -203,28 +220,23 @@ def regularize_lightlike(vecs, eps_reg_lightlike=1e-10):
 
     Parameters
     ----------
-    vecs : list of torch.Tensor
-        List of Lorentz vectors of shape (..., 4).
+    vecs : torch.Tensor
+        List of three Minkowski vectors of shape (..., 3, 4).
     eps_reg_lightlike : float
         Small value to control the scale of the regularization for lightlike vectors.
 
     Returns
     -------
-    vecs_reg : list of torch.Tensor
-        List of Lorentz vectors of shape (..., 4) with regularization applied.
+    vecs_reg : torch.Tensor
+        List of three Minkowski vectors of shape (..., 3, 4) with regularization applied.
     reg_lightlike : int
         Number of vectors that were regularized due to being lightlike.
     """
-    vecs_reg = []
-    masks = []
-    for v in vecs:
-        inners = lorentz_inner(v, v)
-        mask = inners.abs() < eps_reg_lightlike**2
-        v_reg = v + eps_reg_lightlike * torch.randn_like(v) * mask.unsqueeze(-1)
-        masks.append(mask)
-        vecs_reg.append(v_reg)
+    inners = lorentz_squarednorm(vecs)
+    mask = inners.abs() < eps_reg_lightlike**2
 
-    reg_lightlike = torch.stack(masks).any(dim=-1).sum().item()
+    vecs_reg = vecs + mask.unsqueeze(-1) * eps_reg_lightlike * torch.randn_like(vecs)
+    reg_lightlike = mask.any(dim=-1).sum()
     return vecs_reg, reg_lightlike
 
 
@@ -235,47 +247,45 @@ def regularize_coplanar(vecs, eps_reg_coplanar=1e-10):
 
     Parameters
     ----------
-    vecs : list of torch.Tensor
-        List of three Lorentz vectors of shape (..., 4).
+    vecs : torch.Tensor
+        List of three Minkowski vectors of shape (..., 3, 4).
     eps_reg_coplanar : float
         Small value to control the scale of the regularization for coplanar vectors.
 
     Returns
     -------
-    vecs_reg : list of torch.Tensor
-        List of three Lorentz vectors of shape (..., 4) with regularization applied.
+    vecs_reg : torch.Tensor
+        List of three Minkowski vectors of shape (..., 3, 4) with regularization applied.
     reg_coplanar : int
         Number of vectors that were regularized due to coplanarity.
     """
-    assert len(vecs) == 3
-    cross_norm = lorentz_squarednorm(lorentz_cross(*vecs))
-    mask = cross_norm.abs() < eps_reg_coplanar**2
+    v0, v1, v2 = vecs.unbind(dim=-2)
+    cross_norm2 = lorentz_squarednorm(lorentz_cross(v0, v1, v2))
+    mask = cross_norm2.abs() < eps_reg_coplanar**2
 
-    vecs_reg = []
-    for v in vecs:
-        v_reg = v + eps_reg_coplanar * torch.randn_like(v) * mask.unsqueeze(-1)
-        vecs_reg.append(v_reg)
-
-    reg_coplanar = mask.sum().item()
+    vecs_reg = vecs + mask.unsqueeze(-1).unsqueeze(
+        -1
+    ) * eps_reg_coplanar * torch.randn_like(vecs)
+    reg_coplanar = mask.sum()
     return vecs_reg, reg_coplanar
 
 
 def normalize_4d(v, eps=1e-15):
-    """Normalize a Lorentz vector by the absolute value of the Minkowski norm.
+    """Normalize a Minkowski vector by the absolute value of the Minkowski norm.
     Note that this norm can be close to zero.
 
     Parameters
     ----------
     v : torch.Tensor
-        Lorentz vector of shape (..., 4).
+        Minkowski vector of shape (..., 4).
     eps : float
         Small value to avoid division by zero.
 
     Returns
     -------
     torch.Tensor
-        Normalized Lorentz vector of shape (..., 4).
+        Normalized Minkowski vector of shape (..., 4).
     """
     norm = lorentz_squarednorm(v).unsqueeze(-1)
-    norm = norm.abs().sqrt()  # could also multiply by torch.sign(norm)
+    norm = norm.abs().sqrt()
     return v / (norm + eps)

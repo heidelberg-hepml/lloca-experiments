@@ -151,6 +151,8 @@ class JetClassTaggingExperiment(TaggingExperiment):
             **self.loader_kwargs,
         )
 
+        self.init_standardization()
+
     @torch.no_grad()
     def _evaluate_single(self, loader, title, mode, step=None):
         assert mode in ["val", "eval"]
@@ -244,7 +246,7 @@ class JetClassTaggingExperiment(TaggingExperiment):
 
         return metrics
 
-    def _get_ypred_and_label(self, batch):
+    def _extract_batch(self, batch):
         fourmomenta = batch[0]["pf_vectors"].to(self.device, self.momentum_dtype)
         if self.cfg.data.features == "fourmomenta":
             scalars = torch.empty(
@@ -256,9 +258,6 @@ class JetClassTaggingExperiment(TaggingExperiment):
             )
         else:
             scalars = batch[0]["pf_features"].to(self.device, self.dtype)
-        label = batch[1]["_label_"].to(self.device)
+        label = batch[1]["_label_"].to(self.device).to(torch.long)
         fourmomenta, scalars, ptr = dense_to_sparse_jet(fourmomenta, scalars)
-        embedding = embed_tagging_data(fourmomenta, scalars, ptr, self.cfg.data)
-        embedding["num_graphs"] = batch[0]["pf_vectors"].shape[0]
-        y_pred, tracker, frames = self.model(embedding)
-        return y_pred, label.to(torch.long), tracker, frames
+        return fourmomenta, scalars, ptr, label

@@ -1,3 +1,4 @@
+"""Generic LLoCa MessagePassing module."""
 from typing import Any, Dict
 import torch
 from torch_geometric.nn import MessagePassing

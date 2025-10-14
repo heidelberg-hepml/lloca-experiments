@@ -1,3 +1,4 @@
+"""Base class for equivariant vector predictors"""
 from torch import nn
 
 
