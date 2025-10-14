@@ -45,8 +45,8 @@ class LLoCaAttention(torch.nn.Module):
             self.frames = self.frames.reshape(
                 *frames.shape[:-3], 1, frames.shape[-3], 4, 4
             )
-            self.frames = self.frames.repeat(
-                *((1,) * len(frames.shape[:-3])), self.num_heads, 1, 1, 1
+            self.frames = self.frames.expand(
+                *frames.shape[:-3], self.num_heads, frames.shape[-3], 4, 4
             )
 
             # create inv_frames and lower_inv_frames
@@ -56,7 +56,7 @@ class LLoCaAttention(torch.nn.Module):
             # qkv = (inv_frames, lower_inv_frames, inv_frames)
             # note that (lower_inv_frames, inv_frames, inv_frames) is equivalent
             self.frames_qkv = Frames(
-                matrices=torch.stack(
+                matrices=torch.cat(
                     [
                         inv_frames.matrices,
                         lower_inv_frames.matrices,
@@ -66,10 +66,10 @@ class LLoCaAttention(torch.nn.Module):
                 ),
                 is_identity=inv_frames.is_identity,
                 is_global=inv_frames.is_global,
-                det=torch.stack(
+                det=torch.cat(
                     [inv_frames.det, lower_inv_frames.det, inv_frames.det], dim=0
                 ),
-                inv=torch.stack(
+                inv=torch.cat(
                     [inv_frames.inv, lower_inv_frames.inv, inv_frames.inv], dim=0
                 ),
             )
@@ -120,9 +120,9 @@ class LLoCaAttention(torch.nn.Module):
         assert 3 * prod(k_local.shape[:-1]) == self.frames_qkv.shape[-3]
 
         # transform q, k, v into global frame
-        qkv_local = torch.stack([q_local, k_local, v_local], dim=0)
+        qkv_local = torch.cat([q_local, k_local, v_local], dim=0)
         qkv_global = self.transform(qkv_local, self.frames_qkv)
-        q_global, k_global, v_global = torch.unbind(qkv_global, dim=0)
+        q_global, k_global, v_global = qkv_global.chunk(3, dim=0)
 
         # (B, H, N, C) format required for scaled_dot_product_attention
         shape_q, shape_k = q_global.shape, k_global.shape

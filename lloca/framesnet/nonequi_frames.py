@@ -153,7 +153,9 @@ class COMRandomFrames(RandomFrames):
             return (frames, {}) if return_tracker else frames
 
         shape = (
-            fourmomenta.shape[:-2] + (1,) if self.is_global else fourmomenta.shape[:-1]
+            torch.Size((*fourmomenta.shape[:-2], 1))
+            if self.is_global
+            else torch.Size(*fourmomenta.shape[:-1])
         )
         matrix = self.transform(
             shape, device=fourmomenta.device, dtype=fourmomenta.dtype

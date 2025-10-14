@@ -1,9 +1,8 @@
 """Edge convolution with a simple MLP."""
 import torch
-from torch import nn
 import math
 from torch_geometric.nn import MessagePassing
-from torch_geometric.utils import scatter, softmax
+from torch_geometric.utils import softmax, segment
 
 from .base import EquiVectors
 from ..backbone.mlp import MLP
@@ -13,6 +12,8 @@ from ..utils.utils import (
     get_edge_index_from_ptr,
     get_edge_attr,
     get_ptr_from_batch,
+    get_node_to_edge_ptr_fully_connected,
+    get_batch_from_ptr,
 )
 
 
@@ -93,7 +94,15 @@ class EquiEdgeConv(MessagePassing):
             self.register_buffer("edge_mean", torch.tensor(0.0))
             self.register_buffer("edge_std", torch.tensor(1.0))
 
-    def forward(self, fourmomenta, scalars, edge_index, batch=None):
+    def init_standardization(self, fourmomenta, edge_index):
+        if self.include_edges and not self.edge_inited:
+            fourmomenta = fourmomenta.reshape(-1, 1, 4)
+            edge_attr = get_edge_attr(fourmomenta, edge_index)
+            self.edge_mean = edge_attr.mean().detach()
+            self.edge_std = edge_attr.std().clamp(min=1e-5).detach()
+            self.edge_inited.fill_(True)
+
+    def forward(self, fourmomenta, scalars, edge_index, ptr, batch=None):
         """
         Parameters
         ----------
@@ -103,6 +112,8 @@ class EquiEdgeConv(MessagePassing):
             Tensor of shape (num_particles, num_scalars) containing scalar features for each particle.
         edge_index : torch.Tensor
             Edge index tensor containing the indices of the source and target nodes, shape (2, num_edges).
+        ptr : torch.Tensor
+            Pointer tensor indicating the start of each batch for sparse tensors, shape (num_batches+1,).
         batch : torch.Tensor, optional
             Batch tensor indicating the batch each particle belongs to. If None, all particles are assumed to belong to the same batch.
 
@@ -112,13 +123,10 @@ class EquiEdgeConv(MessagePassing):
             Tensor of shape (num_particles, out_vectors*4) containing the predicted vectors for each edge.
         """
         # calculate and standardize edge attributes
-        fourmomenta = fourmomenta.reshape(scalars.shape[0], -1, 4)
+        fourmomenta = fourmomenta.reshape(-1, 1, 4)
         if self.include_edges:
+            assert self.edge_inited
             edge_attr = get_edge_attr(fourmomenta, edge_index)
-            if not self.edge_inited:
-                self.edge_mean = edge_attr.mean().detach()
-                self.edge_std = edge_attr.std().clamp(min=1e-5).detach()
-                self.edge_inited.fill_(True)
             edge_attr = (edge_attr - self.edge_mean) / self.edge_std
             edge_attr = edge_attr.reshape(edge_attr.shape[0], -1)
 
@@ -130,7 +138,12 @@ class EquiEdgeConv(MessagePassing):
         # message-passing
         fourmomenta = fourmomenta.reshape(-1, 4)
         vecs = self.propagate(
-            edge_index, s=scalars, fm=fourmomenta, edge_attr=edge_attr, batch=batch
+            edge_index,
+            s=scalars,
+            fm=fourmomenta,
+            edge_attr=edge_attr,
+            node_ptr=ptr,
+            node_batch=batch,
         )
         # equivariant layer normalization
         if self.layer_norm:
@@ -139,7 +152,9 @@ class EquiEdgeConv(MessagePassing):
             vecs = vecs / norm.clamp(min=1e-5).sqrt()
         return vecs
 
-    def message(self, edge_index, s_i, s_j, fm_i, fm_j, edge_attr=None):
+    def message(
+        self, edge_index, s_i, s_j, fm_i, fm_j, node_ptr, node_batch, edge_attr=None
+    ):
         """
         Parameters
         ----------
@@ -153,6 +168,8 @@ class EquiEdgeConv(MessagePassing):
             Fourmomentum of the source nodes, shape (num_edges, 4*in_vectors).
         fm_j : torch.Tensor
             Fourmomentum of the target nodes, shape (num_edges, 4*in_vectors).
+        node_ptr : torch.Tensor
+            Pointer tensor indicating the start of each batch for sparse tensors, shape (num_batches+1,).
         edge_attr : torch.Tensor, optional
             Edge attributes tensor. If None, no edge attributes will be used, shape (num_edges, num_edge_attributes).
 
@@ -162,8 +179,8 @@ class EquiEdgeConv(MessagePassing):
             Tensor of shape (num_edges, out_vectors*4) containing the predicted vectors for each edge.
         """
         fm_rel = self.operation(fm_i, fm_j)
-        # should not be used with operation "single"
         if self.fm_norm:
+            # should not be used with operation="single"
             fm_rel_norm = lorentz_squarednorm(fm_rel).unsqueeze(-1)
             fm_rel_norm = fm_rel_norm.abs().sqrt().clamp(min=1e-6)
         else:
@@ -173,7 +190,9 @@ class EquiEdgeConv(MessagePassing):
         if edge_attr is not None:
             prefactor = torch.cat([prefactor, edge_attr], dim=-1)
         prefactor = self.mlp(prefactor)
-        prefactor = self.nonlinearity(prefactor, batch=edge_index[0])
+        prefactor = self.nonlinearity(
+            prefactor, index=edge_index[0], node_ptr=node_ptr, node_batch=node_batch
+        )
         fm_rel = (fm_rel / fm_rel_norm)[:, None, :4]
         prefactor = prefactor.unsqueeze(-1)
         out = prefactor * fm_rel
@@ -216,23 +235,24 @@ class EquiEdgeConv(MessagePassing):
             A function that applies the specified nonlinearity to the input tensor.
         """
         if nonlinearity == None:
-            return lambda x, batch: x
+            return lambda x, index, node_ptr, node_batch: x
         elif nonlinearity == "exp":
-            return lambda x, batch: torch.clamp(x, min=-10, max=10).exp()
+            return lambda x, index, node_ptr, node_batch: torch.clamp(
+                x, min=-10, max=10
+            ).exp()
         elif nonlinearity == "softplus":
-            return lambda x, batch: torch.nn.functional.softplus(x)
+            return lambda x, index, node_ptr, node_batch: torch.nn.functional.softplus(
+                x
+            )
         elif nonlinearity == "softmax":
 
-            def func(x, batch):
-                ptr = get_ptr_from_batch(batch)
-                return softmax(x, ptr=ptr)
-
-            return func
-        elif nonlinearity == "softmax_safe":
-
-            def func(x, batch):
-                ptr = get_ptr_from_batch(batch)
-                return softmax_safe(x, ptr=ptr)
+            def func(x, index, node_ptr, node_batch):
+                edge_ptr = get_node_to_edge_ptr_fully_connected(node_ptr, node_batch)
+                return softmax(
+                    x,
+                    ptr=edge_ptr,
+                    index=index,
+                )
 
             return func
         else:
@@ -264,19 +284,37 @@ class EquiMLP(EquiVectors):
 
         # This code was originally written to support multiple message-passing blocks.
         # We found that having many blocks degrades numerical stability, so we now only support a single block.
-        in_vectors = [1]
-        out_vectors = [n_vectors]
-        self.blocks = nn.ModuleList(
-            [
-                EquiEdgeConv(
-                    in_vectors=in_vectors[i],
-                    out_vectors=out_vectors[i],
-                    *args,
-                    **kwargs,
-                )
-                for i in range(1)
-            ]
+        in_vectors = 1
+        out_vectors = n_vectors
+        self.block = EquiEdgeConv(
+            in_vectors=in_vectors,
+            out_vectors=out_vectors,
+            *args,
+            **kwargs,
         )
+
+    def get_edge_index_and_batch(self, fourmomenta, ptr):
+        in_shape = fourmomenta.shape[:-1]
+        if len(in_shape) > 1:
+            assert ptr is None, "ptr only supported for sparse tensors"
+            edge_index, batch = get_edge_index_from_shape(
+                fourmomenta.shape, fourmomenta.device, remove_self_loops=True
+            )
+            ptr = get_ptr_from_batch(batch)
+        else:
+            if ptr is None:
+                # assume batch contains only one particle
+                ptr = torch.tensor([0, len(fourmomenta)], device=fourmomenta.device)
+            edge_index = get_edge_index_from_ptr(
+                ptr, shape=fourmomenta.shape, remove_self_loops=True
+            )
+            batch = get_batch_from_ptr(ptr)
+        assert ptr is not None
+        return edge_index, batch, ptr
+
+    def init_standardization(self, fourmomenta, ptr=None):
+        edge_index, _, _ = self.get_edge_index_and_batch(fourmomenta, ptr)
+        self.block.init_standardization(fourmomenta, edge_index)
 
     def forward(self, fourmomenta, scalars=None, ptr=None):
         """
@@ -298,43 +336,48 @@ class EquiMLP(EquiVectors):
         in_shape = fourmomenta.shape[:-1]
         if scalars is None:
             scalars = torch.zeros_like(fourmomenta[..., []])
+        edge_index, batch, ptr = self.get_edge_index_and_batch(fourmomenta, ptr)
         if len(in_shape) > 1:
-            assert ptr is None, "ptr only supported for sparse tensors"
-            edge_index, batch = get_edge_index_from_shape(fourmomenta)
-            fourmomenta = fourmomenta.reshape(math.prod(in_shape), 4)
             scalars = scalars.reshape(math.prod(in_shape), scalars.shape[-1])
-        else:
-            if ptr is None:
-                # assume batch contains only one particle
-                ptr = torch.tensor([0, len(fourmomenta)], device=fourmomenta.device)
-            edge_index = get_edge_index_from_ptr(ptr)
-            batch = None
 
-        # pass through blocks
-        for block in self.blocks:
-            fourmomenta = block(
-                fourmomenta, scalars=scalars, edge_index=edge_index, batch=batch
-            )
+        # pass through block
+        fourmomenta = self.block(
+            fourmomenta,
+            scalars=scalars,
+            edge_index=edge_index,
+            batch=batch,
+            ptr=ptr,
+        )
         fourmomenta = fourmomenta.reshape(*in_shape, -1, 4)
         return fourmomenta
 
 
-def softmax_safe(x, ptr):
-    """Custom softmax implementation to control numerics."""
-    seg_id = torch.arange(ptr.numel() - 1, device=x.device).repeat_interleave(
-        ptr[1:] - ptr[:-1]
-    )
+def softmax(src, index=None, ptr=None, dim=0):
+    r"""Adapted version of the torch_geometric softmax function
+    https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/utils/_softmax.html.
+    Use the index argument in output_size of torch.repeat_interleave to avoid GPU/CPU sync.
 
-    # rescale argument to avoid exp(large number)
-    seg_max = scatter(x, seg_id, reduce="max")[seg_id].detach()
-    z = x - seg_max
-
-    # clamp to avoid rounding small values to zero (causes 'DivBackward0 returns nan')
-    # this step is not included in standard softmax implementations
-    z = z.clamp(min=-10)  # -10 works well; -20 and -5 already worse
-
-    # actual softmax
-    num = z.exp()
-    den = scatter(num, seg_id, reduce="sum")[seg_id]
-    out = num / den
-    return out
+    Parameters
+    ----------
+    src : torch.Tensor
+        Source tensor of shape (N,) where N is the number of elements.
+    index : torch.Tensor, optional
+        Index tensor indicating the batch index for each element.
+        Tensor of shape (N,) where N is the number of elements.
+    ptr : torch.Tensor
+        Pointer tensor indicating the start of each batch.
+        Tensor of shape (B+1,) where B is the number of batches.
+    dim : int, optional
+        Dimension along which to apply the softmax. Default is 0.
+    """
+    dim = dim + src.dim() if dim < 0 else dim
+    size = ([1] * dim) + [-1]
+    count = ptr[1:] - ptr[:-1]
+    ptr = ptr.view(size)
+    output_size = index.shape[dim] if index is not None else None
+    src_max = segment(src.detach(), ptr, reduce="max")
+    src_max = src_max.repeat_interleave(count, dim=dim, output_size=output_size)
+    out = (src - src_max).exp()
+    out_sum = segment(out, ptr, reduce="sum") + 1e-16
+    out_sum = out_sum.repeat_interleave(count, dim=dim, output_size=output_size)
+    return out / out_sum

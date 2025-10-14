@@ -127,7 +127,9 @@ class TopXLTaggingExperiment(TaggingExperiment):
             **self.loader_kwargs,
         )
 
-    def _get_ypred_and_label(self, batch):
+        self.init_standardization()
+
+    def _extract_batch(self, batch):
         fourmomenta = batch[0]["pf_vectors"].to(self.device, self.momentum_dtype)
         if self.cfg.data.features == "fourmomenta":
             scalars = torch.empty(
@@ -141,7 +143,5 @@ class TopXLTaggingExperiment(TaggingExperiment):
             scalars = batch[0]["pf_features"].to(self.device, self.dtype)
         label = batch[1]["_label_"].to(self.device)
         fourmomenta, scalars, ptr = dense_to_sparse_jet(fourmomenta, scalars)
-        embedding = embed_tagging_data(fourmomenta, scalars, ptr, self.cfg.data)
-        y_pred, tracker, frames = self.model(embedding)
-        y_pred = y_pred[:, 0]
-        return y_pred, label.to(y_pred.dtype), tracker, frames
+        label = label.to(self.dtype)
+        return fourmomenta, scalars, ptr, label

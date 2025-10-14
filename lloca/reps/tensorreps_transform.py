@@ -45,7 +45,7 @@ class TensorRepsTransform(torch.nn.Module):
             parity_odd[idx : idx + mul_rep.dim] = True if rep.parity == -1 else False
             idx += mul_rep.dim
         self.register_buffer("parity_odd", parity_odd.unsqueeze(0))
-        self.no_parity_odd = self.parity_odd.sum() == 0
+        self.no_parity_odd = self.parity_odd.sum().item() == 0
 
         if not use_naive:
             # build mapping from order to element in the reps list
@@ -60,6 +60,8 @@ class TensorRepsTransform(torch.nn.Module):
         if self.reps.max_rep.rep.order <= 1:
             # super efficient shortcut if only scalar and vector reps are present
             self.transform = self._transform_only_scalars_and_vectors
+
+        self.has_higher_orders = self.reps.max_rep.rep.order > 0
 
     def forward(self, tensor: torch.Tensor, frames: Frames):
         """Apply a transformation to a tensor of a given representation.
@@ -76,13 +78,7 @@ class TensorRepsTransform(torch.nn.Module):
         torch.Tensor
             The transformed tensor, shape (..., self.reps.dim).
         """
-        assert (
-            self.reps.dim == tensor.shape[-1]
-        ), f"Last tensor dimension is {tensor.shape[-1]}, but should be reps.dim={self.reps.dim}."
-
-        if frames.is_identity or (
-            self.reps.mul_without_scalars == 0 and self.no_parity_odd
-        ):
+        if frames.is_identity or (self.no_parity_odd and not self.has_higher_orders):
             return tensor
 
         in_shape = tensor.shape
@@ -93,10 +89,12 @@ class TensorRepsTransform(torch.nn.Module):
             tensor.shape[0] == frames.shape[0]
         ), f"Batch dimension is {tensor.shape[0]} for tensor, but {frames.shape[0]} for frames."
 
-        tensor_transformed = self.transform(tensor, frames)
+        tensor_transformed = (
+            self.transform(tensor, frames) if self.has_higher_orders else tensor
+        )
         tensor_transformed = self.transform_parity(tensor_transformed, frames)
 
-        tensor_transformed = tensor_transformed.reshape(*in_shape)
+        tensor_transformed = tensor_transformed.view(*in_shape)
         return tensor_transformed
 
     def _transform_naive(self, tensor, frames):
@@ -124,7 +122,6 @@ class TensorRepsTransform(torch.nn.Module):
             x = tensor[:, idx_start:idx_end].reshape(-1, mul, *([4] * rep.order))
 
             einsum_string = get_einsum_string(rep.order)
-            print(frames.shape, frames.matrices.to(x.dtype).shape)
             x_transformed = torch.einsum(einsum_string, *([frames] * rep.order), x)
             output[:, idx_start:idx_end] = x_transformed.reshape(-1, mul_rep.dim)
 
@@ -190,22 +187,25 @@ class TensorRepsTransform(torch.nn.Module):
         torch.Tensor
             The transformed tensor, shape (N, self.reps.dim).
         """
-        if self.reps.max_rep.rep.order == 0:
-            return tensor
+        N, D = tensor.shape
+        vec_start, vec_end = self.start_end_idx[-1]
+        vec_width = vec_end - vec_start
+        L = vec_width // 4
+        vectors = tensor.narrow(1, vec_start, vec_width).view(N, L, 4)
+        mats = frames.matrices
+        if mats.dtype != vectors.dtype:
+            mats = mats.to(vectors.dtype)
 
-        output = tensor.clone()
-        vector_idx_start, vector_idx_end = self.start_end_idx[-1]
-        vectors = tensor[:, vector_idx_start:vector_idx_end]
-        vectors = vectors.reshape(tensor.shape[0], -1, 4)
-        vectors_transformed = torch.einsum(
-            "ijk,ilk->ilj",
-            frames.matrices.to(vectors.dtype),
-            vectors,
-        )
-        output[:, vector_idx_start:vector_idx_end] = vectors_transformed.reshape(
-            tensor.shape[0], -1
-        )
-        return output
+        out_vecs = torch.matmul(vectors, mats.transpose(1, 2))
+
+        if vec_start == 0 and vec_end == D:
+            out = out_vecs.view(N, D)
+        else:
+            out = torch.empty_like(tensor)
+            if vec_start > 0:
+                out[:, :vec_start] = tensor[:, :vec_start]
+            out[:, vec_start:vec_end] = out_vecs.view(N, vec_width)
+        return out
 
     def transform_parity(self, tensor, frames):
         """Parity transform: Multiply parity-odd states by sign(det Lambda).

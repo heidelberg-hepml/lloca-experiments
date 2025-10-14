@@ -1,6 +1,7 @@
 """Orthogonalization of euclidean vectors."""
 
 import torch
+import torch.nn.functional as F
 
 
 def orthogonalize_3d(
@@ -47,38 +48,25 @@ def orthogonalize_gramschmidt_3d(vecs, eps_norm=1e-15):
 
     Parameters
     ----------
-    vecs : list of torch.Tensor
-        List of two vectors of shape (..., 3).
+    vecs : torch.Tensor
+        Two vectors of shape (..., 2, 3).
     eps_norm : float
         Numerical regularization for the normalization of the vectors.
 
     Returns
     -------
-    orthogonal_vecs : list of torch.Tensor
-        List of orthogonalized vectors of shape (..., 3).
+    orthogonal_vecs : torch.Tensor
+        Three orthogonalized vectors of shape (..., 3, 3),
+        where dim=-2 counts the vectors.
     """
-    n_vectors = len(vecs)
-    assert n_vectors == 2
+    vecs = F.normalize(vecs, dim=-1, eps=eps_norm)
+    e0, v1 = vecs.unbind(dim=-2)
 
-    vecs = [normalize_3d(v, eps_norm) for v in vecs]
+    u1 = v1 - (v1 * e0).sum(dim=-1, keepdim=True) * e0
+    e1 = F.normalize(u1, dim=-1, eps=eps_norm)
 
-    v_nexts = [v for v in vecs]
-    orthogonal_vecs = [vecs[0]]
-
-    # gram schmidt procedure
-    for i in range(1, n_vectors):
-        for k in range(i, n_vectors):
-            v_inner = torch.sum(
-                v_nexts[k] * orthogonal_vecs[i - 1], dim=-1, keepdim=True
-            )
-            v_nexts[k] = v_nexts[k] - orthogonal_vecs[i - 1] * v_inner
-        orthogonal_vecs.append(normalize_3d(v_nexts[i], eps_norm))
-
-    # last vector from cross product
-    last_vec = torch.cross(*orthogonal_vecs, dim=-1)
-    orthogonal_vecs.append(normalize_3d(last_vec, eps_norm))
-
-    return orthogonal_vecs
+    e2 = torch.cross(e0, e1, dim=-1)
+    return torch.stack([e0, e1, e2], dim=-2)
 
 
 def orthogonalize_cross_3d(vecs, eps_norm=1e-15):
@@ -88,28 +76,25 @@ def orthogonalize_cross_3d(vecs, eps_norm=1e-15):
 
     Parameters
     ----------
-    vecs : list of torch.Tensor
-        List of two vectors of shape (..., 3).
+    vecs : torch.Tensor
+        Two vectors of shape (..., 2, 3).
     eps_norm : float
         Numerical regularization for the normalization of the vectors.
 
     Returns
     -------
-    orthogonal_vecs : list of torch.Tensor
-        List of three orthogonalized vectors of shape (..., 3).
+    orthogonal_vecs : torch.Tensor
+        Three orthogonalized vectors of shape (..., 3, 3),
+        where dim=-2 counts the vectors.
     """
-    n_vectors = len(vecs)
-    assert n_vectors == 2
+    vecs = F.normalize(vecs, dim=-1, eps=eps_norm)
+    e0, v1 = vecs.unbind(dim=-2)
 
-    vecs = [normalize_3d(v, eps_norm) for v in vecs]
+    u1 = torch.cross(e0, v1)
+    e1 = F.normalize(u1, dim=-1, eps=eps_norm)
 
-    orthogonal_vecs = [vecs[0]]
-    for i in range(1, n_vectors + 1):
-        v_next = torch.cross(*orthogonal_vecs, *vecs[i:], dim=-1)
-        assert torch.isfinite(v_next).all()
-        orthogonal_vecs.append(normalize_3d(v_next, eps_norm))
-
-    return orthogonal_vecs
+    e2 = torch.cross(e0, e1, dim=-1)
+    return torch.stack([e0, e1, e2], dim=-2)
 
 
 def regularize_collinear(vecs, eps_reg=1e-10):
@@ -131,28 +116,11 @@ def regularize_collinear(vecs, eps_reg=1e-10):
     reg_collinear : int
         Number of vectors that were regularized due to collinearity.
     """
-    assert len(vecs) == 2
-    mask = torch.linalg.norm(torch.cross(*vecs, dim=-1)).abs() < eps_reg**2
-    vecs[1][mask] += eps_reg * torch.randn_like(vecs[1][mask])
+    v0, v1 = vecs.unbind(dim=-2)
+    cross = torch.cross(v0, v1, dim=-1)
+    mask = (cross**2).sum(dim=-1) < eps_reg**4
+    v1_reg = torch.where(mask.unsqueeze(-1), v1 + eps_reg * torch.randn_like(v1), v1)
+    vecs_reg = torch.stack([v0, v1_reg], dim=-2)
 
-    reg_collinear = mask.sum().item()
-    return vecs, reg_collinear
-
-
-def normalize_3d(v, eps_norm=1e-15):
-    """Normalize an euclidean vector with numerical stability.
-
-    Parameters
-    ----------
-    v : torch.Tensor
-        A tensor of shape (..., 3) representing the vector to be normalized.
-    eps_norm : float, optional
-        A small value to prevent division by zero, by default 1e-10.
-
-    Returns
-    -------
-    torch.Tensor
-        The normalized vector of shape (..., 3).
-    """
-    norm = torch.linalg.norm(v, dim=-1, keepdim=True)
-    return v / (norm + eps_norm)
+    reg_collinear = mask.sum()
+    return vecs_reg, reg_collinear

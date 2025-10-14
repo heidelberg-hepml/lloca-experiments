@@ -113,6 +113,20 @@ class TaggingExperiment(BaseExperiment):
             f"batch_size={self.cfg.training.batchsize} (training), {self.cfg.evaluation.batchsize} (evaluation)"
         )
 
+        self.init_standardization()
+
+    def init_standardization(self):
+        if hasattr(self.model, "init_standardization"):
+            batch = next(iter(self.train_loader))
+            fourmomenta, scalars, ptr, _ = self._extract_batch(batch)
+            embedding = embed_tagging_data(
+                fourmomenta,
+                scalars,
+                ptr,
+                self.cfg.data,
+            )
+            self.model.init_standardization(embedding["fourmomenta"], embedding["ptr"])
+
     def _init_optimizer(self, param_groups=None):
         if self.cfg.model.net._target_.rsplit(".", 1)[-1] in [
             "ParticleTransformer",
@@ -309,22 +323,30 @@ class TaggingExperiment(BaseExperiment):
     def _batch_loss(self, batch):
         y_pred, label, tracker, _ = self._get_ypred_and_label(batch)
         loss = self.loss(y_pred, label)
-        assert torch.isfinite(loss).all()
 
         metrics = tracker
         return loss, metrics
 
-    def _get_ypred_and_label(self, batch):
+    def _extract_batch(self, batch):
         batch = batch.to(self.device)
+        fourmomenta = batch.x.to(self.momentum_dtype)
+        scalars = batch.scalars.to(self.dtype)
+        ptr = batch.ptr
+        label = batch.label.to(self.dtype)
+        return fourmomenta, scalars, ptr, label
+
+    def _get_ypred_and_label(self, batch):
+        fourmomenta, scalars, ptr, label = self._extract_batch(batch)
         embedding = embed_tagging_data(
-            batch.x.to(self.momentum_dtype),
-            batch.scalars.to(self.dtype),
-            batch.ptr,
+            fourmomenta,
+            scalars,
+            ptr,
             self.cfg.data,
         )
         y_pred, tracker, frames = self.model(embedding)
-        y_pred = y_pred[:, 0]
-        return y_pred, batch.label.to(self.dtype), tracker, frames
+        if isinstance(self.loss, torch.nn.BCEWithLogitsLoss):
+            y_pred = y_pred[:, 0]
+        return y_pred, label, tracker, frames
 
     def _init_metrics(self):
         return {

@@ -51,6 +51,11 @@ def test_equivariance(
         fm_norm=fm_norm,
     ).to(dtype=dtype)
 
+    fm_test = sample_particle(
+        batch_dims + [jet_size], logm2_std, logm2_mean, dtype=dtype
+    ).flatten(0, 1)
+    equivectors.init_standardization(fm_test, ptr=ptr)
+
     fm = sample_particle(
         batch_dims + [jet_size], logm2_std, logm2_mean, dtype=dtype
     ).flatten(0, 1)

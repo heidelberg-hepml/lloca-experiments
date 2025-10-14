@@ -702,6 +702,8 @@ class BaseExperiment:
         self.grad_norm_frames.append(grad_norm_frames)
         self.grad_norm_net.append(grad_norm_net)
         for key, value in metrics.items():
+            metrics[key] = value.cpu().item()
+        for key, value in metrics.items():
             self.train_metrics[key].append(value)
 
         # log to mlflow
