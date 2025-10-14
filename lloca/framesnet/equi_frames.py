@@ -315,7 +315,7 @@ class LearnedSO3Frames(LearnedFrames):
                 polar_decomposition, dynamic=True, fullgraph=True
             )
         else:
-            self.polar_decomposition = self.polar_decomposition
+            self.polar_decomposition = polar_decomposition
 
     def forward(self, fourmomenta, scalars=None, ptr=None, return_tracker=False):
         """

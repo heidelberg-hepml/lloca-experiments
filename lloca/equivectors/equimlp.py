@@ -56,7 +56,7 @@ class EquiEdgeConv(MessagePassing):
         operation : str
             Operation to perform on the fourmomenta. Options are "add", "diff", or "single". Default is "add".
         nonlinearity : str
-            Nonlinearity to apply to the output of the MLP. Options are None, "exp", "softplus", "softmax" and "softmax_safe". Default is "softmax".
+            Nonlinearity to apply to the output of the MLP. Options are None, "exp", "softplus", and "softmax"". Default is "softmax".
         fm_norm : bool
             Whether to normalize the relative fourmomentum. Default is True.
         layer_norm : bool
@@ -72,8 +72,8 @@ class EquiEdgeConv(MessagePassing):
         ), "Either num_scalars > 0 or include_edges==True, otherwise there are no inputs."
         self.include_edges = include_edges
         self.layer_norm = layer_norm
-        self.operation = self.get_operation(operation)
-        self.nonlinearity = self.get_nonlinearity(nonlinearity)
+        self.operation = get_operation(operation)
+        self.nonlinearity = get_nonlinearity(nonlinearity)
         self.fm_norm = fm_norm
         assert not (
             operation == "single" and fm_norm
@@ -148,8 +148,8 @@ class EquiEdgeConv(MessagePassing):
         # equivariant layer normalization
         if self.layer_norm:
             norm = lorentz_squarednorm(vecs.reshape(fourmomenta.shape[0], -1, 4))
-            norm = norm.sum(dim=-1).unsqueeze(-1)
-            vecs = vecs / norm.clamp(min=1e-5).sqrt()
+            norm = norm.sum(dim=-1, keepdim=True)
+            vecs = vecs / norm.abs().sqrt().clamp(min=1e-5)
         return vecs
 
     def message(
@@ -199,67 +199,6 @@ class EquiEdgeConv(MessagePassing):
         out = out.reshape(out.shape[0], -1)
         return out
 
-    def get_operation(self, operation):
-        """
-        Parameters
-        ----------
-        operation : str
-            Operation to perform on the fourmomenta. Options are "add", "diff", or "single".
-
-        Returns
-        -------
-        callable
-            A function that performs the specified operation on two fourmomenta tensors.
-        """
-        if operation == "diff":
-            return torch.sub
-        elif operation == "add":
-            return torch.add
-        elif operation == "single":
-            return lambda fm_i, fm_j: fm_j
-        else:
-            raise ValueError(
-                f"Invalid operation {operation}. Options are (add, diff, single)."
-            )
-
-    def get_nonlinearity(self, nonlinearity):
-        """
-        Parameters
-        ----------
-        nonlinearity : str or None
-            Nonlinearity to apply to the output of the MLP. Options are None, "exp", "softplus", "softmax".
-
-        Returns
-        -------
-        callable
-            A function that applies the specified nonlinearity to the input tensor.
-        """
-        if nonlinearity == None:
-            return lambda x, index, node_ptr, node_batch: x
-        elif nonlinearity == "exp":
-            return lambda x, index, node_ptr, node_batch: torch.clamp(
-                x, min=-10, max=10
-            ).exp()
-        elif nonlinearity == "softplus":
-            return lambda x, index, node_ptr, node_batch: torch.nn.functional.softplus(
-                x
-            )
-        elif nonlinearity == "softmax":
-
-            def func(x, index, node_ptr, node_batch):
-                edge_ptr = get_node_to_edge_ptr_fully_connected(node_ptr, node_batch)
-                return softmax(
-                    x,
-                    ptr=edge_ptr,
-                    index=index,
-                )
-
-            return func
-        else:
-            raise ValueError(
-                f"Invalid nonlinearity {nonlinearity}. Options are (None, exp, softplus, softmax)."
-            )
-
 
 class EquiMLP(EquiVectors):
     """Edge convolution with a simple MLP."""
@@ -293,27 +232,8 @@ class EquiMLP(EquiVectors):
             **kwargs,
         )
 
-    def get_edge_index_and_batch(self, fourmomenta, ptr):
-        in_shape = fourmomenta.shape[:-1]
-        if len(in_shape) > 1:
-            assert ptr is None, "ptr only supported for sparse tensors"
-            edge_index, batch = get_edge_index_from_shape(
-                fourmomenta.shape, fourmomenta.device, remove_self_loops=True
-            )
-            ptr = get_ptr_from_batch(batch)
-        else:
-            if ptr is None:
-                # assume batch contains only one particle
-                ptr = torch.tensor([0, len(fourmomenta)], device=fourmomenta.device)
-            edge_index = get_edge_index_from_ptr(
-                ptr, shape=fourmomenta.shape, remove_self_loops=True
-            )
-            batch = get_batch_from_ptr(ptr)
-        assert ptr is not None
-        return edge_index, batch, ptr
-
     def init_standardization(self, fourmomenta, ptr=None):
-        edge_index, _, _ = self.get_edge_index_and_batch(fourmomenta, ptr)
+        edge_index, _, _ = get_edge_index_and_batch(fourmomenta, ptr)
         self.block.init_standardization(fourmomenta, edge_index)
 
     def forward(self, fourmomenta, scalars=None, ptr=None):
@@ -336,7 +256,7 @@ class EquiMLP(EquiVectors):
         in_shape = fourmomenta.shape[:-1]
         if scalars is None:
             scalars = torch.zeros_like(fourmomenta[..., []])
-        edge_index, batch, ptr = self.get_edge_index_and_batch(fourmomenta, ptr)
+        edge_index, batch, ptr = get_edge_index_and_batch(fourmomenta, ptr)
         if len(in_shape) > 1:
             scalars = scalars.reshape(math.prod(in_shape), scalars.shape[-1])
 
@@ -381,3 +301,83 @@ def softmax(src, index=None, ptr=None, dim=0):
     out_sum = segment(out, ptr, reduce="sum") + 1e-16
     out_sum = out_sum.repeat_interleave(count, dim=dim, output_size=output_size)
     return out / out_sum
+
+
+def get_operation(operation):
+    """
+    Parameters
+    ----------
+    operation : str
+        Operation to perform on the fourmomenta. Options are "add", "diff", or "single".
+
+    Returns
+    -------
+    callable
+        A function that performs the specified operation on two fourmomenta tensors.
+    """
+    if operation == "diff":
+        return torch.sub
+    elif operation == "add":
+        return torch.add
+    elif operation == "single":
+        return lambda fm_i, fm_j: fm_j
+    else:
+        raise ValueError(
+            f"Invalid operation {operation}. Options are (add, diff, single)."
+        )
+
+
+def get_nonlinearity(nonlinearity):
+    """
+    Parameters
+    ----------
+    nonlinearity : str or None
+        Nonlinearity to apply to the output of the MLP. Options are None, "exp", "softplus", "softmax".
+
+    Returns
+    -------
+    callable
+        A function that applies the specified nonlinearity to the input tensor.
+    """
+    if nonlinearity == None:
+        return lambda x, *args: x
+    elif nonlinearity == "exp":
+        return lambda x, *args: torch.clamp(x, min=-10, max=10).exp()
+    elif nonlinearity == "softplus":
+        return lambda x, *args: torch.nn.functional.softplus(x)
+    elif nonlinearity == "softmax":
+
+        def func(x, index, node_ptr, node_batch, remove_self_loops):
+            edge_ptr = get_node_to_edge_ptr_fully_connected(
+                node_ptr, node_batch, remove_self_loops=remove_self_loops
+            )
+            return softmax(
+                x,
+                ptr=edge_ptr,
+                index=index,
+            )
+
+        return func
+    else:
+        raise ValueError(
+            f"Invalid nonlinearity {nonlinearity}. Options are (None, exp, softplus, softmax)."
+        )
+
+
+def get_edge_index_and_batch(fourmomenta, ptr, remove_self_loops=True):
+    in_shape = fourmomenta.shape[:-1]
+    if len(in_shape) > 1:
+        assert ptr is None, "ptr only supported for sparse tensors"
+        edge_index, batch = get_edge_index_from_shape(
+            fourmomenta.shape, fourmomenta.device, remove_self_loops=remove_self_loops
+        )
+        ptr = get_ptr_from_batch(batch)
+    else:
+        if ptr is None:
+            # assume batch contains only one particle
+            ptr = torch.tensor([0, len(fourmomenta)], device=fourmomenta.device)
+        edge_index = get_edge_index_from_ptr(
+            ptr, shape=fourmomenta.shape, remove_self_loops=remove_self_loops
+        )
+        batch = get_batch_from_ptr(ptr)
+    return edge_index, batch, ptr

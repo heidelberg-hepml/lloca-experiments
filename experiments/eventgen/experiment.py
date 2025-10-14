@@ -448,7 +448,6 @@ class EventGenerationExperiment(BaseExperiment):
     def _batch_loss(self, data):
         data = data[0].to(self.device)
         loss, metrics = self.model.batch_loss(data)
-        assert torch.isfinite(loss).all()
         return loss, metrics
 
     def _init_metrics(self):

@@ -51,7 +51,7 @@ def get_ptr_from_batch(batch):
     return ptr
 
 
-def get_node_to_edge_ptr_fully_connected(ptr, batch):
+def get_node_to_edge_ptr_fully_connected(ptr, batch, remove_self_loops=True):
     """Get pointer (ptr) mapping nodes to edges in a fully connected graph.
 
     Parameters
@@ -62,6 +62,8 @@ def get_node_to_edge_ptr_fully_connected(ptr, batch):
     batch : torch.Tensor
         A tensor where each element indicates the batch index for each node.
         Tensor of shape (N,) where N is the total number of nodes across all batches.
+    remove_self_loops : bool
+        Whether self-loops were removed when constructing the edge index, by default True.
 
     Returns
     -------
@@ -71,7 +73,7 @@ def get_node_to_edge_ptr_fully_connected(ptr, batch):
     """
     N = batch.numel()
     diff = ptr[1:] - ptr[:-1]
-    w = diff - 1
+    w = diff - 1 if remove_self_loops else diff
 
     delta = batch.new_zeros(N + 1)
     delta.index_add_(0, ptr[:-1], w)
