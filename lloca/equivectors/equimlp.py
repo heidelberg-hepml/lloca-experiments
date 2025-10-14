@@ -347,7 +347,7 @@ def get_nonlinearity(nonlinearity):
         return lambda x, *args, **kwargs: torch.nn.functional.softplus(x)
     elif nonlinearity == "softmax":
 
-        def func(x, index, node_ptr, node_batch, remove_self_loops=False):
+        def func(x, index, node_ptr, node_batch, remove_self_loops=True):
             edge_ptr = get_node_to_edge_ptr_fully_connected(
                 node_ptr, node_batch, remove_self_loops=remove_self_loops
             )
