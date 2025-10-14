@@ -340,14 +340,14 @@ def get_nonlinearity(nonlinearity):
         A function that applies the specified nonlinearity to the input tensor.
     """
     if nonlinearity == None:
-        return lambda x, *args: x
+        return lambda x, *args, **kwargs: x
     elif nonlinearity == "exp":
-        return lambda x, *args: torch.clamp(x, min=-10, max=10).exp()
+        return lambda x, *args, **kwargs: torch.clamp(x, min=-10, max=10).exp()
     elif nonlinearity == "softplus":
-        return lambda x, *args: torch.nn.functional.softplus(x)
+        return lambda x, *args, **kwargs: torch.nn.functional.softplus(x)
     elif nonlinearity == "softmax":
 
-        def func(x, index, node_ptr, node_batch, remove_self_loops):
+        def func(x, index, node_ptr, node_batch, remove_self_loops=True):
             edge_ptr = get_node_to_edge_ptr_fully_connected(
                 node_ptr, node_batch, remove_self_loops=remove_self_loops
             )
