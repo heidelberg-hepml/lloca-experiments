@@ -26,3 +26,4 @@ net:
  factorize: false
  activation: gelu
  aggr: mean
+ compile: true
