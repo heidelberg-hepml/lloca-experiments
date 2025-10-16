@@ -615,7 +615,7 @@ class PELICANWrapper(nn.Module):
         # rescale fourmomenta (but not the spurions)
         fourmomenta[~is_spurion] = fourmomenta[~is_spurion] / 20
 
-        edge_index = get_edge_index_from_ptr(ptr, remove_self_loops=False)
+        edge_index = get_edge_index_from_ptr(ptr, fourmomenta.shape, remove_self_loops=False)
         fourmomenta = fourmomenta.to(scalars.dtype)
         edge_attr = self.get_edge_attr(fourmomenta, edge_index).to(scalars.dtype)
         output = self.net(
