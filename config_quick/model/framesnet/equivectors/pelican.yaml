@@ -8,7 +8,7 @@ operation: add
 nonlinearity: softmax
 aggr: sum
 fm_norm: true
-layer_norm: false
+layer_norm: true
 
 net:
  _target_: pelican.nets.PELICAN
@@ -24,6 +24,6 @@ net:
  out_channels: null
  map_multipliers: true
  factorize: false
- activation: gelu
+ activation: leaky_relu
  aggr: mean
  compile: true
