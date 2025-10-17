@@ -72,7 +72,7 @@ def load_file(
     network_dtype = torch.float64 if network_float64 else torch.float32
     momentum_dtype = torch.float64 if momentum_float64 else torch.float32
 
-    assert os.path.exists(data_path)
+    assert os.path.exists(data_path), f"Data file {data_path} does not exist."
     data_raw = load(data_path)
     data_raw = torch.tensor(data_raw, dtype=momentum_dtype)
 

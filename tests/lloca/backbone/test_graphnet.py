@@ -35,6 +35,9 @@ def test_edgeconv_invariance_equivariance(
     predictor = FramesPredictor(equivectors=equivectors).to(dtype=dtype)
     call_predictor = lambda fm: predictor(fm)
 
+    fm_test = sample_particle(batch_dims, logm2_std, logm2_mean, dtype=dtype)
+    predictor.equivectors.init_standardization(fm_test)
+
     # define edgeconv
     in_reps = TensorReps("1x1n")
     hidden_reps = TensorReps(hidden_reps)
@@ -105,6 +108,9 @@ def test_graphnet_invariance_equivariance(
     equivectors = equivectors_builder()
     predictor = FramesPredictor(equivectors=equivectors).to(dtype=dtype)
     call_predictor = lambda fm: predictor(fm)
+
+    fm_test = sample_particle(batch_dims, logm2_std, logm2_mean, dtype=dtype)
+    predictor.equivectors.init_standardization(fm_test)
 
     # define edgeconv
     in_reps = TensorReps("1x1n")

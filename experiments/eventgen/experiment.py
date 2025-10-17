@@ -123,6 +123,8 @@ class EventGenerationExperiment(BaseExperiment):
         self.model.coordinates.init_fit(self.events_prepd)
         self.model.distribution.coordinates.init_fit(self.events_prepd)
         self.model.init_geometry()
+        if hasattr(self.model, "init_standardization"):
+            self.model.init_standardization(self.events_prepd)
 
     def _init_dataloader(self):
         assert sum(self.cfg.data.train_test_val) <= 1
@@ -446,7 +448,6 @@ class EventGenerationExperiment(BaseExperiment):
     def _batch_loss(self, data):
         data = data[0].to(self.device)
         loss, metrics = self.model.batch_loss(data)
-        assert torch.isfinite(loss).all()
         return loss, metrics
 
     def _init_metrics(self):

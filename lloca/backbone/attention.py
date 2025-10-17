@@ -1,3 +1,4 @@
+"""LLoCa attention module."""
 from math import prod
 import torch
 from torch import Tensor
@@ -9,9 +10,16 @@ from .attention_backends import get_attention_backend
 
 
 class LLoCaAttention(torch.nn.Module):
-    """"""
-
     def __init__(self, attn_reps, num_heads):
+        """Attention with frame-to-frame transformations.
+
+        Parameters
+        ----------
+        attn_reps : TensorReps
+            Tensor representation of a single attention head.
+        num_heads : int
+            Number of attention heads
+        """
         super().__init__()
         self.transform = TensorRepsTransform(TensorReps(attn_reps))
         self.num_heads = num_heads
@@ -37,8 +45,8 @@ class LLoCaAttention(torch.nn.Module):
             self.frames = self.frames.reshape(
                 *frames.shape[:-3], 1, frames.shape[-3], 4, 4
             )
-            self.frames = self.frames.repeat(
-                *((1,) * len(frames.shape[:-3])), self.num_heads, 1, 1, 1
+            self.frames = self.frames.expand(
+                *frames.shape[:-3], self.num_heads, frames.shape[-3], 4, 4
             )
 
             # create inv_frames and lower_inv_frames
@@ -48,7 +56,7 @@ class LLoCaAttention(torch.nn.Module):
             # qkv = (inv_frames, lower_inv_frames, inv_frames)
             # note that (lower_inv_frames, inv_frames, inv_frames) is equivalent
             self.frames_qkv = Frames(
-                matrices=torch.stack(
+                matrices=torch.cat(
                     [
                         inv_frames.matrices,
                         lower_inv_frames.matrices,
@@ -58,10 +66,10 @@ class LLoCaAttention(torch.nn.Module):
                 ),
                 is_identity=inv_frames.is_identity,
                 is_global=inv_frames.is_global,
-                det=torch.stack(
+                det=torch.cat(
                     [inv_frames.det, lower_inv_frames.det, inv_frames.det], dim=0
                 ),
-                inv=torch.stack(
+                inv=torch.cat(
                     [inv_frames.inv, lower_inv_frames.inv, inv_frames.inv], dim=0
                 ),
             )
@@ -79,25 +87,24 @@ class LLoCaAttention(torch.nn.Module):
         3) Transform output back into local frame
 
         Comments
-        - dimensions: *dims (optional), H (head), N (particles), C (channels)
-        - extension to cross-attention is trivial but we don't have this right now for convenience
-          strategy: frames_q for queries (in contrast to frames=frames_kv)
+        - Dimensions: ... (optional), H (head), N (particles), C (channels).
+        - Extension to cross-attention is trivial but we don't have this right now for convenience. Strategy: frames_q for queries (in contrast to frames=frames_kv).
 
         Parameters
         ----------
         q_local: torch.tensor
-            Local queries of shape (*dims, H, N, C)
+            Local queries of shape (..., H, N, C)
         k_local: torch.tensor
-            Local keys of shape (*dims, H, N, C)
+            Local keys of shape (..., H, N, C)
         v_local: torch.tensor
-            Local values of shape (*dims, H, N, C)
-        attn_kwargs: dict
-            Optional arguments that are passed on to attention
+            Local values of shape (..., H, N, C)
+        **attn_kwargs
+            Optional arguments that are passed on to the attention backend
 
         Returns
         -------
         out_local: torch.tensor
-            Attention output in local frame of shape (*dims, H, N, C)
+            Attention output in local frame of shape (..., H, N, C)
         """
         if self.frames.is_global:
             # fallback to standard attention for global frames
@@ -113,9 +120,9 @@ class LLoCaAttention(torch.nn.Module):
         assert 3 * prod(k_local.shape[:-1]) == self.frames_qkv.shape[-3]
 
         # transform q, k, v into global frame
-        qkv_local = torch.stack([q_local, k_local, v_local], dim=0)
+        qkv_local = torch.cat([q_local, k_local, v_local], dim=0)
         qkv_global = self.transform(qkv_local, self.frames_qkv)
-        q_global, k_global, v_global = torch.unbind(qkv_global, dim=0)
+        q_global, k_global, v_global = qkv_global.chunk(3, dim=0)
 
         # (B, H, N, C) format required for scaled_dot_product_attention
         shape_q, shape_k = q_global.shape, k_global.shape
@@ -131,7 +138,7 @@ class LLoCaAttention(torch.nn.Module):
             **attn_kwargs,
         )
 
-        out_global = out_global.view(*shape_q)  # (*dims, H, N, C)
+        out_global = out_global.view(*shape_q)  # (..., H, N, C)
 
         # transform result back into local frame
         out_local = self.transform(out_global, self.frames)
@@ -146,7 +153,7 @@ def scaled_dot_product_attention(
 ) -> Tensor:
     """Execute scaled dot-product attention.
     The attention backend is determined dynamically
-    based on the ``attn_kwargs`` provided.
+    based on the ``**attn_kwargs``.
 
     Parameters
     ----------

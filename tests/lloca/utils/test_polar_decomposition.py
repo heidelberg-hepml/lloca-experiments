@@ -24,10 +24,13 @@ def test_restframe(batch_dims, restframe_transform, logm2_std, logm2_mean):
     fm = sample_particle(batch_dims, logm2_std, logm2_mean, dtype=dtype)
     kwargs = {}
     if restframe_transform == polar_decomposition:
-        kwargs["references"] = [
-            sample_particle(batch_dims, logm2_std, logm2_mean, dtype=dtype)
-            for _ in range(2)
-        ]
+        kwargs["references"] = torch.stack(
+            [
+                sample_particle(batch_dims, logm2_std, logm2_mean, dtype=dtype)
+                for _ in range(2)
+            ],
+            dim=-2,
+        )
         kwargs["return_reg"] = False
 
     # determine transformation into rest frame
@@ -54,10 +57,13 @@ def test_restframe_transformation(batch_dims, random_transform, logm2_std, logm2
 
     # sample Lorentz vectors
     fm = sample_particle(batch_dims, logm2_std, logm2_mean, dtype=dtype)
-    references = [
-        sample_particle(batch_dims, logm2_std, logm2_mean, dtype=dtype)
-        for _ in range(2)
-    ]
+    references = torch.stack(
+        [
+            sample_particle(batch_dims, logm2_std, logm2_mean, dtype=dtype)
+            for _ in range(2)
+        ],
+        dim=-2,
+    )
 
     # determine transformation into rest frame
     rest_trafo = polar_decomposition(fm, references, return_reg=False)
@@ -67,7 +73,7 @@ def test_restframe_transformation(batch_dims, random_transform, logm2_std, logm2
     random = random_transform([1], dtype=dtype)
     random = random.repeat(*batch_dims, 1, 1)
     fm_prime = torch.einsum("...ij,...j->...i", random, fm)
-    references_prime = [torch.einsum("...ij,...j->...i", random, r) for r in references]
+    references_prime = torch.einsum("...ij,...lj->...li", random, references)
     rest_trafo_prime = polar_decomposition(fm_prime, references_prime, return_reg=False)
     fm_rest_prime = torch.einsum("...ij,...j->...i", rest_trafo_prime, fm_prime)
 

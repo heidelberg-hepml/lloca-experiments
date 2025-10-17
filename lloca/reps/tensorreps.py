@@ -1,4 +1,6 @@
-from typing import Tuple, List
+"""Lorentz group representations."""
+
+from typing import Tuple
 
 
 class TensorRep(Tuple):
@@ -14,15 +16,20 @@ class TensorRep(Tuple):
         parity: int
             The parity of the tensor representation. Can be -1 or 1
         """
-        assert isinstance(order, int) and order >= 0, order
-        assert parity in [-1, 1]
+        assert (
+            isinstance(order, int) and order >= 0
+        ), f"order must be a non-negative integer, but got {order}"
+        assert parity in [
+            -1,
+            1,
+        ], f"parity must be either -1 (p) or 1 (n), but got {parity}"
         return super().__new__(cls, (order, parity))
 
     def __deepcopy__(self, memo):
         return self
 
     @property
-    def order(self) -> int:
+    def order(self):
         """The order of the tensor."""
         return self[0]
 
@@ -51,8 +58,12 @@ class _TensorMulRep(Tuple):
             The tensor representation.
         """
 
-        assert isinstance(mul, int), "mul must be an integer"
-        assert isinstance(rep, TensorRep), "rep must be an instance of TensorRep"
+        assert (
+            isinstance(mul, int) and mul >= 0
+        ), f"mul must be a non-negative integer, but got {mul}"
+        assert isinstance(
+            rep, TensorRep
+        ), f"rep must be an instance of TensorRep, but got type {type(rep)}"
 
         return super().__new__(cls, (mul, rep))
 
@@ -72,10 +83,7 @@ class _TensorMulRep(Tuple):
     @property
     def dim(self):
         """The dimension of the tensor multiplication."""
-        if self.rep.order == 0:
-            return 1 * self.mul
-        else:
-            return (4**self.rep.order) * self.mul
+        return (4**self.rep.order) * self.mul
 
     def __repr__(self):
         """Returns a string representation of the tensor multiplication."""
@@ -83,7 +91,7 @@ class _TensorMulRep(Tuple):
 
 
 class TensorReps(Tuple):
-    """Direct product of potentially different tensor representations"""
+    """Generic tensor representations"""
 
     def __new__(cls, input, simplify=True):
         """Create a tensor representation based on the input.
@@ -100,7 +108,7 @@ class TensorReps(Tuple):
         """
         if isinstance(input, TensorReps):
             tensor_reps = input
-        elif isinstance(input, List):
+        elif isinstance(input, list | tuple):
             assert all(isinstance(x, _TensorMulRep) for x in input)
             tensor_reps = input
         elif isinstance(input, str):
@@ -116,7 +124,7 @@ class TensorReps(Tuple):
             return ret.simplify()
         return ret
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         """Returns a string representation of the tensor reps."""
         return "+".join(f"{mul_ir}" for mul_ir in self)
 
@@ -124,47 +132,46 @@ class TensorReps(Tuple):
         return self
 
     @property
-    def dim(self) -> int:
+    def dim(self):
         """The total dimension of the tensor reps."""
         return sum(mul_ir.dim for mul_ir in self)
 
     @property
-    def max_rep(self) -> TensorRep:
+    def max_rep(self):
         """The tensor irrep with the highest order."""
         return max(self, key=lambda x: x.rep.order)
 
     @property
-    def mul_without_scalars(self) -> int:
+    def mul_without_scalars(self):
         """The total multiplier of the tensor reps without the scalars."""
         return sum(mul_ir.mul for mul_ir in self if mul_ir.rep.order != 0)
 
     @property
-    def mul_scalars(self) -> int:
+    def mul_scalars(self):
         """The total multiplier of the tensor reps scalars."""
         return sum(mul_ir.mul for mul_ir in self if mul_ir.rep.order == 0)
 
     @property
-    def mul(self) -> int:
+    def mul(self):
         """The total multiplier of the tensor reps."""
         return sum(mul_ir.mul for mul_ir in self)
 
     @property
-    def reps(self) -> set:
+    def reps(self):
         """The set of tensor reps."""
         return {rep for _, rep in self}
 
     @property
-    def is_sorted(self) -> bool:
+    def is_sorted(self):
         """Whether the tensor reps are sorted by the order of the reps."""
         if len(self) <= 1:
             return True
         else:
             return all(
-                self[i].rep.order <= self[i + 1].rep.order
-                for i in range(len(self[:-1]))
+                self[i].rep.order <= self[i + 1].rep.order for i in range(len(self) - 1)
             )
 
-    def __add__(self, tensor_reps, simplify=True) -> "TensorReps":
+    def __add__(self, tensor_reps, simplify=True):
         """Adds tensor reps to the current tensor reps."""
         tensor_reps = TensorReps(tensor_reps)
         return TensorReps(super().__add__(tensor_reps), simplify=simplify)
@@ -173,13 +180,12 @@ class TensorReps(Tuple):
         """Sorts the tensor reps by the order of the reps."""
         return TensorReps(sorted(self, key=lambda x: x.rep.order))
 
-    def simplify(self) -> "TensorReps":
+    def simplify(self):
         """Simplifies the tensor reps by combining the same reps."""
-        if not self.is_sorted:
-            self = self.sort()
+        items = self if self.is_sorted else self.sort()
 
         out = []
-        for mul_rep in self:
+        for mul_rep in items:
             mul, rep = mul_rep
             if len(out) > 0 and out[-1].rep == rep:
                 # same rep -> extend mul of previous rep
@@ -225,7 +231,7 @@ def parse_tensorreps_string(input):
             rep = rep[:-1]
         else:
             raise ValueError(
-                f"Invalid last character (=parity) in tensorreps string {input_list[i][-1]}, should be either 'n' or 'p'"
+                f"Invalid last character (=parity) in tensorreps string {rep}, should be either 'n' or 'p'"
             )
 
         mul, order = rep.split("x")

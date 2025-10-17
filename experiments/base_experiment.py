@@ -702,6 +702,8 @@ class BaseExperiment:
         self.grad_norm_frames.append(grad_norm_frames)
         self.grad_norm_net.append(grad_norm_net)
         for key, value in metrics.items():
+            metrics[key] = value.cpu().item()
+        for key, value in metrics.items():
             self.train_metrics[key].append(value)
 
         # log to mlflow
@@ -740,7 +742,7 @@ class BaseExperiment:
 
                 losses.append(loss.cpu().item())
                 for key, value in metric.items():
-                    metrics[key].append(value)
+                    metrics[key].append(value.cpu().item())
         val_loss = np.mean(losses)
         self.val_loss.append(val_loss)
         for key, values in metrics.items():

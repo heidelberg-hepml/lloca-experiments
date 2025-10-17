@@ -32,6 +32,9 @@ def test_transformer_invariance_equivariance(
     predictor = FramesPredictor(equivectors=equivectors).to(dtype=dtype)
     call_predictor = lambda fm: predictor(fm)
 
+    fm_test = sample_particle(batch_dims, logm2_std, logm2_mean, dtype=dtype)
+    predictor.equivectors.init_standardization(fm_test)
+
     # define edgeconv
     in_reps = TensorReps("1x1n")
     trafo = TensorRepsTransform(TensorReps(in_reps))

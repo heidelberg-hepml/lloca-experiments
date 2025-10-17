@@ -5,6 +5,7 @@ fix_params: false
 gamma_max: null
 gamma_hardness: 10
 deterministic_boost: null
+compile: false
 ortho_kwargs:
  method: gramschmidt
  eps_norm: 1e-15

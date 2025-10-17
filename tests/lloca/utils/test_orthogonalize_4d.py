@@ -46,7 +46,8 @@ def test_orthogonalize(batch_dims, method, vector_type, eps):
         vecs = torch.cat([v0, v3s], dim=-1)
         v1, v2, v3 = vecs
 
-    orthogonal_vecs = orthogonalize_4d([v1, v2, v3], method=method)
+    vecs = torch.stack([v1, v2, v3], dim=-2)
+    orthogonal_vecs = orthogonalize_4d(vecs, method=method)
 
     # test orthogonality
     n = orthogonal_vecs.ndim
