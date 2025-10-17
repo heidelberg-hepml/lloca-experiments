@@ -92,8 +92,13 @@ class PELICANVectors(EquiVectors, MessagePassing):
         fm_rel = (fm_rel / fm_rel_norm)[:, None, :4]
 
         # message-passing
+        num_graphs = node_ptr.shape[0] - 1
         prefactor = self.net(
-            in_rank2=edge_attr, in_rank1=s_i, edge_index=edge_index, batch=batch
+            in_rank2=edge_attr,
+            in_rank1=s_i,
+            edge_index=edge_index,
+            batch=batch,
+            num_graphs=num_graphs,
         )
         prefactor = self.nonlinearity(
             prefactor,
