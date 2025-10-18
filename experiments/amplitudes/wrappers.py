@@ -46,8 +46,13 @@ class AmplitudeWrapper(nn.Module):
         particle_type = self.encode_particle_type(fourmomenta.shape[0]).to(
             dtype=self.network_dtype, device=fourmomenta.device
         )
+        num_graphs = fourmomenta.shape[0]
         frames, tracker = self.framesnet(
-            fourmomenta, scalars=particle_type, ptr=None, return_tracker=True
+            fourmomenta,
+            scalars=particle_type,
+            ptr=None,
+            return_tracker=True,
+            num_graphs=num_graphs,
         )
 
         fourmomenta_local = self.trafo_fourmomenta(fourmomenta, frames)

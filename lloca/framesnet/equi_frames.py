@@ -90,7 +90,9 @@ class LearnedPDFrames(LearnedFrames):
         else:
             self.polar_decomposition = polar_decomposition
 
-    def forward(self, fourmomenta, scalars=None, ptr=None, return_tracker=False):
+    def forward(
+        self, fourmomenta, scalars=None, ptr=None, return_tracker=False, **kwargs
+    ):
         """
         Parameters
         ----------
@@ -111,7 +113,7 @@ class LearnedPDFrames(LearnedFrames):
             Dictionary containing regularization information, if return_tracker is True
         """
         self.init_weights_or_not()
-        vecs = self.equivectors(fourmomenta, scalars=scalars, ptr=ptr)
+        vecs = self.equivectors(fourmomenta, scalars=scalars, ptr=ptr, **kwargs)
         vecs = self.globalize_vecs_or_not(vecs, ptr)
         boost = vecs[..., 0, :]
         rotation_references = vecs[..., 1:, :]

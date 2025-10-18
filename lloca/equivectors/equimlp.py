@@ -236,7 +236,7 @@ class EquiMLP(EquiVectors):
         edge_index, _, _ = get_edge_index_and_batch(fourmomenta, ptr)
         self.block.init_standardization(fourmomenta, edge_index)
 
-    def forward(self, fourmomenta, scalars=None, ptr=None):
+    def forward(self, fourmomenta, scalars=None, ptr=None, **kwargs):
         """
         Parameters
         ----------

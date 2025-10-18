@@ -55,6 +55,7 @@ class TaggerWrapper(nn.Module):
         batch_withspurions = embedding["batch"]
         is_spurion = embedding["is_spurion"]
         ptr_withspurions = embedding["ptr"]
+        num_graphs = embedding["num_graphs"]
         nospurion_idxs = (~is_spurion).nonzero(as_tuple=False).squeeze(-1)
 
         # remove spurions from the data again and recompute attributes
@@ -75,6 +76,7 @@ class TaggerWrapper(nn.Module):
             scalars_withspurions,
             ptr=ptr_withspurions,
             return_tracker=True,
+            num_graphs=num_graphs,
         )
         matrices = frames_spurions.matrices.index_select(0, nospurion_idxs)
         frames_nospurions = Frames(
@@ -615,7 +617,9 @@ class PELICANWrapper(nn.Module):
         # rescale fourmomenta (but not the spurions)
         fourmomenta[~is_spurion] = fourmomenta[~is_spurion] / 20
 
-        edge_index = get_edge_index_from_ptr(ptr, fourmomenta.shape, remove_self_loops=False)
+        edge_index = get_edge_index_from_ptr(
+            ptr, fourmomenta.shape, remove_self_loops=False
+        )
         fourmomenta = fourmomenta.to(scalars.dtype)
         edge_attr = self.get_edge_attr(fourmomenta, edge_index).to(scalars.dtype)
         output = self.net(

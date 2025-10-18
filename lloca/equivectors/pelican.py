@@ -47,7 +47,7 @@ class PELICANVectors(EquiVectors, MessagePassing):
             self.edge_std = edge_attr.std().clamp(min=1e-5).detach()
             self.edge_inited.fill_(True)
 
-    def forward(self, fourmomenta, scalars=None, ptr=None):
+    def forward(self, fourmomenta, scalars=None, ptr=None, num_graphs=None, **kwargs):
         # move to sparse tensors
         in_shape = fourmomenta.shape[:-1]
         if scalars is None:
@@ -70,6 +70,7 @@ class PELICANVectors(EquiVectors, MessagePassing):
             edge_attr=edge_attr,
             batch=batch,
             node_ptr=ptr,
+            num_graphs=num_graphs,
         )
         vecs = vecs.reshape(fourmomenta.shape[0], -1, 4)
 
@@ -81,7 +82,19 @@ class PELICANVectors(EquiVectors, MessagePassing):
         vecs = vecs.reshape(*in_shape, -1, 4)
         return vecs
 
-    def message(self, edge_index, fm_i, fm_j, s_i, s_j, node_ptr, batch, edge_attr):
+    def message(
+        self,
+        edge_index,
+        fm_i,
+        fm_j,
+        s_i,
+        s_j,
+        node_ptr,
+        batch,
+        edge_attr,
+        num_graphs=None,
+    ):
+        assert num_graphs is not None
         # prepare fourmomenta
         fm_rel = self.operation(fm_i, fm_j)
         if self.fm_norm:
@@ -92,7 +105,6 @@ class PELICANVectors(EquiVectors, MessagePassing):
         fm_rel = (fm_rel / fm_rel_norm)[:, None, :4]
 
         # message-passing
-        num_graphs = node_ptr.shape[0] - 1
         prefactor = self.net(
             in_rank2=edge_attr,
             in_rank1=s_i,
