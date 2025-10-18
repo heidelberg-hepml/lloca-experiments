@@ -99,20 +99,39 @@ class AmplitudeExperiment(BaseExperiment):
         tst_set = torch.utils.data.TensorDataset(tst_amp, tst_mom)
         val_set = torch.utils.data.TensorDataset(val_amp, val_mom)
 
+        trn_sampler = torch.utils.data.DistributedSampler(
+            trn_set,
+            num_replicas=self.world_size,
+            rank=self.rank,
+            shuffle=True,
+        )
+        tst_sampler = torch.utils.data.DistributedSampler(
+            tst_set,
+            num_replicas=self.world_size,
+            rank=self.rank,
+            shuffle=False,
+        )
+        val_sampler = torch.utils.data.DistributedSampler(
+            val_set,
+            num_replicas=self.world_size,
+            rank=self.rank,
+            shuffle=False,
+        )
+
         self.train_loader = torch.utils.data.DataLoader(
             dataset=trn_set,
-            batch_size=self.cfg.training.batchsize,
-            shuffle=True,
+            batch_size=self.cfg.training.batchsize // self.world_size,
+            sampler=trn_sampler,
         )
         self.test_loader = torch.utils.data.DataLoader(
             dataset=tst_set,
-            batch_size=self.cfg.evaluation.batchsize,
-            shuffle=False,
+            batch_size=self.cfg.evaluation.batchsize // self.world_size,
+            sampler=tst_sampler,
         )
         self.val_loader = torch.utils.data.DataLoader(
             dataset=val_set,
-            batch_size=self.cfg.evaluation.batchsize,
-            shuffle=False,
+            batch_size=self.cfg.evaluation.batchsize // self.world_size,
+            sampler=val_sampler,
         )
 
         if log:

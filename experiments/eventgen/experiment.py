@@ -147,24 +147,44 @@ class EventGenerationExperiment(BaseExperiment):
         }
 
         # create dataloaders
-        train_dataset = torch.utils.data.TensorDataset(self.data_prepd["trn"])
-        self.train_loader = torch.utils.data.DataLoader(
-            dataset=train_dataset,
-            batch_size=self.cfg.training.batchsize,
+        trn_dataset = torch.utils.data.TensorDataset(self.data_prepd["trn"])
+        tst_dataset = torch.utils.data.TensorDataset(self.data_prepd["tst"])
+        val_dataset = torch.utils.data.TensorDataset(self.data_prepd["val"])
+
+        trn_sampler = torch.utils.data.DistributedSampler(
+            trn_dataset,
+            num_replicas=self.world_size,
+            rank=self.rank,
             shuffle=True,
-            drop_last=len(train_dataset) >= self.cfg.training.batchsize,
         )
-        test_dataset = torch.utils.data.TensorDataset(self.data_prepd["tst"])
-        self.test_loader = torch.utils.data.DataLoader(
-            dataset=test_dataset,
-            batch_size=self.cfg.evaluation.batchsize,
+        val_sampler = torch.utils.data.DistributedSampler(
+            val_dataset,
+            num_replicas=self.world_size,
+            rank=self.rank,
             shuffle=False,
         )
-        val_dataset = torch.utils.data.TensorDataset(self.data_prepd["val"])
+        tst_sampler = torch.utils.data.DistributedSampler(
+            tst_dataset,
+            num_replicas=self.world_size,
+            rank=self.rank,
+            shuffle=False,
+        )
+
+        self.train_loader = torch.utils.data.DataLoader(
+            dataset=trn_dataset,
+            batch_size=self.cfg.training.batchsize // self.world_size,
+            sampler=trn_sampler,
+            drop_last=len(trn_dataset) >= self.cfg.training.batchsize,
+        )
+        self.test_loader = torch.utils.data.DataLoader(
+            dataset=tst_dataset,
+            batch_size=self.cfg.evaluation.batchsize // self.world_size,
+            sampler=tst_sampler,
+        )
         self.val_loader = torch.utils.data.DataLoader(
             dataset=val_dataset,
-            batch_size=self.cfg.evaluation.batchsize,
-            shuffle=False,
+            batch_size=self.cfg.evaluation.batchsize // self.world_size,
+            sampler=val_sampler,
         )
 
         LOGGER.info(

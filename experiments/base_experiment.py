@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import torch.distributed as dist
 
 import os, time
 import zipfile
@@ -15,7 +16,7 @@ from torch.amp import GradScaler
 
 from experiments.misc import get_device, flatten_dict
 import experiments.logger
-from experiments.logger import LOGGER, MEMORY_HANDLER, FORMATTER
+from experiments.logger import LOGGER, MEMORY_HANDLER, FORMATTER, RankFilter
 from experiments.mlflow import log_mlflow
 from experiments.ranger import Ranger
 
@@ -25,8 +26,11 @@ MIN_STEP_SKIP = 1000
 
 
 class BaseExperiment:
-    def __init__(self, cfg):
+    def __init__(self, cfg, rank, world_size):
         self.cfg = cfg
+        self.rank = rank
+        self.world_size = world_size
+        self.is_master = rank == 0
 
     def __call__(self):
         # pass all exceptions to the logger
@@ -65,16 +69,17 @@ class BaseExperiment:
         # implement all ml boilerplate as private methods (_name)
         t0 = time.time()
 
-        # save config
-        LOGGER.debug(OmegaConf.to_yaml(self.cfg))
-
         self.init_physics()
         self.init_model()
         self.init_data()
         self._init_dataloader()
         self._init_loss()
-        self._save_config("config.yaml", to_mlflow=True)
-        self._save_config(f"config_{self.cfg.run_idx}.yaml")
+
+        # save config
+        if self.is_master:
+            LOGGER.debug(OmegaConf.to_yaml(self.cfg))
+            self._save_config("config.yaml", to_mlflow=True)
+            self._save_config(f"config_{self.cfg.run_idx}.yaml")
 
         if self.cfg.train:
             self._init_optimizer()
@@ -153,6 +158,15 @@ class BaseExperiment:
         if self.ema is not None:
             self.ema.to(self.device)
 
+        if self.world_size > 1:
+            self.model.net = torch.nn.parallel.DistributedDataParallel(
+                self.model.net,
+                device_ids=[self.rank],
+                output_device=self.rank,
+                broadcast_buffers=False,
+                find_unused_parameters=False,  # might have to turn this on for some models
+            )
+
     def _init(self):
         run_name = self._init_experiment()
         self._init_directory()
@@ -198,6 +212,8 @@ class BaseExperiment:
                 self.cfg.warm_start_idx = 0
                 self.cfg.run_name = run_name
                 self.cfg.run_dir = run_dir
+
+            self.cfg.save = self.cfg.save and self.is_master  # only save on master
 
             # only use mlflow if save=True
             self.cfg.use_mlflow = (
@@ -307,12 +323,15 @@ class BaseExperiment:
         # add new handlers to logger
         LOGGER.propagate = False  # avoid duplicate log outputs
 
+        rank_filter = RankFilter(rank=self.rank)
+        LOGGER.addFilter(rank_filter)  # only log from master
+
         experiments.logger.LOGGING_INITIALIZED = True
         LOGGER.debug("Logger initialized")
 
     def _init_backend(self):
         self.device = get_device()
-        LOGGER.info(f"Using device {self.device}")
+        LOGGER.info(f"Using device {self.device}; see {self.world_size} GPUs in total")
         self.dtype = torch.float64 if self.cfg.use_float64 else torch.float32
         LOGGER.debug(f"Using dtype {self.dtype}")
 
@@ -527,9 +546,12 @@ class BaseExperiment:
 
         # recycle trainloader
         def cycle(iterable):
+            epoch = 0
             while True:
+                self.train_loader.sampler.set_epoch(epoch)
                 for x in iterable:
                     yield x
+                epoch += 1
 
         iterator = iter(cycle(self.train_loader))
         for step in range(self.cfg.training.iterations):
@@ -626,7 +648,7 @@ class BaseExperiment:
     def _step(self, data, step):
         # actual update step
         loss, metrics = self._batch_loss(data)
-        self.optimizer.zero_grad()
+        self.optimizer.zero_grad(set_to_none=True)
         self.scaler.scale(loss).backward()
 
         if self.cfg.training.log_grad_norm:
@@ -696,6 +718,9 @@ class BaseExperiment:
             self.scheduler.step()
 
         # collect metrics
+        if self.world_size > 1:
+            dist.all_reduce(loss, op=dist.ReduceOp.SUM)
+            loss /= self.world_size
         self.train_loss.append(loss.detach().item())
         self.train_lr.append(self.optimizer.param_groups[0]["lr"])
         self.grad_norm_train.append(grad_norm)
@@ -740,6 +765,9 @@ class BaseExperiment:
                 else:
                     loss, metric = self._batch_loss(data)
 
+                if self.world_size > 1:
+                    dist.all_reduce(loss, op=dist.ReduceOp.SUM)
+                    loss /= self.world_size
                 losses.append(loss.cpu().item())
                 for key, value in metric.items():
                     metrics[key].append(value.cpu().item())
