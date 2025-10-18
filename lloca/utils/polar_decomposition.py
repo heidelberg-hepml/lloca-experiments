@@ -2,9 +2,8 @@
 
 import torch
 
-from .orthogonalize_4d import orthogonalize_4d
 from .lorentz import lorentz_squarednorm
-from .orthogonalize_4d import regularize_lightlike
+from .orthogonalize_4d import orthogonalize_4d, regularize_lightlike
 
 
 def restframe_boost(fourmomenta):
