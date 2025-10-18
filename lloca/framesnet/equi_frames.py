@@ -118,14 +118,14 @@ class LearnedPDFrames(LearnedFrames):
         boost = self._deterministic_boost(boost, ptr)
         boost, reg_gammamax, gamma_mean, gamma_max = self._clamp_boost(boost)
 
-        trafo, reg_collinear = self.polar_decomposition(
+        trafo, reg_lightlike, reg_collinear = self.polar_decomposition(
             boost,
             rotation_references,
             **self.ortho_kwargs,
-            eps_reg_lightlike=self.eps_reg_lightlike,
             return_reg=True,
         )
         tracker = {
+            "reg_lightlike": reg_lightlike,
             "reg_collinear": reg_collinear,
             "gamma_mean": gamma_mean,
             "gamma_max": gamma_max,
@@ -282,11 +282,10 @@ class LearnedRestFrames(LearnedFrames):
         references = self.equivectors(fourmomenta, scalars=scalars, ptr=ptr)
         references = self.globalize_vecs_or_not(references, ptr)
 
-        trafo, reg_collinear = self.polar_decomposition(
+        trafo, reg_lightlike, reg_collinear = self.polar_decomposition(
             fourmomenta,
             references,
             **self.ortho_kwargs,
-            eps_reg_lightlike=self.eps_reg_lightlike,
             return_reg=True,
         )
         tracker = {"reg_lightlike": reg_lightlike, "reg_collinear": reg_collinear}
@@ -348,11 +347,10 @@ class LearnedSO3Frames(LearnedFrames):
             ..., 0
         ]  # only difference compared to LearnedPolarDecompositionFrames
 
-        trafo, reg_collinear = self.polar_decomposition(
+        trafo, reg_lightlike, reg_collinear = self.polar_decomposition(
             fourmomenta,
             references,
             **self.ortho_kwargs,
-            eps_reg_lightlike=self.eps_reg_lightlike,
             return_reg=True,
         )
         tracker = {"reg_lightlike": reg_lightlike, "reg_collinear": reg_collinear}
@@ -424,11 +422,10 @@ class LearnedSO2Frames(LearnedFrames):
             [spurion_references, extra_references[..., 0, :]], dim=-2
         )
 
-        trafo, reg_collinear = self.polar_decomposition(
+        trafo, reg_lightlike, reg_collinear = self.polar_decomposition(
             fourmomenta,
             references,
             **self.ortho_kwargs,
-            eps_reg_lightlike=self.eps_reg_lightlike,
             return_reg=True,
         )
 

@@ -2,7 +2,7 @@
 
 import torch
 
-from .orthogonalize_3d import orthogonalize_3d
+from .orthogonalize_4d import orthogonalize_4d
 from .lorentz import lorentz_squarednorm
 from .orthogonalize_4d import regularize_lightlike
 
@@ -50,12 +50,7 @@ def restframe_boost(fourmomenta):
 
 
 def polar_decomposition(
-    fourmomenta,
-    references,
-    use_float64=True,
-    return_reg=False,
-    eps_reg_lightlike=1.0e-10,
-    **kwargs
+    fourmomenta, references, use_float64=True, return_reg=False, **kwargs
 ):
     """Construct a Lorentz transformation as a polar decomposition of a
     boost and a rotation.
@@ -87,26 +82,35 @@ def polar_decomposition(
         references = references.to(torch.float64)
 
     # regularize lightlike fourmomenta
-    fourmomenta, reg_lightlike = regularize_lightlike(fourmomenta, eps_reg_lightlike)
-    # construct rest frame transformation
-    boost = restframe_boost(torch.stack(fourmomenta))
+    eps_reg_lightlike = kwargs.get("eps_reg_lightlike", None)
+    if eps_reg_lightlike is not None:
+        fourmomenta, reg_lightlike_1 = regularize_lightlike(
+            fourmomenta, eps_reg_lightlike
+        )
+    else:
+        fourmomenta, reg_lightlike_1 = regularize_lightlike(fourmomenta)
 
-    # references go into rest frame
+    # construct rest frame transformation
+    boost = restframe_boost(fourmomenta)
+
+    # references and fm go into rest frame
+    fm_rest = torch.matmul(fourmomenta.unsqueeze(-2), boost.transpose(-1, -2))
     ref_rest = torch.matmul(references, boost.transpose(-1, -2))
 
-    # construct rotation
-    ref3_rest = ref_rest[..., 1:]
-    out = orthogonalize_3d(ref3_rest, return_reg=return_reg, **kwargs)
+    # construct rotation before orthogonalization
+    inp = torch.cat((fm_rest, ref_rest), dim=-2)
+    out = orthogonalize_4d(inp, return_reg=return_reg, **kwargs)
     if return_reg:
-        orthogonal_vec3, reg_collinear = out
+        rotation, reg_lighlike_2, reg_collinear = out
     else:
-        orthogonal_vec3 = out
-    rotation = torch.zeros_like(boost)
-    rotation[..., 0, 0] = 1
-    rotation[..., 1:, 1:] = orthogonal_vec3
+        rotation = out
 
     # combine rotation and boost
     trafo = torch.matmul(rotation, boost)
     if use_float64:
         trafo = trafo.to(original_dtype)
-    return (trafo, reg_collinear) if return_reg else trafo
+    return (
+        (trafo, reg_lightlike_1 + reg_lighlike_2, reg_collinear)
+        if return_reg
+        else trafo
+    )

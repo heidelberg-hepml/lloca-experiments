@@ -136,23 +136,6 @@ def orthogonalize_gramschmidt(vecs, eps_norm=1e-15):
     e3 = lorentz_cross(e0, e1, e2)
     return torch.stack([e0, e1, e2, e3], dim=-2)
 
-    """
-    v_nexts = [v for v in vecs]
-    orthogonal_vecs = [vecs[0]]
-    for i in range(1, len(vecs)):
-        for k in range(i, len(vecs)):
-            v_inner = lorentz_inner(v_nexts[k], orthogonal_vecs[i - 1]).unsqueeze(-1)
-            v_norm = lorentz_squarednorm(orthogonal_vecs[i - 1]).unsqueeze(-1)
-            v_nexts[k] = v_nexts[k] - orthogonal_vecs[i - 1] * v_inner / (
-                v_norm + eps_norm
-            )
-        orthogonal_vecs.append(normalize_4d(v_nexts[i], eps_norm))
-    last_vec = normalize_4d(lorentz_cross(*orthogonal_vecs), eps_norm)
-    orthogonal_vecs.append(last_vec)
-
-    return orthogonal_vecs
-    """
-
 
 def orthogonalize_cross(vecs, eps_norm=1e-15):
     """Orthogonalization algorithm using repeated cross products.
