@@ -22,3 +22,4 @@ defaults:
  - default
  - training: tag_default
  - model: tag_transformer
+ - _self_
