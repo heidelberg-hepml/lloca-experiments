@@ -14,9 +14,9 @@ LOGGING_INITIALIZED = False
 
 
 class RankFilter(logging.Filter):
-    def __init__(self, rank=0):
+    def __init__(self, is_master):
         super().__init__()
-        self.rank = rank
+        self.is_master = is_master
 
     def filter(self, record):
-        return self.rank == 0
+        return self.is_master

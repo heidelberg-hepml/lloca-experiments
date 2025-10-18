@@ -76,10 +76,9 @@ class BaseExperiment:
         self._init_loss()
 
         # save config
-        if self.is_master:
-            LOGGER.debug(OmegaConf.to_yaml(self.cfg))
-            self._save_config("config.yaml", to_mlflow=True)
-            self._save_config(f"config_{self.cfg.run_idx}.yaml")
+        LOGGER.debug(OmegaConf.to_yaml(self.cfg))
+        self._save_config("config.yaml", to_mlflow=True)
+        self._save_config(f"config_{self.cfg.run_idx}.yaml")
 
         if self.cfg.train:
             self._init_optimizer()
@@ -323,7 +322,7 @@ class BaseExperiment:
         # add new handlers to logger
         LOGGER.propagate = False  # avoid duplicate log outputs
 
-        rank_filter = RankFilter(rank=self.rank)
+        rank_filter = RankFilter(self.is_master)
         LOGGER.addFilter(rank_filter)  # only log from master
 
         experiments.logger.LOGGING_INITIALIZED = True
