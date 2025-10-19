@@ -97,7 +97,7 @@ def orthogonalize_cross_3d(vecs, eps_norm=1e-15):
     return torch.stack([e0, e1, e2], dim=-2)
 
 
-def regularize_collinear(vecs, eps_reg=1e-10):
+def regularize_collinear(vecs, eps_reg=1e-20):
     """If the cross product of two vectors is small, the vectors are collinear.
     In this case, we add a small amount of noise to the second vector to
     regularize the orthogonalization.
@@ -118,7 +118,7 @@ def regularize_collinear(vecs, eps_reg=1e-10):
     """
     v0, v1 = vecs.unbind(dim=-2)
     cross = torch.cross(v0, v1, dim=-1)
-    mask = (cross**2).sum(dim=-1) < eps_reg**4
+    mask = (cross**2).sum(dim=-1) < eps_reg
     v1_reg = torch.where(mask.unsqueeze(-1), v1 + eps_reg * torch.randn_like(v1), v1)
     vecs_reg = torch.stack([v0, v1_reg], dim=-2)
 

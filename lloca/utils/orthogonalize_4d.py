@@ -196,7 +196,7 @@ def timelike_first(trafo):
     return trafo_reordered
 
 
-def regularize_lightlike(vecs, eps_reg_lightlike=1e-10):
+def regularize_lightlike(vecs, eps_reg_lightlike=1e-20):
     """If the Minkowski norm of a vector is close to zero,
     it is lightlike. In this case, we add a bit of noise to the vector
     to break the degeneracy and ensure that the orthogonalization works.
@@ -216,14 +216,14 @@ def regularize_lightlike(vecs, eps_reg_lightlike=1e-10):
         Number of vectors that were regularized due to being lightlike.
     """
     inners = lorentz_squarednorm(vecs)
-    mask = inners.abs() < eps_reg_lightlike**2
+    mask = inners.abs() < eps_reg_lightlike
 
     vecs_reg = vecs + mask.unsqueeze(-1) * eps_reg_lightlike * torch.randn_like(vecs)
     reg_lightlike = mask.any(dim=-1).sum()
     return vecs_reg, reg_lightlike
 
 
-def regularize_coplanar(vecs, eps_reg_coplanar=1e-10):
+def regularize_coplanar(vecs, eps_reg_coplanar=1e-20):
     """If the cross product of three vectors is close to zero,
     they are coplanar. In this case, we add a bit of noise to each vector
     to break the degeneracy and ensure that the orthogonalization works.
@@ -244,7 +244,7 @@ def regularize_coplanar(vecs, eps_reg_coplanar=1e-10):
     """
     v0, v1, v2 = vecs.unbind(dim=-2)
     cross_norm2 = lorentz_squarednorm(lorentz_cross(v0, v1, v2))
-    mask = cross_norm2.abs() < eps_reg_coplanar**2
+    mask = cross_norm2.abs() < eps_reg_coplanar
 
     vecs_reg = vecs + mask.unsqueeze(-1).unsqueeze(
         -1
