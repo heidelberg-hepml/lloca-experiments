@@ -23,8 +23,8 @@ def _extract_cli_overrides(cfg, prefix):
 
 
 class TopTaggingFineTuneExperiment(TopTaggingExperiment):
-    def __init__(self, cfg):
-        super().__init__(cfg)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         # load warm_start cfg
         warmstart_path = os.path.join(

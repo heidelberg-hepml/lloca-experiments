@@ -63,3 +63,4 @@ defaults:
 - model: eg_transformer
 - classifier: classifier
 - default
+- _self_
