@@ -49,7 +49,7 @@ def ddp_worker(rank, cfg):
             rank=rank,
             timeout=datetime.timedelta(minutes=30),
         )
-    torch.cuda.set_device(rank)
+        torch.cuda.set_device(rank)
 
     if cfg.exp_type == "toptagging":
         constructor = TopTaggingExperiment
