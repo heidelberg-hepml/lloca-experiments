@@ -544,10 +544,15 @@ class BaseExperiment:
         train_time, val_time = 0.0, 0.0
 
         # recycle trainloader
+        sampler = getattr(self.train_loader, "sampler", None)
+        dataset = getattr(self.train_loader, "dataset", None)
+        epoch_counter = sampler if hasattr(sampler, "set_epoch") else dataset
+
         def cycle(iterable):
             epoch = 0
             while True:
-                self.train_loader.sampler.set_epoch(epoch)
+                if hasattr(epoch_counter, "set_epoch"):
+                    epoch_counter.set_epoch(epoch)
                 for x in iterable:
                     yield x
                 epoch += 1

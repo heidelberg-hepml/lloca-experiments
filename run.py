@@ -18,9 +18,6 @@ from experiments.eventgen.processes import ttbarExperiment
 def main(cfg):
     world_size = torch.cuda.device_count() if torch.cuda.is_available() else 1
 
-    if mp.get_start_method(allow_none=True) != "spawn":
-        mp.set_start_method("spawn", force=True)
-
     if world_size > 1:
         os.environ.setdefault("TORCH_NCCL_ASYNC_ERROR_HANDLING", "1")
         os.environ.setdefault("NCCL_DEBUG", "WARN")
