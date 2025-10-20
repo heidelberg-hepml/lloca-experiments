@@ -18,7 +18,7 @@ This repository contains the official implementation of [Lorentz Local Canonical
 Clone the repository.
 
 ```bash
-git clone https://github.com/heidelberg-hepml/lorentz-frames
+git clone https://github.com/heidelberg-hepml/lloca-experiments
 ```
 
 Create a virtual environment and install requirements
@@ -26,6 +26,7 @@ Create a virtual environment and install requirements
 ```bash
 python -m venv venv
 source venv/bin/activate
+pip install -e .
 pip install -r requirements.txt
 ```
 

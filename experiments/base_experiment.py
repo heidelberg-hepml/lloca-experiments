@@ -272,7 +272,7 @@ class BaseExperiment:
         # silence other loggers
         # (every app has a logger, eg hydra, torch, mlflow, matplotlib, fontTools...)
         for name, other_logger in logging.root.manager.loggerDict.items():
-            if not "lorentz-frames" in name:
+            if not "main" in name:
                 other_logger.level = logging.WARNING
 
         if experiments.logger.LOGGING_INITIALIZED:
