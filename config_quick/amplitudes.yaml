@@ -24,3 +24,4 @@ defaults:
  - default
  - training: default
  - model: amp_transformer
+  - _self_

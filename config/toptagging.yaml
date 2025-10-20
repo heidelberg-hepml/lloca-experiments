@@ -10,3 +10,4 @@ defaults:
  - tagging
  - training@: tag_top_default
  - model@: tag_top_transformer
+ - _self_

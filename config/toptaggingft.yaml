@@ -9,3 +9,4 @@ finetune:
 
 defaults:
  - toptagging
+ - _self_

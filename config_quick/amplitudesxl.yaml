@@ -14,3 +14,4 @@ evaluation:
  
 defaults:
  - amplitudes
+ - _self_

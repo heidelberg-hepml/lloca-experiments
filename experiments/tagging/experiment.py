@@ -93,20 +93,39 @@ class TaggingExperiment(BaseExperiment):
         LOGGER.info(f"Finished creating datasets after {dt:.2f} s = {dt/60:.2f} min")
 
     def _init_dataloader(self):
+        trn_sampler = torch.utils.data.DistributedSampler(
+            self.data_train,
+            num_replicas=self.world_size,
+            rank=self.rank,
+            shuffle=True,
+        )
+        tst_sampler = torch.utils.data.DistributedSampler(
+            self.data_test,
+            num_replicas=self.world_size,
+            rank=self.rank,
+            shuffle=False,
+        )
+        val_sampler = torch.utils.data.DistributedSampler(
+            self.data_val,
+            num_replicas=self.world_size,
+            rank=self.rank,
+            shuffle=False,
+        )
+
         self.train_loader = DataLoader(
             dataset=self.data_train,
-            batch_size=self.cfg.training.batchsize,
-            shuffle=True,
+            batch_size=self.cfg.training.batchsize // self.world_size,
+            sampler=trn_sampler,
         )
         self.test_loader = DataLoader(
             dataset=self.data_test,
-            batch_size=self.cfg.evaluation.batchsize,
-            shuffle=False,
+            batch_size=self.cfg.evaluation.batchsize // self.world_size,
+            sampler=tst_sampler,
         )
         self.val_loader = DataLoader(
             dataset=self.data_val,
-            batch_size=self.cfg.evaluation.batchsize,
-            shuffle=False,
+            batch_size=self.cfg.evaluation.batchsize // self.world_size,
+            sampler=val_sampler,
         )
 
         LOGGER.info(
@@ -363,8 +382,8 @@ class TaggingExperiment(BaseExperiment):
 
 
 class TopTaggingExperiment(TaggingExperiment):
-    def __init__(self, cfg):
-        super().__init__(cfg)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.num_outputs = 1
         self.extra_scalars = 0
 
