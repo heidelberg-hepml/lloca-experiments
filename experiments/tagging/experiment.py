@@ -7,7 +7,7 @@ from sklearn.metrics import roc_curve, roc_auc_score, accuracy_score
 
 from experiments.base_experiment import BaseExperiment
 from experiments.tagging.dataset import TopTaggingDataset
-from experiments.tagging.embedding import embed_tagging_data
+from experiments.tagging.embedding import embed_tagging_data, get_num_tagging_features
 from experiments.tagging.plots import plot_mixer
 from experiments.logger import LOGGER
 from experiments.mlflow import log_mlflow
@@ -45,7 +45,13 @@ class TaggingExperiment(BaseExperiment):
             "MIParticleTransformer",
         ]:
             # LLoCa models
-            self.cfg.model.in_channels = 7 + self.extra_scalars
+            num_tagging_features = get_num_tagging_features(
+                only_ztransform=self.cfg.data.only_ztransform_tagging_features
+            )
+            self.cfg.model.only_ztransform_tagging_features = (
+                self.cfg.data.only_ztransform_tagging_features
+            )
+            self.cfg.model.in_channels = num_tagging_features + self.extra_scalars
             if self.cfg.model.add_fourmomenta_backbone:
                 self.cfg.model.in_channels += 4
 
@@ -61,15 +67,17 @@ class TaggingExperiment(BaseExperiment):
                 self.cfg.model.net.hidden_reps_list[
                     0
                 ] = f"{self.cfg.model.in_channels}x0n"
+
+            # decide which entries to use for the framesnet
+            if "equivectors" in self.cfg.model.framesnet:
+                self.cfg.model.framesnet.equivectors.num_scalars = self.extra_scalars
+                self.cfg.model.framesnet.equivectors.num_scalars += (
+                    num_tagging_features
+                    if self.cfg.data.add_tagging_features_framesnet
+                    else 0
+                )
         else:
             raise NotImplementedError(f"Model {modelname} not implemented")
-
-        # decide which entries to use for the framesnet
-        if "equivectors" in self.cfg.model.framesnet:
-            self.cfg.model.framesnet.equivectors.num_scalars = self.extra_scalars
-            self.cfg.model.framesnet.equivectors.num_scalars += (
-                7 if self.cfg.data.add_tagging_features_framesnet else 0
-            )
 
     def init_data(self):
         raise NotImplementedError

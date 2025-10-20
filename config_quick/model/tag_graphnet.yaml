@@ -3,6 +3,7 @@ in_channels: null
 out_channels: null
 include_edges: false
 add_fourmomenta_backbone: false
+only_ztransform_tagging_features: null
 
 net:
  _target_: lloca.backbone.graphnet.GraphNet
