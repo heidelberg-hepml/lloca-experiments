@@ -17,7 +17,7 @@ net:
 
  map_multipliers: true
  factorize: false
- activation: gelu
+ activation: leaky_relu
  aggr: mean
  compile: true
  checkpoint_blocks: false
