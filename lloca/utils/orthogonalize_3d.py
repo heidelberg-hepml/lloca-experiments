@@ -119,8 +119,9 @@ def regularize_collinear(vecs, eps_reg=1e-20):
     v0, v1 = vecs.unbind(dim=-2)
     cross = torch.cross(v0, v1, dim=-1)
     mask = (cross**2).sum(dim=-1) < eps_reg
+    v0_reg = torch.where(mask.unsqueeze(-1), v0 + eps_reg * torch.randn_like(v0), v0)
     v1_reg = torch.where(mask.unsqueeze(-1), v1 + eps_reg * torch.randn_like(v1), v1)
-    vecs_reg = torch.stack([v0, v1_reg], dim=-2)
+    vecs_reg = torch.stack([v0_reg, v1_reg], dim=-2)
 
     reg_collinear = mask.sum()
     return vecs_reg, reg_collinear
