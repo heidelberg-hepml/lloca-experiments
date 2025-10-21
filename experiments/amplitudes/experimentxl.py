@@ -3,7 +3,8 @@ import queue
 import threading
 import random
 import torch
-from torch.utils.data import IterableDataset
+import torch.distributed as dist
+from torch.utils.data import IterableDataset, get_worker_info
 
 from experiments.amplitudes.utils import (
     load_file,
@@ -92,37 +93,41 @@ class PrefetchFilesDataset(IterableDataset):
         self.events_per_file = events_per_file if subsample is None else subsample
 
         # prefetch params
-        self.file_paths = file_paths
+        self.file_paths = list(file_paths)
         self.num_prefetch = num_prefetch
-        self.rng = random.Random()
+        self.epoch = 0
+        self.base_seed = 42
+        self.rng = random.Random(self.base_seed)
         self._EOF = object()
 
         self.loading_kwargs = loading_kwargs
 
     def __len__(self):
+        # global length of dataset (across processes)
         return len(self.file_paths) * self.events_per_file
 
-    def _worker(self, file_queue):
-        for i, fpath in enumerate(self.shuffled_files):
+    def set_epoch(self, epoch):
+        self.epoch = int(epoch)
+
+    def _worker(self, file_queue, files_for_me):
+        for local_i, fpath in enumerate(files_for_me):
             # always use the same initial randomness for each file
-            generator = torch.Generator().manual_seed(i)
-            amp, mom, _, _, _ = load_file(
-                fpath,
-                generator=generator,
-                **self.loading_kwargs,
+            g = torch.Generator().manual_seed(
+                (self.base_seed + self.epoch) ^ (local_i + 0x9E3779B97F4A7C15)
             )
-            idx = torch.randperm(amp.shape[0])
+            amp, mom, _, _, _ = load_file(fpath, generator=g, **self.loading_kwargs)
+            n = min(self.events_per_file, amp.shape[0])
+            idx = torch.randperm(amp.shape[0], generator=g)[:n]
             amp, mom = amp[idx], mom[idx]
             file_queue.put((amp, mom))
 
         file_queue.put(self._EOF)
 
     def __iter__(self):
-        self.shuffled_files = list(self.file_paths)
-        self.rng.shuffle(self.shuffled_files)
+        files_for_me = self._files_for_this_consumer()
 
         file_queue = queue.Queue(maxsize=self.num_prefetch)
-        worker = threading.Thread(target=self._worker, args=(file_queue,))
+        worker = threading.Thread(target=self._worker, args=(file_queue, files_for_me))
         worker.daemon = True  # exit if main thread exits
         worker.start()
 
@@ -136,3 +141,27 @@ class PrefetchFilesDataset(IterableDataset):
                 yield amp[i], mom[i]
 
         worker.join()  # terminate
+
+    def _parallel_context(self):
+        rank, world_size = 0, 1
+        if dist.is_available() and dist.is_initialized():
+            rank = dist.get_rank()
+            world_size = dist.get_world_size()
+
+        wi = get_worker_info()
+        worker_id, num_workers = (wi.id, wi.num_workers) if wi is not None else (0, 1)
+
+        consumers = world_size * num_workers
+        consumer_id = rank * num_workers + worker_id
+        return consumer_id, consumers
+
+    def _files_for_this_consumer(self):
+        # reshuffle the file list each epoch with a deterministic seed
+        seed = self.base_seed + self.epoch
+        rng = random.Random(seed)
+        shuffled = list(self.file_paths)
+        rng.shuffle(shuffled)
+
+        consumer_id, consumers = self._parallel_context()
+        # shard by file index for locality
+        return [f for i, f in enumerate(shuffled) if (i % consumers) == consumer_id]
