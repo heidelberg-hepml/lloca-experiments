@@ -1,13 +1,10 @@
+# transformer settings optimized by us
 iterations: 300000
 batchsize: 128
 
-# optimizer: default AdamW
 optimizer: Lion
-betas: [.9, .999]
-eps: 1e-8
 weight_decay: 2
 
-# LR: Default CosineAnnealingLR
 lr: 3e-5
 scheduler: CosineAnnealingWarmRestarts
 

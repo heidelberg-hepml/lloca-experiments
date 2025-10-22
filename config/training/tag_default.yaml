@@ -1,4 +1,5 @@
-iterations: 50000
+# agnostic default training hyperparameters for tagging
+iterations: ???
 batchsize: 512
 
 # optimizer: default AdamW

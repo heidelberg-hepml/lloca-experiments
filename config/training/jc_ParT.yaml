@@ -1,5 +1,6 @@
 # hyperparameters from https://arxiv.org/abs/2202.03772 section 5.1 and 5.2
 # alternatively https://github.com/jet-universe/particle_transformer/blob/main/train_TopLandscape.sh
+# note that in contrast to the official papers, we use the ParT settings also to train ParticleNet (we found better performance that way)
 weight_decay: 0
 iterations: 1000000
 validate_every_n_steps: 10000000

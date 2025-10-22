@@ -1,4 +1,0 @@
-# We found that training ParticleNet with the ParT setup gives better results
-
-defaults:
- - jc_ParT
