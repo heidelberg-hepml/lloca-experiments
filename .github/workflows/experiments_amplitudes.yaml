@@ -52,7 +52,7 @@ jobs:
 
     - name: GATr + IdentityFrames
       run: |
-        python run.py -cn amplitudes model=amp_gatr save=false evaluate=false training.iterations=3
+        python run.py -cn amplitudes model=amp_lgatr save=false evaluate=false training.iterations=3
 
     - name: DSI + IdentityFrames
       run: |
