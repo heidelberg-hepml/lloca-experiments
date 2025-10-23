@@ -136,23 +136,6 @@ def orthogonalize_gramschmidt(vecs, eps_norm=1e-15):
     e3 = lorentz_cross(e0, e1, e2)
     return torch.stack([e0, e1, e2, e3], dim=-2)
 
-    """
-    v_nexts = [v for v in vecs]
-    orthogonal_vecs = [vecs[0]]
-    for i in range(1, len(vecs)):
-        for k in range(i, len(vecs)):
-            v_inner = lorentz_inner(v_nexts[k], orthogonal_vecs[i - 1]).unsqueeze(-1)
-            v_norm = lorentz_squarednorm(orthogonal_vecs[i - 1]).unsqueeze(-1)
-            v_nexts[k] = v_nexts[k] - orthogonal_vecs[i - 1] * v_inner / (
-                v_norm + eps_norm
-            )
-        orthogonal_vecs.append(normalize_4d(v_nexts[i], eps_norm))
-    last_vec = normalize_4d(lorentz_cross(*orthogonal_vecs), eps_norm)
-    orthogonal_vecs.append(last_vec)
-
-    return orthogonal_vecs
-    """
-
 
 def orthogonalize_cross(vecs, eps_norm=1e-15):
     """Orthogonalization algorithm using repeated cross products.
@@ -213,7 +196,7 @@ def timelike_first(trafo):
     return trafo_reordered
 
 
-def regularize_lightlike(vecs, eps_reg_lightlike=1e-10):
+def regularize_lightlike(vecs, eps_reg_lightlike=1e-20):
     """If the Minkowski norm of a vector is close to zero,
     it is lightlike. In this case, we add a bit of noise to the vector
     to break the degeneracy and ensure that the orthogonalization works.
@@ -233,14 +216,14 @@ def regularize_lightlike(vecs, eps_reg_lightlike=1e-10):
         Number of vectors that were regularized due to being lightlike.
     """
     inners = lorentz_squarednorm(vecs)
-    mask = inners.abs() < eps_reg_lightlike**2
+    mask = inners.abs() < eps_reg_lightlike
 
     vecs_reg = vecs + mask.unsqueeze(-1) * eps_reg_lightlike * torch.randn_like(vecs)
     reg_lightlike = mask.any(dim=-1).sum()
     return vecs_reg, reg_lightlike
 
 
-def regularize_coplanar(vecs, eps_reg_coplanar=1e-10):
+def regularize_coplanar(vecs, eps_reg_coplanar=1e-20):
     """If the cross product of three vectors is close to zero,
     they are coplanar. In this case, we add a bit of noise to each vector
     to break the degeneracy and ensure that the orthogonalization works.
@@ -261,7 +244,7 @@ def regularize_coplanar(vecs, eps_reg_coplanar=1e-10):
     """
     v0, v1, v2 = vecs.unbind(dim=-2)
     cross_norm2 = lorentz_squarednorm(lorentz_cross(v0, v1, v2))
-    mask = cross_norm2.abs() < eps_reg_coplanar**2
+    mask = cross_norm2.abs() < eps_reg_coplanar
 
     vecs_reg = vecs + mask.unsqueeze(-1).unsqueeze(
         -1
