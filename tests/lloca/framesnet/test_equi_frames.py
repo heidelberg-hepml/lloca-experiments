@@ -5,13 +5,19 @@ from tests.helpers import sample_particle, lorentz_test, equivectors_builder
 
 from lloca.reps.tensorreps import TensorReps
 from lloca.reps.tensorreps_transform import TensorRepsTransform
-from lloca.utils.rand_transforms import rand_lorentz, rand_rotation, rand_xyrotation
+from lloca.utils.rand_transforms import (
+    rand_lorentz,
+    rand_rotation,
+    rand_ztransform,
+    rand_xyrotation,
+)
 from lloca.framesnet.frames import Frames
 from lloca.framesnet.equi_frames import (
     LearnedSO13Frames,
     LearnedRestFrames,
     LearnedPDFrames,
     LearnedSO3Frames,
+    LearnedZFrames,
     LearnedSO2Frames,
 )
 
@@ -23,6 +29,7 @@ from lloca.framesnet.equi_frames import (
         (LearnedRestFrames, rand_lorentz),
         (LearnedPDFrames, rand_lorentz),
         (LearnedSO3Frames, rand_rotation),
+        (LearnedZFrames, rand_ztransform),
         (LearnedSO2Frames, rand_xyrotation),
     ],
 )
@@ -76,6 +83,7 @@ def test_frames_transformation(
         (LearnedRestFrames, rand_lorentz),
         (LearnedPDFrames, rand_lorentz),
         (LearnedSO3Frames, rand_rotation),
+        (LearnedZFrames, rand_ztransform),
         (LearnedSO2Frames, rand_xyrotation),
     ],
 )

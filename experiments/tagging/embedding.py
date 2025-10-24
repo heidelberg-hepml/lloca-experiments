@@ -107,6 +107,7 @@ def embed_tagging_data(fourmomenta, scalars, ptr, cfg_data):
         global_tagging_features = get_tagging_features(
             fourmomenta,
             jet,
+            only_ztransform=cfg_data.only_ztransform_tagging_features,
         )
         global_tagging_features[is_spurion] = 0
     else:
@@ -234,7 +235,7 @@ def get_spurion(
     return spurion
 
 
-def get_tagging_features(fourmomenta, jet, eps=1e-10):
+def get_tagging_features(fourmomenta, jet, only_ztransform=False, eps=1e-10):
     """
     Compute features typically used in jet tagging
 
@@ -244,6 +245,9 @@ def get_tagging_features(fourmomenta, jet, eps=1e-10):
         Fourmomenta in the format (E, px, py, pz)
     jet: torch.tensor of shape (n_particles, 4)
         Jet momenta in the shape (E, px, py, pz)
+    only_ztransform: bool
+        Whether to use only features that are invariant under ztransforms,
+        i.e. rotations around the beam axis and boosts along the beam axis
     eps: float
 
     Returns
@@ -275,5 +279,13 @@ def get_tagging_features(fourmomenta, jet, eps=1e-10):
     for i, feature in enumerate(features):
         mean, factor = TAGGING_FEATURES_PREPROCESSING[i]
         features[i] = (feature - mean) * factor
+    if only_ztransform:
+        # exclude energy, because it is not invariant under z-boosts
+        ztransform_idx = [0, 2, 4, 5, 6]
+        features = [features[i] for i in ztransform_idx]
     features = torch.cat(features, dim=-1)
     return features
+
+
+def get_num_tagging_features(only_ztransform=False):
+    return 5 if only_ztransform else 7
