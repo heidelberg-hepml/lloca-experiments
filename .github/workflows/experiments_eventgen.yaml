@@ -52,4 +52,4 @@ jobs:
 
     - name: GATr
       run: |
-        python run.py -cn ttbar model=eg_gatr save=false evaluate=false training.iterations=3
+        python run.py -cn ttbar model=eg_lgatr save=false evaluate=false training.iterations=3

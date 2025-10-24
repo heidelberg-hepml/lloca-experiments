@@ -656,7 +656,7 @@ class BaseExperiment:
     def _step(self, data, step):
         # actual update step
         loss, metrics = self._batch_loss(data)
-        self.optimizer.zero_grad(set_to_none=True)
+        self.optimizer.zero_grad()
         self.scaler.scale(loss).backward()
 
         if self.cfg.training.log_grad_norm:
