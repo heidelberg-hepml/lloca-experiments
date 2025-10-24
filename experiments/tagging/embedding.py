@@ -246,7 +246,7 @@ def get_tagging_features(fourmomenta, jet, only_ztransform=False, eps=1e-10):
     jet: torch.tensor of shape (n_particles, 4)
         Jet momenta in the shape (E, px, py, pz)
     only_ztransform: bool
-        Whether to only features that are invariant under ztransforms,
+        Whether to use only features that are invariant under ztransforms,
         i.e. rotations around the beam axis and boosts along the beam axis
     eps: float
 

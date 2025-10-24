@@ -363,7 +363,7 @@ class LearnedZFrames(LearnedFrames):
         vecs = self.equivectors(fourmomenta, scalars=scalars, ptr=ptr)
         vecs = self.globalize_vecs_or_not(vecs, ptr)
         boost = vecs[..., 0, :]
-        boost[..., [1, 2]] = 0.0  # only z-boost
+        boost[..., [1, 2]] = 0.0  # only z-boost (keeps timelike vectors timelike)
         rotation_references = vecs[..., 1, :]
         boost, reg_gammamax, gamma_mean, gamma_max = clamp_boost(
             boost, gamma_max=self.gamma_max, gamma_hardness=self.gamma_hardness
