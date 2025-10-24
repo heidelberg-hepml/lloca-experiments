@@ -20,9 +20,10 @@ def restframe_boost(fourmomenta):
         Tensor of shape (..., 4, 4) representing the Lorentz transformation
         that boosts the four-momenta into their rest frame.
     """
-    assert (
-        lorentz_squarednorm(fourmomenta) > 0
-    ).all(), "Trying to boost spacelike vectors into their restframe (not possible). Consider changing the nonlinearity in equivectors."
+    # uncomment this for debugging (commented because causes GPU/CPU sync)
+    # assert (
+    #     lorentz_squarednorm(fourmomenta) > 0
+    # ).all(), "Trying to boost spacelike vectors into their restframe (not possible). Consider changing the nonlinearity in equivectors."
 
     # compute relevant quantities
     t0 = fourmomenta.narrow(-1, 0, 1)

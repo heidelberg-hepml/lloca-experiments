@@ -199,8 +199,10 @@ def timelike_first(trafo):
     """
     vecs = [trafo[..., i, :] for i in range(4)]
     norm = torch.stack([lorentz_squarednorm(v) for v in vecs], dim=-1)
-    num_pos_norm = (norm > 0).sum(dim=-1)
-    assert (num_pos_norm == 1).all(), "Don't always have exactly 1 timelike vector"
+
+    # uncomment this for debugging (commented because causes GPU/CPU sync)
+    # num_pos_norm = (norm > 0).sum(dim=-1)
+    # assert (num_pos_norm == 1).all(), "Don't always have exactly 1 timelike vector"
 
     idx = (norm > 0).to(torch.long).argmax(dim=-1)
     base3 = torch.arange(3, device=trafo.device)

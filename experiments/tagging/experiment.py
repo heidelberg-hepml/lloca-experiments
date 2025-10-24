@@ -33,6 +33,8 @@ class TaggingExperiment(BaseExperiment):
         elif modelname == "LorentzNet":
             self.cfg.model.net.n_scalar = self.extra_scalars
         elif modelname == "PELICAN":
+            self.cfg.model.net.in_channels_rank1 = self.extra_scalars
+        elif modelname == "PELICANOfficial":
             self.cfg.model.net.num_scalars = self.extra_scalars
         elif modelname == "CGENN":
             # CGENN cant handle zero scalar inputs -> give 1 input with zeros
@@ -370,6 +372,7 @@ class TaggingExperiment(BaseExperiment):
             ptr,
             self.cfg.data,
         )
+        embedding["num_graphs"] = label.shape[0]
         y_pred, tracker, frames = self.model(embedding)
         if isinstance(self.loss, torch.nn.BCEWithLogitsLoss):
             y_pred = y_pred[:, 0]

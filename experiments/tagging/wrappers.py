@@ -57,6 +57,7 @@ class TaggerWrapper(nn.Module):
         batch_withspurions = embedding["batch"]
         is_spurion = embedding["is_spurion"]
         ptr_withspurions = embedding["ptr"]
+        num_graphs = embedding["num_graphs"]
         nospurion_idxs = (~is_spurion).nonzero(as_tuple=False).squeeze(-1)
 
         # remove spurions from the data again and recompute attributes
@@ -77,6 +78,7 @@ class TaggerWrapper(nn.Module):
             scalars_withspurions,
             ptr=ptr_withspurions,
             return_tracker=True,
+            num_graphs=num_graphs,
         )
         matrices = frames_spurions.matrices.index_select(0, nospurion_idxs)
         frames_nospurions = Frames(
@@ -590,6 +592,59 @@ class LorentzNetWrapper(nn.Module):
 
 
 class PELICANWrapper(nn.Module):
+    def __init__(
+        self,
+        net,
+        framesnet,
+        out_channels,
+    ):
+        super().__init__()
+        self.net = net(out_channels=out_channels)
+
+        self.register_buffer("edge_inited", torch.tensor(False))
+        self.register_buffer("edge_mean", torch.tensor(0.0))
+        self.register_buffer("edge_std", torch.tensor(1.0))
+
+        self.framesnet = framesnet  # not actually used
+        assert isinstance(framesnet, IdentityFrames)
+
+    def forward(self, embedding):
+        # extract embedding (includes spurions)
+        fourmomenta = embedding["fourmomenta"]
+        scalars = embedding["scalars"]
+        batch = embedding["batch"]
+        ptr = embedding["ptr"]
+        is_spurion = embedding["is_spurion"]
+        num_graphs = embedding["num_graphs"]
+
+        # rescale fourmomenta (but not the spurions)
+        fourmomenta[~is_spurion] = fourmomenta[~is_spurion] / 20
+
+        edge_index = get_edge_index_from_ptr(
+            ptr, fourmomenta.shape, remove_self_loops=False
+        )
+        fourmomenta = fourmomenta.to(scalars.dtype)
+        edge_attr = self.get_edge_attr(fourmomenta, edge_index).to(scalars.dtype)
+        output = self.net(
+            in_rank2=edge_attr,
+            edge_index=edge_index,
+            batch=batch,
+            in_rank1=scalars,
+            num_graphs=num_graphs,
+        )
+        return output, {}, None
+
+    def get_edge_attr(self, fourmomenta, edge_index):
+        edge_attr = get_edge_attr(fourmomenta, edge_index)
+        if not self.edge_inited:
+            self.edge_mean = edge_attr.mean().detach()
+            self.edge_std = edge_attr.std().clamp(min=1e-5).detach()
+            self.edge_inited = torch.tensor(True, device=edge_attr.device)
+        edge_attr = (edge_attr - self.edge_mean) / self.edge_std
+        return edge_attr.unsqueeze(-1)
+
+
+class PELICANWrapperOfficial(nn.Module):
     def __init__(self, net, framesnet, out_channels):
         super().__init__()
         self.net = net(out_channels=out_channels)
