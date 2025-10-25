@@ -54,30 +54,42 @@ class LGATrVectors(EquiVectors):
         # get query and key from LGATr
         mv = embed_vector(fourmomenta).unsqueeze(-2).to(scalars.dtype)
         out_mv, out_s = self.net(mv, scalars, **attn_kwargs)
-        q_s, k_s = torch.chunk(out_s.to(fourmomenta.dtype), chunks=2, dim=-1)
-        q_mv, k_mv = torch.chunk(out_mv.to(fourmomenta.dtype), chunks=2, dim=-2)
-        qs_s = torch.chunk(q_s, chunks=self.n_vectors, dim=-1)
-        ks_s = torch.chunk(k_s, chunks=self.n_vectors, dim=-1)
-        qs_mv = torch.chunk(q_mv, chunks=self.n_vectors, dim=-2)
-        ks_mv = torch.chunk(k_mv, chunks=self.n_vectors, dim=-2)
 
-        # attention and final reshape
+        # extract q and k
+        q_mv, k_mv = torch.chunk(out_mv.to(fourmomenta.dtype), chunks=2, dim=-2)
+        q_s, k_s = torch.chunk(out_s.to(fourmomenta.dtype), chunks=2, dim=-1)
+
+        # unpack the n_vectors axis
+        q_mv = q_mv.reshape(*q_mv.shape[:-2], self.n_vectors, -1, q_mv.shape[-1])
+        k_mv = k_mv.reshape(*k_mv.shape[:-2], self.n_vectors, -1, k_mv.shape[-1])
+        q_s = q_s.reshape(*q_s.shape[:-1], self.n_vectors, -1)
+        k_s = k_s.reshape(*k_s.shape[:-1], self.n_vectors, -1)
+
+        # initialize values (v_mv=fourmomenta, v_s=empty)
         v_mv = embed_vector(fourmomenta).unsqueeze(-2)
-        v_s = torch.zeros_like(v_mv[..., [], 0])
-        out = []
-        for q_s, k_s, q_mv, k_mv in zip(qs_s, ks_s, qs_mv, ks_mv):
-            out_mv, _ = sdp_attention(
-                q_mv=q_mv,
-                k_mv=k_mv,
-                q_s=q_s,
-                k_s=k_s,
-                v_mv=v_mv,
-                v_s=v_s,
-                **attn_kwargs
-            )
-            out_v = extract_vector(out_mv)
-            out.append(out_v)
-        out = torch.stack(out, dim=-2)
+        v_mv = v_mv.unsqueeze(-3).expand(*q_mv.shape[:-2], *v_mv.shape[-2:])
+        v_s = torch.empty(*q_s.shape[:-1], 0, device=q_s.device, dtype=q_s.dtype)
+
+        # geometric attention between learned q, k and fixed v
+        # transpose to make the n_vectors axis a batch axis
+        q_mv, k_mv, v_mv = (
+            q_mv.transpose(-3, -4),
+            k_mv.transpose(-3, -4),
+            v_mv.transpose(-3, -4),
+        )
+        q_s, k_s, v_s = (
+            q_s.transpose(-2, -3),
+            k_s.transpose(-2, -3),
+            v_s.transpose(-2, -3),
+        )
+        out_mv, _ = sdp_attention(
+            q_mv=q_mv, k_mv=k_mv, q_s=q_s, k_s=k_s, v_mv=v_mv, v_s=v_s, **attn_kwargs
+        )
+        out_mv = out_mv.transpose(-3, -4)
+
+        # extract vector part of multivector output
+        out = extract_vector(out_mv).squeeze(-2)
+
         if ptr is not None:
-            out = out.squeeze(0)
+            out = out.squeeze(0)  # undo initial unsqueeze(0)
         return out
