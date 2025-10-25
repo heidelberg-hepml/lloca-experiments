@@ -5,6 +5,9 @@ n_vectors: null
 num_scalars: null
 hidden_mv_channels: 0
 hidden_s_channels: ${model.framesnet.equivectors.net.hidden_s_channels}
+compensate: false
+norm1: false
+norm2: false
 
 net:
  _target_: lgatr.nets.LGATr

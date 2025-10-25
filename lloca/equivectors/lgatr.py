@@ -1,6 +1,7 @@
 import torch
 from lgatr import embed_vector, extract_vector
 from lgatr.primitives.attention import sdp_attention
+from lgatr.layers import EquiLayerNorm
 
 from .base import EquiVectors
 from ..utils.utils import get_batch_from_ptr
@@ -17,9 +18,15 @@ class LGATrVectors(EquiVectors):
         hidden_mv_channels,
         hidden_s_channels,
         net,
+        compensate=False,
+        norm1=False,
+        norm2=False,
     ):
         super().__init__()
         self.n_vectors = n_vectors
+        if compensate:
+            hidden_mv_channels *= 2 * n_vectors
+            hidden_s_channels *= 2 * n_vectors
         out_mv_channels = (
             2 * n_vectors * max(1, hidden_mv_channels // (2 * n_vectors))
             if hidden_mv_channels > 0
@@ -35,6 +42,10 @@ class LGATrVectors(EquiVectors):
             out_mv_channels=out_mv_channels,
             out_s_channels=out_s_channels,
         )
+        self.norm1 = norm1
+        self.norm2 = norm2
+
+        self.norm = EquiLayerNorm()
 
     def init_standardization(self, fourmomenta, ptr=None):
         pass
@@ -54,6 +65,8 @@ class LGATrVectors(EquiVectors):
         # get query and key from LGATr
         mv = embed_vector(fourmomenta).unsqueeze(-2).to(scalars.dtype)
         out_mv, out_s = self.net(mv, scalars, **attn_kwargs)
+        if self.norm1:
+            out_mv, out_s = self.norm(out_mv, out_s)
 
         # extract q and k
         q_mv, k_mv = torch.chunk(out_mv.to(fourmomenta.dtype), chunks=2, dim=-2)
@@ -82,9 +95,11 @@ class LGATrVectors(EquiVectors):
             k_s.transpose(-2, -3),
             v_s.transpose(-2, -3),
         )
-        out_mv, _ = sdp_attention(
+        out_mv, out_s = sdp_attention(
             q_mv=q_mv, k_mv=k_mv, q_s=q_s, k_s=k_s, v_mv=v_mv, v_s=v_s, **attn_kwargs
         )
+        if self.norm2:
+            out_mv, out_s = self.norm(out_mv, out_s)
         out_mv = out_mv.transpose(-3, -4)
 
         # extract vector part of multivector output
