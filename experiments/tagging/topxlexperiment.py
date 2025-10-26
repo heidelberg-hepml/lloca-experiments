@@ -111,6 +111,7 @@ class TopXLTaggingExperiment(TaggingExperiment):
             batch_size=self.cfg.training.batchsize // self.world_size,
             drop_last=True,
             num_workers=num_workers["train"],
+            multiprocessing_context='fork',
             **self.loader_kwargs,
         )
         self.val_loader = DataLoader(
@@ -118,6 +119,7 @@ class TopXLTaggingExperiment(TaggingExperiment):
             batch_size=self.cfg.evaluation.batchsize // self.world_size,
             drop_last=True,
             num_workers=num_workers["val"],
+            multiprocessing_context='fork',
             **self.loader_kwargs,
         )
         self.test_loader = DataLoader(
@@ -125,6 +127,7 @@ class TopXLTaggingExperiment(TaggingExperiment):
             batch_size=self.cfg.evaluation.batchsize // self.world_size,
             drop_last=False,
             num_workers=num_workers["test"],
+            multiprocessing_context='fork',
             **self.loader_kwargs,
         )
 

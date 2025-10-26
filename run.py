@@ -26,7 +26,7 @@ def main(cfg):
         os.environ.setdefault("OMP_NUM_THREADS", "1")
 
         _set_common_env(world_size)
-        mp.spawn(ddp_worker, nprocs=world_size, args=(cfg,), join=True, daemon=False)
+        mp.spawn(ddp_worker, nprocs=world_size, args=(cfg,))
     else:
         # no GPU or only one GPU -> run on main process
         ddp_worker(rank=0, cfg=cfg)
