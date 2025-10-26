@@ -22,7 +22,7 @@ from tests.experiments.utils import track_clamps
         ["model=eg_mlp"],
         ["model=eg_transformer"],
         ["model=eg_graphnet"],
-        ["model=eg_gatr"],
+        ["model=eg_lgatr"],
     ],
 )
 @pytest.mark.skip("Clamping expected")
