@@ -7,7 +7,7 @@ data:
  dataset: full
 
 defaults:
- - tagging
- - training@: tag_top_default
+ - training: top_transformer
  - model@: tag_top_transformer
+ - tagging
  - _self_
