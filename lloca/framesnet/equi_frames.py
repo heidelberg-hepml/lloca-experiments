@@ -488,11 +488,11 @@ def clamp_boost(x, gamma_max, gamma_hardness):
     t0 = x.narrow(-1, 0, 1)
     beta = x[..., 1:] / t0.clamp_min(1e-10)
     gamma = t0 / mass
-    gamma_max = gamma.max().detach()
+    gamma_max_realized = gamma.max().detach()
     gamma_mean = gamma.mean().detach()
 
     if gamma_max is None:
-        return x, None, gamma_mean, gamma_max
+        return x, None, gamma_mean, gamma_max_realized
 
     else:
         # carefully clamp gamma to keep boosts under control
@@ -506,7 +506,7 @@ def clamp_boost(x, gamma_max, gamma_hardness):
         )
         beta_reg = beta * beta_scaling
         x_reg = mass * torch.cat((gamma_reg, gamma_reg * beta_reg), dim=-1)
-        return x_reg, reg_gammamax, gamma_mean, gamma_max
+        return x_reg, reg_gammamax, gamma_mean, gamma_max_realized
 
 
 def deterministic_boost(boost, ptr, deterministic_boost):
