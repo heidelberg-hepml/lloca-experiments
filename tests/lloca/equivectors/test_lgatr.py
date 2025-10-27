@@ -70,13 +70,11 @@ def test_equivariance(
     # path 1: global transform + predict vectors
     fm_prime = torch.einsum("...ij,...j->...i", random, fm)
     node_attr_prime = calc_node_attr(fm_prime)
-    vecs_prime1 = equivectors(fourmomenta=fm_prime, scalars=node_attr_prime, ptr=ptr)[
-        ..., 0, :, :
-    ]
+    vecs_prime1 = equivectors(fourmomenta=fm_prime, scalars=node_attr_prime, ptr=ptr)
 
     # path 2: predict vectors + global transform
     node_attr = calc_node_attr(fm)
-    vecs = equivectors(fourmomenta=fm, scalars=node_attr, ptr=ptr)[..., 0, :, :]
+    vecs = equivectors(fourmomenta=fm, scalars=node_attr, ptr=ptr)
     vecs_prime2 = torch.einsum("...ij,...kj->...ki", random, vecs)
 
     # test that vectors are predicted equivariantly
