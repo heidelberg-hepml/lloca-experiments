@@ -3,12 +3,7 @@ import math
 from torch_geometric.nn import MessagePassing
 
 from .base import EquiVectors
-from ..utils.utils import (
-    get_edge_index_from_shape,
-    get_edge_index_from_ptr,
-    get_edge_attr,
-    get_batch_from_ptr,
-)
+from ..utils.utils import get_edge_attr
 from ..utils.lorentz import lorentz_squarednorm
 from .equimlp import get_operation, get_nonlinearity, get_edge_index_and_batch
 

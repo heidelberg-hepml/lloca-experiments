@@ -47,9 +47,6 @@ class LGATrVectors(EquiVectors):
 
         self.norm = EquiLayerNorm()
 
-    def init_standardization(self, fourmomenta, ptr=None):
-        pass
-
     def forward(self, fourmomenta, scalars=None, ptr=None, **kwargs):
         attn_kwargs = {}
         if ptr is not None:

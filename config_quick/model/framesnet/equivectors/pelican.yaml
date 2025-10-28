@@ -26,4 +26,4 @@ net:
  factorize: false
  activation: leaky_relu
  aggr: mean
- compile: true
+ compile: false

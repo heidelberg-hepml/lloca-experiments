@@ -2,7 +2,7 @@
 import torch
 import math
 from torch_geometric.nn import MessagePassing
-from torch_geometric.utils import softmax, segment
+from torch_geometric.utils import segment
 
 from .base import EquiVectors
 from ..backbone.mlp import MLP
