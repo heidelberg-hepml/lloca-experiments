@@ -25,15 +25,10 @@ class LGATrVectors(EquiVectors):
         hidden_mv_channels,
         hidden_s_channels,
         net,
-        compensate=False,
-        norm1=False,
-        norm2=False,
+        lgatr_norm=False,
     ):
         super().__init__()
         self.n_vectors = n_vectors
-        if compensate:
-            hidden_mv_channels *= 2 * n_vectors
-            hidden_s_channels *= 2 * n_vectors
         out_mv_channels = (
             2 * n_vectors * max(1, hidden_mv_channels // (2 * n_vectors))
             if hidden_mv_channels > 0
@@ -49,10 +44,7 @@ class LGATrVectors(EquiVectors):
             out_mv_channels=out_mv_channels,
             out_s_channels=out_s_channels,
         )
-        self.norm1 = norm1
-        self.norm2 = norm2
-
-        self.norm = EquiLayerNorm()
+        self.lgatr_norm = EquiLayerNorm() if lgatr_norm else None
 
     def forward(self, fourmomenta, scalars=None, ptr=None, **kwargs):
         attn_kwargs = {}
@@ -69,8 +61,8 @@ class LGATrVectors(EquiVectors):
         # get query and key from LGATr
         mv = embed_vector(fourmomenta).unsqueeze(-2).to(scalars.dtype)
         out_mv, out_s = self.net(mv, scalars, **attn_kwargs)
-        if self.norm1:
-            out_mv, out_s = self.norm(out_mv, out_s)
+        if self.lgatr_norm is not None:
+            out_mv, out_s = self.lgatr_norm(out_mv, out_s)
 
         # extract q and k
         q_mv, k_mv = torch.chunk(out_mv.to(fourmomenta.dtype), chunks=2, dim=-2)
@@ -102,8 +94,6 @@ class LGATrVectors(EquiVectors):
         out_mv, out_s = sdp_attention(
             q_mv=q_mv, k_mv=k_mv, q_s=q_s, k_s=k_s, v_mv=v_mv, v_s=v_s, **attn_kwargs
         )
-        if self.norm2:
-            out_mv, out_s = self.norm(out_mv, out_s)
         out_mv = out_mv.transpose(-3, -4)
 
         # extract vector part of multivector output
@@ -127,14 +117,10 @@ class LGATrVectors2(EquiVectors, MessagePassing):
         aggr="sum",
         fm_norm=False,
         layer_norm=False,
-        compensate=True,
-        gatr_norm=True,
+        lgatr_norm=True,
     ):
         super().__init__(aggr=aggr)
         self.n_vectors = n_vectors
-        if compensate:
-            hidden_mv_channels *= 2 * n_vectors
-            hidden_s_channels *= 2 * n_vectors
         out_mv_channels = (
             2 * n_vectors * max(1, hidden_mv_channels // (2 * n_vectors))
             if hidden_mv_channels > 0
@@ -150,7 +136,7 @@ class LGATrVectors2(EquiVectors, MessagePassing):
             out_mv_channels=out_mv_channels,
             out_s_channels=out_s_channels,
         )
-        self.gatr_norm = EquiLayerNorm() if gatr_norm else None
+        self.lgatr_norm = EquiLayerNorm() if lgatr_norm else None
 
         self.operation = get_operation(operation)
         self.nonlinearity = get_nonlinearity(nonlinearity)
@@ -173,8 +159,8 @@ class LGATrVectors2(EquiVectors, MessagePassing):
         # get query and key from LGATr
         mv = embed_vector(fourmomenta).unsqueeze(-2).to(scalars.dtype)
         qk_mv, qk_s = self.net(mv, scalars, **attn_kwargs)
-        if self.gatr_norm is not None:
-            qk_mv, qk_s = self.gatr_norm(qk_mv, qk_s)
+        if self.lgatr_norm is not None:
+            qk_mv, qk_s = self.lgatr_norm(qk_mv, qk_s)
 
         # flatten for message passing
         edge_index, batch, ptr = get_edge_index_and_batch(
