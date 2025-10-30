@@ -6,4 +6,4 @@ iterations: 72000 # 15 epochs
 validate_every_n_steps: 4800 # after each epoch
 
 defaults:
- - tag_ParT
+ - top_ParT

@@ -1,0 +1,14 @@
+_target_: lloca.framesnet.equi_frames.LearnedZFrames
+is_global: false
+random: false
+fix_params: false
+gamma_max: null
+gamma_hardness: 10
+compile: false
+ortho_kwargs:
+ method: gramschmidt
+ eps_norm: 1e-15
+ eps_reg: 1e-10
+
+defaults:
+ - equivectors: equimlp

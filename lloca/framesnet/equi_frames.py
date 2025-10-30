@@ -115,8 +115,12 @@ class LearnedPDFrames(LearnedFrames):
         vecs = self.globalize_vecs_or_not(vecs, ptr)
         boost = vecs[..., 0, :]
         rotation_references = vecs[..., 1:, :]
-        boost = self._deterministic_boost(boost, ptr)
-        boost, reg_gammamax, gamma_mean, gamma_max = self._clamp_boost(boost)
+        boost = deterministic_boost(
+            boost, ptr, deterministic_boost=self.deterministic_boost
+        )
+        boost, reg_gammamax, gamma_mean, gamma_max = clamp_boost(
+            boost, gamma_max=self.gamma_max, gamma_hardness=self.gamma_hardness
+        )
 
         trafo, reg_lightlike, reg_collinear = self.polar_decomposition(
             boost,
@@ -134,55 +138,6 @@ class LearnedPDFrames(LearnedFrames):
             tracker["reg_gammamax"] = reg_gammamax
         frames = Frames(trafo, is_global=self.is_global)
         return (frames, tracker) if return_tracker else frames
-
-    def _clamp_boost(self, x):
-        mass = lorentz_squarednorm(x).clamp(min=0).sqrt().unsqueeze(-1)
-        t0 = x.narrow(-1, 0, 1)
-        beta = x[..., 1:] / t0.clamp_min(1e-10)
-        gamma = t0 / mass
-        gamma_max = gamma.max().detach()
-        gamma_mean = gamma.mean().detach()
-
-        if self.gamma_max is None:
-            return x, None, gamma_mean, gamma_max
-
-        else:
-            # carefully clamp gamma to keep boosts under control
-            reg_gammamax = (gamma > self.gamma_max).sum().detach()
-            gamma_reg = soft_clamp(
-                gamma, min=1, max=self.gamma_max, hardness=self.gamma_hardness
-            )
-            beta_scaling = (
-                torch.sqrt(
-                    torch.clamp(1 - 1 / gamma_reg.clamp(min=1e-10).square(), min=1e-10)
-                )
-                / (beta**2).sum(dim=-1, keepdim=True).clamp(min=1e-10).sqrt()
-            )
-            beta_reg = beta * beta_scaling
-            x_reg = mass * torch.cat((gamma_reg, gamma_reg * beta_reg), dim=-1)
-            return x_reg, reg_gammamax, gamma_mean, gamma_max
-
-    def _deterministic_boost(self, boost, ptr):
-        if self.deterministic_boost is None:
-            pass
-        elif self.deterministic_boost == "global":
-            # average boost vector over the event
-            boost = average_event(boost, ptr)
-        elif self.deterministic_boost == "local":
-            # average boost over all other particles in the event
-            boost_averaged = average_event(boost, ptr)
-            if ptr is None:
-                nparticles = boost.shape[1]
-            else:
-                diff = ptr[1:] - ptr[:-1]
-                nparticles = (diff).repeat_interleave(diff).unsqueeze(-1)
-            boost = boost_averaged - boost / nparticles
-        else:
-            raise ValueError(
-                f"Option deterministic_boost={self.deterministic_boost} not implemented"
-            )
-
-        return boost
 
 
 class LearnedSO13Frames(LearnedFrames):
@@ -358,6 +313,91 @@ class LearnedSO3Frames(LearnedFrames):
         return (frames, tracker) if return_tracker else frames
 
 
+class LearnedZFrames(LearnedFrames):
+    """Frames from ztransform,
+    i.e. combination of boost along z and rotation around z axis,
+    or SO(1,1)_z x SO(2)_z.
+
+    This is a special case of LearnedPolarDecompositionFrames
+    where the boost vector is constrained to point along the z-axis
+    and one of the rotation references is (0,0,0,1)."""
+
+    def __init__(
+        self,
+        *args,
+        gamma_max=None,
+        gamma_hardness=None,
+        compile=False,
+        **kwargs,
+    ):
+        super().__init__(*args, n_vectors=2, **kwargs)
+        self.gamma_max = gamma_max
+        self.gamma_hardness = gamma_hardness
+        if compile:
+            self.polar_decomposition = torch.compile(
+                polar_decomposition, dynamic=True, fullgraph=True
+            )
+        else:
+            self.polar_decomposition = polar_decomposition
+
+    def forward(self, fourmomenta, scalars=None, ptr=None, return_tracker=False):
+        """
+        Parameters
+        ----------
+        fourmomenta: torch.Tensor
+            Tensor of shape (..., 4) containing the four-momenta
+        scalars: torch.Tensor or None
+            Optional tensor of shape (..., n_scalars) containing additional scalar features
+        ptr: torch.Tensor or None
+            Pointer for sparse tensors, or None for dense tensors
+        return_tracker: bool
+            If True, return a tracker dictionary with regularization information
+
+        Returns
+        -------
+        Frames
+            Local frames constructed from the polar decomposition of the four-momenta
+        tracker: dict (optional)
+            Dictionary containing regularization information, if return_tracker is True
+        """
+        self.init_weights_or_not()
+        vecs = self.equivectors(fourmomenta, scalars=scalars, ptr=ptr)
+        vecs = self.globalize_vecs_or_not(vecs, ptr)
+        boost = vecs[..., 0, :]
+        boost[..., [1, 2]] = 0.0  # only z-boost (keeps timelike vectors timelike)
+        rotation_references = vecs[..., 1, :]
+        boost, reg_gammamax, gamma_mean, gamma_max = clamp_boost(
+            boost, gamma_max=self.gamma_max, gamma_hardness=self.gamma_hardness
+        )
+
+        spurion_references = lorentz_eye(
+            fourmomenta.shape[:-1],
+            device=fourmomenta.device,
+            dtype=fourmomenta.dtype,
+        )[
+            ..., 3
+        ]  # difference 2 compared LearnedPolarDecompositionFrames
+        rotation_references = torch.stack(
+            [rotation_references, spurion_references], dim=-2
+        )
+
+        trafo, reg_collinear = self.polar_decomposition(
+            boost,
+            rotation_references,
+            **self.ortho_kwargs,
+            return_reg=True,
+        )
+        tracker = {
+            "reg_collinear": reg_collinear,
+            "gamma_mean": gamma_mean,
+            "gamma_max": gamma_max,
+        }
+        if reg_gammamax is not None:
+            tracker["reg_gammamax"] = reg_gammamax
+        frames = Frames(trafo, is_global=self.is_global)
+        return (frames, tracker) if return_tracker else frames
+
+
 class LearnedSO2Frames(LearnedFrames):
     """Frames from SO(2) rotations around the beam axis.
 
@@ -432,6 +472,55 @@ class LearnedSO2Frames(LearnedFrames):
         tracker = {"reg_lightlike": reg_lightlike, "reg_collinear": reg_collinear}
         frames = Frames(trafo, is_global=self.is_global)
         return (frames, tracker) if return_tracker else frames
+
+
+def clamp_boost(x, gamma_max, gamma_hardness):
+    mass = lorentz_squarednorm(x).clamp(min=0).sqrt().unsqueeze(-1)
+    t0 = x.narrow(-1, 0, 1)
+    beta = x[..., 1:] / t0.clamp_min(1e-10)
+    gamma = t0 / mass
+    gamma_max_realized = gamma.max().detach()
+    gamma_mean = gamma.mean().detach()
+
+    if gamma_max is None:
+        return x, None, gamma_mean, gamma_max_realized
+
+    else:
+        # carefully clamp gamma to keep boosts under control
+        reg_gammamax = (gamma > gamma_max).sum().detach()
+        gamma_reg = soft_clamp(gamma, min=1, max=gamma_max, hardness=gamma_hardness)
+        beta_scaling = (
+            torch.sqrt(
+                torch.clamp(1 - 1 / gamma_reg.clamp(min=1e-10).square(), min=1e-10)
+            )
+            / (beta**2).sum(dim=-1, keepdim=True).clamp(min=1e-10).sqrt()
+        )
+        beta_reg = beta * beta_scaling
+        x_reg = mass * torch.cat((gamma_reg, gamma_reg * beta_reg), dim=-1)
+        return x_reg, reg_gammamax, gamma_mean, gamma_max_realized
+
+
+def deterministic_boost(boost, ptr, deterministic_boost):
+    if deterministic_boost is None:
+        pass
+    elif deterministic_boost == "global":
+        # average boost vector over the event
+        boost = average_event(boost, ptr)
+    elif deterministic_boost == "local":
+        # average boost over all other particles in the event
+        boost_averaged = average_event(boost, ptr)
+        if ptr is None:
+            nparticles = boost.shape[1]
+        else:
+            diff = ptr[1:] - ptr[:-1]
+            nparticles = (diff).repeat_interleave(diff).unsqueeze(-1)
+        boost = boost_averaged - boost / nparticles
+    else:
+        raise ValueError(
+            f"Option deterministic_boost={deterministic_boost} not implemented"
+        )
+
+    return boost
 
 
 def average_event(vecs, ptr=None):

@@ -5,4 +5,4 @@ lr: 1e-2
 weight_decay: 0
 
 defaults:
- - tag_ParT
+ - top_ParT

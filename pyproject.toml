@@ -3,7 +3,7 @@ requires = ["setuptools>=68", "wheel>=0.42"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "lloca"
+name = "lloca-experiments"
 version = "1.0.0"
 requires-python = ">=3.10"
 

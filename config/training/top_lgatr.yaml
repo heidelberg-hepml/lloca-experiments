@@ -1,3 +1,4 @@
+# L-GATr top-tagging parameters, see https://arxiv.org/abs/2411.00446
 iterations: 200000
 batchsize: 128
 

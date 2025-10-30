@@ -68,4 +68,4 @@ jobs:
 
     - name: GATr
       run: |
-        python run.py model=tag_gatr save=false evaluate=false training.iterations=3
+        python run.py model=tag_lgatr save=false evaluate=false training.iterations=3

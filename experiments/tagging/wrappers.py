@@ -29,11 +29,13 @@ class TaggerWrapper(nn.Module):
         out_channels: int,
         framesnet,
         add_fourmomenta_backbone: bool = False,
+        only_ztransform_tagging_features: bool = False,
     ):
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.add_fourmomenta_backbone = add_fourmomenta_backbone
+        self.only_ztransform_tagging_features = only_ztransform_tagging_features
         self.framesnet = framesnet
         self.trafo_fourmomenta = TensorRepsTransform(TensorReps("1x1n"))
 
@@ -103,6 +105,7 @@ class TaggerWrapper(nn.Module):
         local_tagging_features_nospurions = get_tagging_features(
             fourmomenta_local_nospurions,
             jet_local_nospurions,
+            only_ztransform=self.only_ztransform_tagging_features,
         )
 
         features_local_nospurions = torch.cat(

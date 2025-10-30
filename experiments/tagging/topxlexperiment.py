@@ -105,25 +105,29 @@ class TopXLTaggingExperiment(TaggingExperiment):
             label: min(self.cfg.topxl_params.num_workers, self.num_files[label])
             for label in ["train", "test", "val"]
         }
+
         self.train_loader = DataLoader(
             dataset=self.data_train,
-            batch_size=self.cfg.training.batchsize,
+            batch_size=self.cfg.training.batchsize // self.world_size,
             drop_last=True,
             num_workers=num_workers["train"],
+            multiprocessing_context="fork",
             **self.loader_kwargs,
         )
         self.val_loader = DataLoader(
             dataset=self.data_val,
-            batch_size=self.cfg.evaluation.batchsize,
+            batch_size=self.cfg.evaluation.batchsize // self.world_size,
             drop_last=True,
             num_workers=num_workers["val"],
+            multiprocessing_context="fork",
             **self.loader_kwargs,
         )
         self.test_loader = DataLoader(
             dataset=self.data_test,
-            batch_size=self.cfg.evaluation.batchsize,
+            batch_size=self.cfg.evaluation.batchsize // self.world_size,
             drop_last=False,
             num_workers=num_workers["test"],
+            multiprocessing_context="fork",
             **self.loader_kwargs,
         )
 
