@@ -341,16 +341,33 @@ class BaseExperiment:
 
     def _init_optimizer(self, param_groups=None):
         if param_groups is None:
+            is_bias = lambda param: param.ndim == 1
             param_groups = [
                 {
-                    "params": self.model.net.parameters(),
+                    "params": [
+                        p for p in self.model.net.parameters() if not is_bias(p)
+                    ],
                     "lr": self.cfg.training.lr,
                     "weight_decay": self.cfg.training.weight_decay,
                 },
                 {
-                    "params": self.model.framesnet.parameters(),
+                    "params": [p for p in self.model.net.parameters() if is_bias(p)],
+                    "lr": self.cfg.training.lr,
+                    "weight_decay": 0,
+                },
+                {
+                    "params": [
+                        p for p in self.model.framesnet.parameters() if not is_bias(p)
+                    ],
                     "lr": self.cfg.training.lr_factor_framesnet * self.cfg.training.lr,
                     "weight_decay": self.cfg.training.weight_decay_framesnet,
+                },
+                {
+                    "params": [
+                        p for p in self.model.framesnet.parameters() if is_bias(p)
+                    ],
+                    "lr": self.cfg.training.lr_factor_framesnet * self.cfg.training.lr,
+                    "weight_decay": 0,
                 },
             ]
 
