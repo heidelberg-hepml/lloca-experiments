@@ -196,10 +196,11 @@ def timelike_first(trafo):
     return trafo_reordered
 
 
-def regularize_lightlike(vecs, eps_reg_lightlike=1e-20):
+def regularize_lightlike(vecs, eps_reg_lightlike=1e-16):
     """If the Minkowski norm of a vector is close to zero,
     it is lightlike. In this case, we add a bit of noise to the vector
     to break the degeneracy and ensure that the orthogonalization works.
+    The noise is sampled such that the resulting vector is timelike.
 
     Parameters
     ----------
@@ -218,12 +219,19 @@ def regularize_lightlike(vecs, eps_reg_lightlike=1e-20):
     inners = lorentz_squarednorm(vecs)
     mask = inners.abs() < eps_reg_lightlike
 
-    vecs_reg = vecs + mask.unsqueeze(-1) * eps_reg_lightlike * torch.randn_like(vecs)
+    # calculate the 3-norm and set the 0th-component accordingly
+    randn_vecs = torch.randn_like(vecs).abs()
+    randn_vecs_3sqnorm = (randn_vecs[..., 1:] ** 2).sum(dim=-1)
+    randn_vecs[..., 0] = (
+        2 * randn_vecs_3sqnorm
+    ).sqrt()  # heuristic factor of 2 to ensure timelike
+
+    vecs_reg = vecs + mask.unsqueeze(-1) * eps_reg_lightlike * randn_vecs
     reg_lightlike = mask.any(dim=-1).sum()
     return vecs_reg, reg_lightlike
 
 
-def regularize_coplanar(vecs, eps_reg_coplanar=1e-20):
+def regularize_coplanar(vecs, eps_reg_coplanar=1e-16):
     """If the cross product of three vectors is close to zero,
     they are coplanar. In this case, we add a bit of noise to each vector
     to break the degeneracy and ensure that the orthogonalization works.
