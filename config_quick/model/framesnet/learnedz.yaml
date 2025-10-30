@@ -6,6 +6,7 @@ gamma_max: null
 gamma_hardness: 10
 compile: false
 ortho_kwargs:
+ use_float64: true
  method: gramschmidt
  eps_norm: 1e-15
  eps_reg: 1e-10
