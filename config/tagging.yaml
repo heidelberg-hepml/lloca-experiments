@@ -7,8 +7,6 @@ data:
  add_time_reference: true
  mass_reg: 5e-3
  spurion_scale: 1
- boost_jet: false
- normalize_spurions: false
  momentum_float64: true
 
 evaluation:

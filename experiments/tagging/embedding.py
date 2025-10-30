@@ -101,10 +101,6 @@ def embed_tagging_data(fourmomenta, scalars, ptr, cfg_data):
         jet = scatter(fourmomenta, batch, dim=0, reduce="sum").index_select(0, batch)
         jet_boost = restframe_boost(jet)
         fourmomenta = torch.einsum("ijk,ik->ij", jet_boost, fourmomenta)
-        if cfg_data.normalize_spurions:
-            # divide spurions by their energy
-            spurion_energy = (fourmomenta[is_spurion][:, 0]).unsqueeze(1)
-            fourmomenta[is_spurion] = fourmomenta[is_spurion] / (spurion_energy + EPS)
 
     if cfg_data.add_tagging_features_framesnet:
         jet = scatter(fourmomenta, batch, dim=0, reduce="sum").index_select(0, batch)
