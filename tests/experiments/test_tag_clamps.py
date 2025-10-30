@@ -43,7 +43,7 @@ def test_tagging(framesnet, model_list, iterations=1):
             "data.add_time_reference=false",
         ]
         cfg = hydra.compose(config_name="toptagging", overrides=overrides)
-        exp = TopTaggingExperiment(cfg)
+        exp = TopTaggingExperiment(cfg, 0, 1)
     exp._init()
     exp.init_physics()
     try:

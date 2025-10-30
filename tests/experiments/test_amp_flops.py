@@ -15,7 +15,7 @@ from experiments.amplitudes.experiment import AmplitudeExperiment
         ["model=amp_graphnet"],
         ["model=amp_graphnet", "model.include_edges=false"],
         ["model=amp_graphnet", "model.include_nodes=false"],
-        ["model=amp_gatr"],
+        ["model=amp_lgatr"],
         ["model=amp_dsi"],
     ],
 )
@@ -32,7 +32,7 @@ def test_amplitudes(framesnet, model_list):
             "data.dataset=zgggg_mini",
         ]
         cfg = hydra.compose(config_name="amplitudes", overrides=overrides)
-        exp = AmplitudeExperiment(cfg)
+        exp = AmplitudeExperiment(cfg, 0, 1)
     exp._init()
     exp.init_physics()
     try:

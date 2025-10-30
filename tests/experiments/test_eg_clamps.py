@@ -39,7 +39,7 @@ def test_amplitudes(framesnet, model_list, iterations=1):
             "save=false",
         ]
         cfg = hydra.compose(config_name="ttbar", overrides=overrides)
-        exp = ttbarExperiment(cfg)
+        exp = ttbarExperiment(cfg, 0, 1)
     exp._init()
     exp.init_physics()
     try:

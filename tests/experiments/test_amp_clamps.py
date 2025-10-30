@@ -24,7 +24,7 @@ from tests.experiments.utils import track_clamps
         ["model=amp_graphnet"],
         ["model=amp_graphnet", "model.include_edges=false"],
         ["model=amp_graphnet", "model.include_nodes=false"],
-        ["model=amp_gatr"],
+        ["model=amp_lgatr"],
         ["model=amp_dsi"],
     ],
 )
@@ -40,7 +40,7 @@ def test_amplitudes(framesnet, model_list, iterations):
             "save=false",
         ]
         cfg = hydra.compose(config_name="amplitudes", overrides=overrides)
-        exp = AmplitudeExperiment(cfg)
+        exp = AmplitudeExperiment(cfg, 0, 1)
     exp._init()
     exp.init_physics()
     try:

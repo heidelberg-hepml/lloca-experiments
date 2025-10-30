@@ -19,7 +19,7 @@ from experiments.eventgen.processes import ttbarExperiment
         ["model=eg_mlp"],
         ["model=eg_transformer"],
         ["model=eg_graphnet"],
-        ["model=eg_gatr"],
+        ["model=eg_lgatr"],
     ],
 )
 def test_amplitudes(framesnet, model_list, iterations=1):
@@ -35,7 +35,7 @@ def test_amplitudes(framesnet, model_list, iterations=1):
             "data.data_path_0j=data/ttbar_0j_mini.npy",
         ]
         cfg = hydra.compose(config_name="ttbar", overrides=overrides)
-        exp = ttbarExperiment(cfg)
+        exp = ttbarExperiment(cfg, 0, 1)
     exp._init()
     exp.init_physics()
     try:

@@ -31,7 +31,6 @@ BREAKING = [
     list(
         [
             ["model=tag_ParT"],
-            ["model=tag_particlenet-lite"],
             ["model=tag_transformer"],
             ["model=tag_graphnet"],
             ["model=tag_graphnet", "model.include_edges=true"],
@@ -59,7 +58,7 @@ def test_amplitudes(
             *breaking_list,
         ]
         cfg = hydra.compose(config_name="toptagging", overrides=overrides)
-        exp = TopTaggingExperiment(cfg)
+        exp = TopTaggingExperiment(cfg, 0, 1)
     exp._init()
     exp.init_physics()
     exp.init_model()

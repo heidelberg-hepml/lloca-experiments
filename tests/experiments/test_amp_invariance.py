@@ -37,7 +37,7 @@ def test_amplitudes(
             "save=false",
         ]
         cfg = hydra.compose(config_name="amplitudes", overrides=overrides)
-        exp = AmplitudeExperiment(cfg)
+        exp = AmplitudeExperiment(cfg, 0, 1)
     exp._init()
     exp.init_physics()
     exp.init_model()
