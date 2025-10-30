@@ -381,13 +381,14 @@ class LearnedZFrames(LearnedFrames):
             [rotation_references, spurion_references], dim=-2
         )
 
-        trafo, reg_collinear = self.polar_decomposition(
+        trafo, reg_lightlike, reg_collinear = self.polar_decomposition(
             boost,
             rotation_references,
             **self.ortho_kwargs,
             return_reg=True,
         )
         tracker = {
+            "reg_lightlike": reg_lightlike,
             "reg_collinear": reg_collinear,
             "gamma_mean": gamma_mean,
             "gamma_max": gamma_max,

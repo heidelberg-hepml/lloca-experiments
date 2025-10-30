@@ -79,7 +79,7 @@ def polar_decomposition(fourmomenta, references, return_reg=False, **kwargs):
         fourmomenta = fourmomenta.to(torch.float64)
         references = references.to(torch.float64)
 
-    # regularize lightlike fourmomenta
+    # fourmomenta for boost must be timelike
     eps_reg_lightlike = kwargs.get("eps_reg_lightlike", None)
     if eps_reg_lightlike is not None:
         fourmomenta, reg_lightlike_1 = regularize_lightlike(
