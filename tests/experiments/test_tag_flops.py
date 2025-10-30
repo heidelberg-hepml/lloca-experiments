@@ -8,6 +8,7 @@ from experiments.tagging.experiment import TopTaggingExperiment
 
 
 @pytest.mark.parametrize("framesnet", ["identity", "learnedpd"])
+@pytest.mark.parametrize("equivectors", ["equimlp", "lgatr", "pelican"])
 @pytest.mark.parametrize(
     "model_list",
     [
@@ -23,7 +24,7 @@ from experiments.tagging.experiment import TopTaggingExperiment
         ["model=tag_pelican_fair"],
     ],
 )
-def test_tagging(framesnet, model_list, jet_size=50):
+def test_tagging(framesnet, model_list, equivectors, jet_size=50):
     experiments.logger.LOGGER.disabled = True  # turn off logging
 
     # create experiment environment
@@ -35,6 +36,8 @@ def test_tagging(framesnet, model_list, jet_size=50):
             "training.batchsize=1",
             "data.dataset=mini",
         ]
+        if framesnet != "identity":
+            overrides.append(f"model/framesnet/equivectors={equivectors}")
         cfg = hydra.compose(config_name="toptagging", overrides=overrides)
         exp = TopTaggingExperiment(cfg)
     exp._init()
@@ -64,5 +67,6 @@ def test_tagging(framesnet, model_list, jet_size=50):
         f"flops(batchsize=1)={flops:.2e}; parameters={num_parameters}",
         model_list,
         framesnet,
+        equivectors,
     )
     # print(flop_counter.get_table(depth=2))
