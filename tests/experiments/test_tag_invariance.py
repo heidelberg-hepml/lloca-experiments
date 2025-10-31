@@ -31,7 +31,6 @@ BREAKING = [
     list(
         [
             ["model=tag_ParT"],
-            ["model=tag_particlenet-lite"],
             ["model=tag_transformer"],
             ["model=tag_graphnet"],
             ["model=tag_graphnet", "model.include_edges=true"],

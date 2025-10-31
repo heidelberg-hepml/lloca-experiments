@@ -9,5 +9,8 @@ class EquiVectors(nn.Module):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+    def init_standardization(self, fourmomenta, ptr=None):
+        pass
+
     def forward(self, fourmomenta, scalars, *args, **kwargs):
         raise NotImplementedError

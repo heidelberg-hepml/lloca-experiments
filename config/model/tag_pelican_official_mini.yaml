@@ -1,0 +1,13 @@
+_target_: experiments.tagging.wrappers.PELICANWrapperOfficial
+out_channels: null
+
+net:
+ _target_: experiments.baselines.pelican.pelican.PELICANOfficial
+ _partial_: true
+
+ num_scalars: null
+ num_channels_1: 60
+ num_channels_2: 35
+
+defaults:
+ - framesnet: identity

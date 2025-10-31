@@ -15,7 +15,7 @@ from experiments.amplitudes.experiment import AmplitudeExperiment
         ["model=amp_graphnet"],
         ["model=amp_graphnet", "model.include_edges=false"],
         ["model=amp_graphnet", "model.include_nodes=false"],
-        ["model=amp_gatr"],
+        ["model=amp_lgatr"],
         ["model=amp_dsi"],
     ],
 )

@@ -26,7 +26,7 @@ MIN_STEP_SKIP = 1000
 
 
 class BaseExperiment:
-    def __init__(self, cfg, rank, world_size):
+    def __init__(self, cfg, rank=0, world_size=1):
         self.cfg = cfg
         self.rank = rank
         self.world_size = world_size
@@ -558,6 +558,7 @@ class BaseExperiment:
             f"while validating every {self.cfg.training.validate_every_n_steps} iterations"
         )
         self.training_start_time = time.time()
+        self.training_start_time_corrected = time.time()  # reset at first iteration
         train_time, val_time = 0.0, 0.0
 
         # recycle trainloader
@@ -609,12 +610,15 @@ class BaseExperiment:
                     self.scheduler.step(val_loss)
 
             # output
+            if step == 0:
+                self.training_start_time_corrected = time.time()
             dt = time.time() - self.training_start_time
             if (
                 step in [0, 9, 99, 999, 9999, 99999]
                 or (step + 1) % self.cfg.training.validate_every_n_steps == 0
             ):
-                dt_estimate = dt * self.cfg.training.iterations / (step + 1)
+                dt_corrected = time.time() - self.training_start_time_corrected
+                dt_estimate = dt_corrected * self.cfg.training.iterations / (step + 1)
                 LOGGER.info(
                     f"Finished iteration {step+1} after {dt:.2f}s, "
                     f"training time estimate: {dt_estimate/60:.2f}min "
@@ -761,7 +765,8 @@ class BaseExperiment:
             log_dict = {
                 "loss": loss.item(),
                 "lr": self.train_lr[-1],
-                "time_per_step": (time.time() - self.training_start_time) / (step + 1),
+                "time_per_step": (time.time() - self.training_start_time_corrected)
+                / (step + 1),
                 "grad_norm": grad_norm,
                 "grad_norm_frames": grad_norm_frames,
                 "grad_norm_net": grad_norm_net,
