@@ -347,7 +347,9 @@ class LearnedZFrames(LearnedFrames):
         else:
             self.polar_decomposition = polar_decomposition
 
-    def forward(self, fourmomenta, scalars=None, ptr=None, return_tracker=False):
+    def forward(
+        self, fourmomenta, scalars=None, ptr=None, return_tracker=False, **kwargs
+    ):
         """
         Parameters
         ----------
