@@ -65,8 +65,8 @@ class LGATrVectors(EquiVectors):
             out_mv, out_s = self.lgatr_norm(out_mv, out_s)
 
         # extract q and k
-        q_mv, k_mv = torch.chunk(out_mv.to(fourmomenta.dtype), chunks=2, dim=-2)
-        q_s, k_s = torch.chunk(out_s.to(fourmomenta.dtype), chunks=2, dim=-1)
+        q_mv, k_mv = torch.chunk(out_mv, chunks=2, dim=-2)
+        q_s, k_s = torch.chunk(out_s, chunks=2, dim=-1)
 
         # unpack the n_vectors axis
         q_mv = q_mv.reshape(*q_mv.shape[:-2], self.n_vectors, -1, q_mv.shape[-1])
@@ -75,7 +75,7 @@ class LGATrVectors(EquiVectors):
         k_s = k_s.reshape(*k_s.shape[:-1], self.n_vectors, -1)
 
         # initialize values (v_mv=fourmomenta, v_s=empty)
-        v_mv = embed_vector(fourmomenta).unsqueeze(-2)
+        v_mv = embed_vector(fourmomenta).unsqueeze(-2).to(q_mv.dtype)
         v_mv = v_mv.unsqueeze(-3).expand(*q_mv.shape[:-2], *v_mv.shape[-2:])
         v_s = torch.empty(*q_s.shape[:-1], 0, device=q_s.device, dtype=q_s.dtype)
 
@@ -98,6 +98,7 @@ class LGATrVectors(EquiVectors):
 
         # extract vector part of multivector output
         out = extract_vector(out_mv).squeeze(-2)
+        out = out.to(fourmomenta.dtype)
 
         if ptr is not None:
             out = out.squeeze(0)  # undo initial unsqueeze(0)
