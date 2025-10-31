@@ -19,7 +19,7 @@ from experiments.eventgen.processes import ttbarExperiment
         ["model=eg_mlp"],
         ["model=eg_transformer"],
         ["model=eg_graphnet"],
-        ["model=eg_gatr"],
+        ["model=eg_lgatr"],
     ],
 )
 def test_amplitudes(framesnet, model_list, iterations=1):

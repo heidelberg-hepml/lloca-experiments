@@ -13,11 +13,10 @@ from experiments.tagging.experiment import TopTaggingExperiment
     [
         ["model=tag_ParT"],
         ["model=tag_particlenet"],
-        ["model=tag_particlenet-lite"],
         ["model=tag_transformer"],
         ["model=tag_graphnet"],
         ["model=tag_graphnet", "model.include_edges=true"],
-        ["model=tag_gatr"],
+        ["model=tag_lgatr"],
         ["model=tag_MIParT"],
         ["model=tag_MIParT-L"],
     ],
