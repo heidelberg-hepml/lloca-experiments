@@ -216,6 +216,7 @@ def regularize_lightlike(vecs, eps_reg_lightlike=1e-16):
     reg_lightlike : int
         Number of vectors that were regularized due to being lightlike.
     """
+    eps_reg_lightlike = max(eps_reg_lightlike, torch.finfo(vecs.dtype).eps)
     inners = lorentz_squarednorm(vecs)
     mask = inners.abs() < eps_reg_lightlike
 
@@ -250,6 +251,7 @@ def regularize_coplanar(vecs, eps_reg_coplanar=1e-16):
     reg_coplanar : int
         Number of vectors that were regularized due to coplanarity.
     """
+    eps_reg_coplanar = max(eps_reg_coplanar, torch.finfo(vecs.dtype).eps)
     v0, v1, v2 = vecs.unbind(dim=-2)
     cross_norm2 = lorentz_squarednorm(lorentz_cross(v0, v1, v2))
     mask = cross_norm2.abs() < eps_reg_coplanar
@@ -277,6 +279,7 @@ def normalize_4d(v, eps=1e-15):
     torch.Tensor
         Normalized Minkowski vector of shape (..., 4).
     """
+    eps = max(eps, torch.finfo(v.dtype).eps)
     norm = lorentz_squarednorm(v).unsqueeze(-1)
     norm = norm.abs().sqrt()
     return v / (norm + eps)
