@@ -40,7 +40,7 @@ def test_amplitudes(framesnet, model_list, iterations):
             "save=false",
         ]
         cfg = hydra.compose(config_name="amplitudes", overrides=overrides)
-        exp = AmplitudeExperiment(cfg, 0, 1)
+        exp = AmplitudeExperiment(cfg)
     exp._init()
     exp.init_physics()
     try:

@@ -58,7 +58,7 @@ def test_amplitudes(
             *breaking_list,
         ]
         cfg = hydra.compose(config_name="toptagging", overrides=overrides)
-        exp = TopTaggingExperiment(cfg, 0, 1)
+        exp = TopTaggingExperiment(cfg)
     exp._init()
     exp.init_physics()
     exp.init_model()

@@ -53,7 +53,7 @@ def test_amplitudes(
             *breaking_list,
         ]
         cfg = hydra.compose(config_name="ttbar", overrides=overrides)
-        exp = ttbarExperiment(cfg, 0, 1)
+        exp = ttbarExperiment(cfg)
     exp._init()
     exp.init_physics()
     exp.init_model()
