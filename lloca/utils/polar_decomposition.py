@@ -73,7 +73,7 @@ def polar_decomposition(fourmomenta, references, return_reg=False, **kwargs):
     """
     assert fourmomenta.shape[:-1] == references.shape[:-2]
 
-    use_float64 = kwargs.pop("use_float64", True)
+    use_float64 = kwargs.get("use_float64", True)
     if use_float64:
         original_dtype = fourmomenta.dtype
         fourmomenta = fourmomenta.to(torch.float64)
