@@ -63,6 +63,7 @@ class TensorRepsTransform(torch.nn.Module):
 
         self.has_higher_orders = self.reps.max_rep.rep.order > 0
 
+    @torch.autocast("cuda", enabled=False)
     def forward(self, tensor: torch.Tensor, frames: Frames):
         """Apply a transformation to a tensor of a given representation.
 
