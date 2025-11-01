@@ -15,8 +15,8 @@ net:
  _partial_: true
 
  num_blocks: 1
- hidden_channels: 24
- increase_hidden_channels: 1
+ hidden_channels: 32
+ increase_hidden_channels: 0.5
  in_channels_rank0: 0
  in_channels_rank1: null
  in_channels_rank2: 1
