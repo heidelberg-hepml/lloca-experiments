@@ -386,7 +386,7 @@ class Transformer(nn.Module):
         for block in self.blocks:
             if self.checkpoint_blocks:
                 fn = partial(block, **attn_kwargs)
-                h = checkpoint(fn, h)
+                h = checkpoint(fn, h, use_reentrant=False)
             else:
                 h = block(h, **attn_kwargs)
         outputs = self.linear_out(h)

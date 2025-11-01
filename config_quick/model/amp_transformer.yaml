@@ -12,6 +12,7 @@ net:
  num_blocks: 2
  num_heads: 2
  mlp_factor: 2
+ checkpoint_blocks: false
 
 defaults:
  - framesnet: identity

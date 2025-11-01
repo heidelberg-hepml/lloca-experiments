@@ -17,7 +17,8 @@ net:
  num_blocks: 10
  num_heads: 8
  mlp_factor: 4
- attention_factor: 1
+ dropout_prob: null
+ checkpoint_blocks: false
 
 defaults:
  - framesnet: identity

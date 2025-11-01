@@ -176,6 +176,7 @@ class GraphNet(nn.Module):
                     edge_index=edge_index,
                     batch=batch,
                     edge_attr=edge_attr,
+                    use_reentrant=False,
                 )
             else:
                 x = block(
