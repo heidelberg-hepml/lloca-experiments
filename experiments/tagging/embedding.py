@@ -102,21 +102,14 @@ def embed_tagging_data(fourmomenta, scalars, ptr, cfg_data):
         jet_boost = restframe_boost(jet)
         fourmomenta = torch.einsum("ijk,ik->ij", jet_boost, fourmomenta)
 
-    if cfg_data.add_tagging_features_framesnet:
-        jet = scatter(fourmomenta, batch, dim=0, reduce="sum").index_select(0, batch)
-        global_tagging_features = get_tagging_features(
-            fourmomenta,
-            jet,
-            only_ztransform=cfg_data.only_ztransform_tagging_features,
-        )
-        global_tagging_features[is_spurion] = 0
-    else:
-        global_tagging_features = torch.zeros(
-            fourmomenta.shape[0],
-            0,
-            dtype=fourmomenta.dtype,
-            device=fourmomenta.device,
-        )
+    jet = scatter(fourmomenta, batch, dim=0, reduce="sum").index_select(0, batch)
+    global_tagging_features = get_tagging_features(
+        fourmomenta,
+        jet,
+        tagging_features=cfg_data.tagging_features_framesnet,
+    )
+    global_tagging_features[is_spurion] = 0
+
     global_tagging_features = global_tagging_features.to(scalars.dtype)
 
     embedding = {
@@ -235,7 +228,7 @@ def get_spurion(
     return spurion
 
 
-def get_tagging_features(fourmomenta, jet, only_ztransform=False, eps=1e-10):
+def get_tagging_features(fourmomenta, jet, tagging_features="all", eps=1e-10):
     """
     Compute features typically used in jet tagging
 
@@ -245,9 +238,9 @@ def get_tagging_features(fourmomenta, jet, only_ztransform=False, eps=1e-10):
         Fourmomenta in the format (E, px, py, pz)
     jet: torch.tensor of shape (n_particles, 4)
         Jet momenta in the shape (E, px, py, pz)
-    only_ztransform: bool
-        Whether to use only features that are invariant under ztransforms,
-        i.e. rotations around the beam axis and boosts along the beam axis
+    tagging_features: str
+        Type of tagging features to include. Options are None, 'all', 'zinvariant', 'so3invariant'.
+        Note that all features are SO(2)-invariant.
     eps: float
 
     Returns
@@ -279,13 +272,29 @@ def get_tagging_features(fourmomenta, jet, only_ztransform=False, eps=1e-10):
     for i, feature in enumerate(features):
         mean, factor = TAGGING_FEATURES_PREPROCESSING[i]
         features[i] = (feature - mean) * factor
-    if only_ztransform:
+    if tagging_features == "zinvariant":
         # exclude energy, because it is not invariant under z-boosts
-        ztransform_idx = [0, 2, 4, 5, 6]
-        features = [features[i] for i in ztransform_idx]
+        idx = [0, 2, 4, 5, 6]
+    elif tagging_features == "so3invariant":
+        # exclude everything except energy, because it is not invariant under SO(3) rotations
+        idx = [1, 3]
+    elif tagging_features is None:
+        return torch.zeros(
+            features[0].shape[0], 0, device=fourmomenta.device, dtype=fourmomenta.dtype
+        )
+    else:
+        idx = list(range(len(features)))
+    features = [features[i] for i in idx]
     features = torch.cat(features, dim=-1)
     return features
 
 
-def get_num_tagging_features(only_ztransform=False):
-    return 5 if only_ztransform else 7
+def get_num_tagging_features(tagging_features="all"):
+    if tagging_features == "all":
+        return 7
+    elif tagging_features == "zinvariant":
+        return 5
+    elif tagging_features == "so3invariant":
+        return 2
+    elif tagging_features is None:
+        return 0
