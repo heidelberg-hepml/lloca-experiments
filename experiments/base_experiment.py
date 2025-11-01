@@ -675,6 +675,7 @@ class BaseExperiment:
         loss, metrics = self._batch_loss(data)
         self.optimizer.zero_grad()
         self.scaler.scale(loss).backward()
+        self.scaler.unscale_(self.optimizer)  # unscale before clipping
 
         if self.cfg.training.log_grad_norm:
             grad_norm_frames = (
