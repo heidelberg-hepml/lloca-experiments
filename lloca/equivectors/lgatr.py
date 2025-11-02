@@ -147,6 +147,7 @@ class LGATrVectors2(EquiVectors, MessagePassing):
 
     def forward(self, fourmomenta, scalars=None, ptr=None, **kwargs):
         attn_kwargs = {}
+        in_shape = fourmomenta.shape[:-1]
         if ptr is not None:
             batch = get_batch_from_ptr(ptr)
             on_cpu = fourmomenta.device == torch.device("cpu")
@@ -154,6 +155,11 @@ class LGATrVectors2(EquiVectors, MessagePassing):
                 batch, materialize=on_cpu, dtype=scalars.dtype
             )
             attn_kwargs["attn_mask" if on_cpu else "attn_bias"] = mask
+        edge_index, batch, ptr = get_edge_index_and_batch(
+            fourmomenta, ptr, remove_self_loops=True
+        )
+
+        if ptr is not None:
             fourmomenta = fourmomenta.unsqueeze(0)
             scalars = scalars.unsqueeze(0)
 
@@ -164,13 +170,10 @@ class LGATrVectors2(EquiVectors, MessagePassing):
             qk_mv, qk_s = self.lgatr_norm(qk_mv, qk_s)
 
         # flatten for message passing
-        edge_index, batch, ptr = get_edge_index_and_batch(
-            fourmomenta, ptr, remove_self_loops=True
-        )
-        in_shape = fourmomenta.shape[:-1]
-        fourmomenta = fourmomenta.reshape(math.prod(in_shape), 4)
-        qk_mv = qk_mv.reshape(math.prod(in_shape), qk_mv.shape[-2], qk_mv.shape[-1])
-        qk_s = qk_s.reshape(math.prod(in_shape), qk_s.shape[-1])
+        fm_shape = fourmomenta.shape[:-1]
+        fourmomenta = fourmomenta.reshape(math.prod(fm_shape), 4)
+        qk_mv = qk_mv.reshape(math.prod(fm_shape), qk_mv.shape[-2], qk_mv.shape[-1])
+        qk_s = qk_s.reshape(math.prod(fm_shape), qk_s.shape[-1])
 
         # extract q and k
         q_mv, k_mv = torch.chunk(qk_mv.to(fourmomenta.dtype), chunks=2, dim=-2)
