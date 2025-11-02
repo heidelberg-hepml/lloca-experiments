@@ -277,6 +277,33 @@ class TransformerWrapper(AggregatedTaggerWrapper):
             is_global_channel[is_global] = 1
             features_local = torch.cat((features_local, is_global_channel), dim=-1)
 
+            matrices_new = (
+                torch.eye(4, device=frames.device, dtype=frames.dtype)
+                .unsqueeze(0)
+                .expand(is_global.shape[0], -1, -1)
+            ).clone()
+            matrices_new[~is_global] = frames.matrices
+            det_new = torch.ones(
+                is_global.shape[0], device=frames.device, dtype=frames.dtype
+            ).clone()
+            det_new[~is_global] = frames.det
+            inv_new = (
+                torch.eye(4, device=frames.device, dtype=frames.dtype)
+                .unsqueeze(0)
+                .expand(is_global.shape[0], -1, -1)
+            ).clone()
+            inv_new[~is_global] = frames.inv
+            frames = Frames(
+                matrices_new,
+                is_global=frames.is_global,
+                det=det_new,
+                inv=inv_new,
+                is_identity=frames.is_identity,
+                device=frames.device,
+                dtype=frames.dtype,
+                shape=matrices_new.shape,
+            )
+
             ptr[1:] = ptr[1:] + (torch.arange(batchsize, device=ptr.device) + 1)
             batch = get_batch_from_ptr(ptr)
 
