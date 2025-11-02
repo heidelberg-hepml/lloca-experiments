@@ -2,7 +2,6 @@ exp_type: toptagging
 exp_name: topt_local_debug
 
 data:
- boost_jet: true
  data_dir: data
  dataset: full
 

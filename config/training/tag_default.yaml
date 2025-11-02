@@ -30,6 +30,6 @@ validate_every_n_epochs_min: null
 
 log_grad_norm: true
 clip_grad_norm_framesnet: null
-clip_grad_norm: null
+clip_grad_norm: 1
 clip_grad_value: null
 max_grad_norm: null
