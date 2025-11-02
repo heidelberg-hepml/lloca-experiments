@@ -165,7 +165,7 @@ class LGATrVectors2(EquiVectors, MessagePassing):
 
         # flatten for message passing
         edge_index, batch, ptr = get_edge_index_and_batch(
-            fourmomenta, ptr, remove_self_loops=False
+            fourmomenta, ptr, remove_self_loops=True
         )
         in_shape = fourmomenta.shape[:-1]
         fourmomenta = fourmomenta.reshape(math.prod(in_shape), 4)
@@ -225,7 +225,7 @@ class LGATrVectors2(EquiVectors, MessagePassing):
             index=edge_index[0],
             node_ptr=node_ptr,
             node_batch=batch,
-            remove_self_loops=False,
+            remove_self_loops=True,
         )
         prefactor = prefactor.unsqueeze(-1)
         out = prefactor * fm_rel
@@ -251,6 +251,6 @@ def get_qk_product(q_mv, k_mv, q_s, k_s, edge_index):
     # evaluate attention weights on edges
     scale_factor = 1 / math.sqrt(q.shape[-1])
     src, dst = edge_index
-    q_edges, k_edges = q[dst], k[src]
+    q_edges, k_edges = q[src], k[dst]
     qk_product = (q_edges * k_edges).sum(dim=-1) * scale_factor
     return qk_product
