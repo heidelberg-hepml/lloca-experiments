@@ -116,10 +116,10 @@ class LGATrVectors2(EquiVectors, MessagePassing):
         operation="add",
         nonlinearity="softmax",
         aggr="sum",
-        fm_norm=False,
         layer_norm=False,
         lgatr_norm=True,
     ):
+        # Note: fm_norm option not supported, because it would be unstable with remove_self_loops=False
         super().__init__(aggr=aggr)
         self.n_vectors = n_vectors
         out_mv_channels = (
@@ -141,9 +141,7 @@ class LGATrVectors2(EquiVectors, MessagePassing):
 
         self.operation = get_operation(operation)
         self.nonlinearity = get_nonlinearity(nonlinearity)
-        self.fm_norm = fm_norm
         self.layer_norm = layer_norm
-        assert not (operation == "single" and fm_norm)  # unstable
 
     def forward(self, fourmomenta, scalars=None, ptr=None, **kwargs):
         attn_kwargs = {}
@@ -216,12 +214,7 @@ class LGATrVectors2(EquiVectors, MessagePassing):
     ):
         # prepare fourmomenta
         fm_rel = self.operation(fm_i, fm_j)
-        if self.fm_norm:
-            fm_rel_norm = lorentz_squarednorm(fm_rel).unsqueeze(-1)
-            fm_rel_norm = fm_rel_norm.abs().sqrt().clamp(min=1e-6)
-        else:
-            fm_rel_norm = 1.0
-        fm_rel = (fm_rel / fm_rel_norm)[:, None, :4]
+        fm_rel = fm_rel[:, None, :4]
 
         prefactor = self.nonlinearity(
             prefactor,
