@@ -437,8 +437,9 @@ class BaseExperiment:
         elif self.cfg.training.scheduler == "OneCycleLR":
             self.scheduler = torch.optim.lr_scheduler.OneCycleLR(
                 self.optimizer,
-                max_lr=self.cfg.training.lr * self.cfg.training.onecycle_max_lr,
+                max_lr=self.cfg.training.lr,
                 pct_start=self.cfg.training.onecycle_pct_start,
+                div_factor=self.cfg.training.onecycle_div_factor,
                 total_steps=int(
                     self.cfg.training.iterations * self.cfg.training.scheduler_scale
                 ),
