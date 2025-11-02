@@ -60,13 +60,13 @@ class LGATrVectors(EquiVectors):
 
         # get query and key from LGATr
         mv = embed_vector(fourmomenta).unsqueeze(-2).to(scalars.dtype)
-        out_mv, out_s = self.net(mv, scalars, **attn_kwargs)
+        qk_mv, qk_s = self.net(mv, scalars, **attn_kwargs)
         if self.lgatr_norm is not None:
-            out_mv, out_s = self.lgatr_norm(out_mv, out_s)
+            qk_mv, qk_s = self.lgatr_norm(qk_mv, qk_s)
 
         # extract q and k
-        q_mv, k_mv = torch.chunk(out_mv, chunks=2, dim=-2)
-        q_s, k_s = torch.chunk(out_s, chunks=2, dim=-1)
+        q_mv, k_mv = torch.chunk(qk_mv, chunks=2, dim=-2)
+        q_s, k_s = torch.chunk(qk_s, chunks=2, dim=-1)
 
         # unpack the n_vectors axis
         q_mv = q_mv.reshape(*q_mv.shape[:-2], self.n_vectors, -1, q_mv.shape[-1])
@@ -91,7 +91,7 @@ class LGATrVectors(EquiVectors):
             k_s.transpose(-2, -3),
             v_s.transpose(-2, -3),
         )
-        out_mv, out_s = sdp_attention(
+        out_mv, _ = sdp_attention(
             q_mv=q_mv, k_mv=k_mv, q_s=q_s, k_s=k_s, v_mv=v_mv, v_s=v_s, **attn_kwargs
         )
         out_mv = out_mv.transpose(-3, -4)
