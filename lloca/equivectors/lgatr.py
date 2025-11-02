@@ -156,7 +156,7 @@ class LGATrVectors2(EquiVectors, MessagePassing):
             )
             attn_kwargs["attn_mask" if on_cpu else "attn_bias"] = mask
         edge_index, batch, ptr = get_edge_index_and_batch(
-            fourmomenta, ptr, remove_self_loops=True
+            fourmomenta, ptr, remove_self_loops=False
         )
 
         if ptr is not None:
@@ -228,7 +228,7 @@ class LGATrVectors2(EquiVectors, MessagePassing):
             index=edge_index[0],
             node_ptr=node_ptr,
             node_batch=batch,
-            remove_self_loops=True,
+            remove_self_loops=False,
         )
         prefactor = prefactor.unsqueeze(-1)
         out = prefactor * fm_rel
