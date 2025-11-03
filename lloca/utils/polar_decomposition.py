@@ -48,7 +48,14 @@ def restframe_boost(fourmomenta):
     return trafo
 
 
-def polar_decomposition(fourmomenta, references, return_reg=False, **kwargs):
+def polar_decomposition(
+    fourmomenta,
+    references,
+    use_float64=True,
+    return_reg=False,
+    eps_reg_lightlike=1.0e-16,
+    **kwargs
+):
     """Construct a Lorentz transformation as a polar decomposition of a
     boost and a rotation.
 
@@ -58,11 +65,14 @@ def polar_decomposition(fourmomenta, references, return_reg=False, **kwargs):
         Tensor of shape (..., 4) representing the four-momenta that define the rest frames.
     references : torch.Tensor
         Two tensors of shape (..., 2, 4) representing the reference four-momenta to construct the rotation.
+    use_float64 : bool
+        If True, use float64 for calculations to avoid numerical issues.
     return_reg : bool
         If True, return a tuple with the Lorentz transformation and regularization information.
+    eps_reg_lightlike : float
+        Epsilon value for regularization of lightlike four-momenta. The same value is used in the
+        orthogonalization step.
     kwargs : dict
-        It contains use_float64 (bool): If True, computations are done in float64 precision.
-        And orthogonalization kwargs passed to `orthogonalize_4d`.
 
     Returns
     -------
@@ -73,20 +83,13 @@ def polar_decomposition(fourmomenta, references, return_reg=False, **kwargs):
     """
     assert fourmomenta.shape[:-1] == references.shape[:-2]
 
-    use_float64 = kwargs.get("use_float64", True)
     if use_float64:
         original_dtype = fourmomenta.dtype
         fourmomenta = fourmomenta.to(torch.float64)
         references = references.to(torch.float64)
 
     # fourmomenta for boost must be timelike
-    eps_reg_lightlike = kwargs.get("eps_reg_lightlike", None)
-    if eps_reg_lightlike is not None:
-        fourmomenta, reg_lightlike_1 = regularize_lightlike(
-            fourmomenta, eps_reg_lightlike
-        )
-    else:
-        fourmomenta, reg_lightlike_1 = regularize_lightlike(fourmomenta)
+    fourmomenta, reg_lightlike_1 = regularize_lightlike(fourmomenta, eps_reg_lightlike)
 
     # construct rest frame transformation
     boost = restframe_boost(fourmomenta)
@@ -97,7 +100,13 @@ def polar_decomposition(fourmomenta, references, return_reg=False, **kwargs):
 
     # construct rotation before orthogonalization
     inp = torch.cat((fm_rest, ref_rest), dim=-2)
-    out = orthogonalize_4d(inp, return_reg=return_reg, **kwargs)
+    out = orthogonalize_4d(
+        inp,
+        use_float64=use_float64,
+        return_reg=return_reg,
+        eps_reg_lightlike=eps_reg_lightlike,
+        **kwargs
+    )
     if return_reg:
         rotation, reg_lighlike_2, reg_collinear = out
     else:
