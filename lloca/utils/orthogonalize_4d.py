@@ -45,7 +45,7 @@ def orthogonalize_4d(vecs, use_float64=True, return_reg=False, **kwargs):
         orthogonal_vecs = out
     trafo = orthogonal_vecs
 
-    trafo = timelike_first(trafo)
+    check_timelike_first(trafo)
     scale = trafo.new_tensor((1, -1, -1, -1))
     trafo = trafo * torch.outer(scale, scale)
     if use_float64:
@@ -163,11 +163,12 @@ def orthogonalize_cross(vecs, eps_norm=1e-15):
     return torch.stack([e0, e1, e2, e3], dim=-2)
 
 
-def timelike_first(trafo):
-    """Reorder the Lorentz transformation such that the first vector is timelike.
+def check_timelike_first(trafo):
+    """Check that the Lorentz transformation has only one timelike vector.
     This is necessary to ensure that the resulting Lorentz transformation has the
-    correct metric signature (1, -1, -1, -1). Note that this step can be skipped
-    if the first vector is already timelike.
+    correct metric signature (1, -1, -1, -1). Note that the timelike nature of the
+    first vector is enforced by the nonlinearity in the framesnet, this will trigger
+    if numerical instabilities occur in the orthogonalization.
 
     Parameters
     ----------
@@ -184,16 +185,6 @@ def timelike_first(trafo):
     norm = torch.stack([lorentz_squarednorm(v) for v in vecs], dim=-1)
     num_pos_norm = (norm > 0).sum(dim=-1)
     assert (num_pos_norm == 1).all(), "Don't always have exactly 1 timelike vector"
-
-    idx = (norm > 0).to(torch.long).argmax(dim=-1)
-    base3 = torch.arange(3, device=trafo.device)
-    i = idx.unsqueeze(-1)
-    others = base3 + (base3 >= i)
-    order = torch.cat([i, others], dim=-1)
-
-    idx_rows = order.unsqueeze(-1).expand(*order.shape, trafo.size(-1))
-    trafo_reordered = trafo.gather(dim=-2, index=idx_rows)
-    return trafo_reordered
 
 
 def regularize_lightlike(vecs, eps_reg_lightlike=1e-16):

@@ -56,7 +56,7 @@ class EquiEdgeConv(MessagePassing):
         operation : str
             Operation to perform on the fourmomenta. Options are "add", "diff", or "single". Default is "add".
         nonlinearity : str
-            Nonlinearity to apply to the output of the MLP. Options are None, "exp", "softplus", and "softmax"". Default is "softmax".
+            Nonlinearity to apply to the output of the MLP. Options are "exp", "softplus", and "softmax"". Default is "softmax".
         fm_norm : bool
             Whether to normalize the relative fourmomentum. Default is True.
         layer_norm : bool
@@ -331,17 +331,16 @@ def get_nonlinearity(nonlinearity):
     """
     Parameters
     ----------
-    nonlinearity : str or None
-        Nonlinearity to apply to the output of the MLP. Options are None, "exp", "softplus", "softmax".
+    nonlinearity : str
+        Nonlinearity to apply to the output of the MLP. Options are "exp", "softplus", "softmax".
+        We enforce the prediction of timelike vectors.
 
     Returns
     -------
     callable
         A function that applies the specified nonlinearity to the input tensor.
     """
-    if nonlinearity == None:
-        return lambda x, *args, **kwargs: x
-    elif nonlinearity == "exp":
+    if nonlinearity == "exp":
         return lambda x, *args, **kwargs: torch.clamp(x, min=-10, max=10).exp()
     elif nonlinearity == "softplus":
         return lambda x, *args, **kwargs: torch.nn.functional.softplus(x)
@@ -360,7 +359,7 @@ def get_nonlinearity(nonlinearity):
         return func
     else:
         raise ValueError(
-            f"Invalid nonlinearity {nonlinearity}. Options are (None, exp, softplus, softmax)."
+            f"Invalid nonlinearity {nonlinearity}. Options are (exp, softplus, softmax)."
         )
 
 
