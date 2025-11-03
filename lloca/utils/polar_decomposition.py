@@ -53,7 +53,7 @@ def polar_decomposition(
     references,
     use_float64=True,
     return_reg=False,
-    eps_reg_lightlike=1.0e-16,
+    eps_reg_lightlike=1e-16,
     **kwargs
 ):
     """Construct a Lorentz transformation as a polar decomposition of a

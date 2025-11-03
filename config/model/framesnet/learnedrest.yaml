@@ -7,7 +7,7 @@ ortho_kwargs:
  method: gramschmidt
  eps_norm: 1e-10
  eps_reg_coplanar: 1e-16
- eps_reg_lightlike: 1e-20
+ eps_reg_lightlike: 1e-16
 
 defaults:
  - equivectors: equimlp
