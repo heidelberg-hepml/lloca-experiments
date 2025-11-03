@@ -12,6 +12,8 @@ from lloca.utils.rand_transforms import rand_lorentz
 @pytest.mark.parametrize("jet_size", [10])
 @pytest.mark.parametrize("n_vectors", [1, 2, 3])
 @pytest.mark.parametrize("num_blocks,hidden_mv_channels,hidden_s_channels", [(1, 2, 8)])
+@pytest.mark.parametrize("layer_norm", [True, False])
+@pytest.mark.parametrize("lgatr_norm", [True, False])
 @pytest.mark.parametrize("logm2_mean,logm2_std", LOGM2_MEAN_STD)
 @pytest.mark.parametrize("num_scalars", [0, 1])
 def test_equivariance(
@@ -21,6 +23,8 @@ def test_equivariance(
     hidden_mv_channels,
     hidden_s_channels,
     num_blocks,
+    layer_norm,
+    lgatr_norm,
     logm2_std,
     logm2_mean,
     num_scalars,
@@ -52,6 +56,8 @@ def test_equivariance(
         num_scalars=num_scalars,
         hidden_mv_channels=hidden_mv_channels,
         hidden_s_channels=hidden_s_channels,
+        layer_norm=layer_norm,
+        lgatr_norm=lgatr_norm,
     ).to(dtype=dtype)
 
     fm_test = sample_particle(

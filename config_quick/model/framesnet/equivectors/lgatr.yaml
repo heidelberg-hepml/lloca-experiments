@@ -3,9 +3,15 @@ _partial_: true
 
 n_vectors: null
 num_scalars: null
+
+operation: add
+nonlinearity: softmax
+aggr: sum
+layer_norm: false
+lgatr_norm: true
+
 hidden_mv_channels: ${model.framesnet.equivectors.net.hidden_mv_channels}
 hidden_s_channels: ${model.framesnet.equivectors.net.hidden_s_channels}
-lgatr_norm: true
 
 net:
  _target_: lgatr.nets.LGATr
