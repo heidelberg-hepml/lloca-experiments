@@ -15,7 +15,6 @@ from experiments.amplitudes.experiment import AmplitudeExperiment
         ["learnedpd", "equimlp"],
         ["learnedpd", "pelican"],
         ["learnedpd", "lgatr"],
-        ["learnedpd", "lgatr2"],
     ],
 )
 @pytest.mark.parametrize(

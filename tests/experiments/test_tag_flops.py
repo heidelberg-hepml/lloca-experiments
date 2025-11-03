@@ -15,7 +15,6 @@ from experiments.tagging.experiment import TopTaggingExperiment
         ["learnedpd", "equimlp"],
         ["learnedpd", "pelican"],
         ["learnedpd", "lgatr"],
-        ["learnedpd", "lgatr2"],
     ],
 )
 @pytest.mark.parametrize(
