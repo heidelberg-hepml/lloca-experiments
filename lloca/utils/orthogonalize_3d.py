@@ -5,7 +5,7 @@ import torch.nn.functional as F
 
 
 def orthogonalize_3d(
-    vecs, method="gramschmidt", eps_norm=1e-15, eps_reg=1e-10, return_reg=False
+    vecs, method="gramschmidt", eps_norm=None, eps_reg=None, return_reg=False
 ):
     """Wrapper for orthogonalization of euclidean vectors.
 
@@ -16,11 +16,10 @@ def orthogonalize_3d(
         Vectors to be orthogonalized
     method : str
         Method for orthogonalization. Options are "cross" and "gramschmidt".
-    eps_norm : float
+    eps_norm : float or None
         Numerical regularization for the normalization of the vectors.
-    eps_reg : float
+    eps_reg : float or None
         Controls the scale of the regularization for collinear vectors.
-        eps_reg**2 defines the selection threshold.
     return_reg : bool
         If True, additionally return the number of regularized vectors for collinearity.
 
@@ -31,6 +30,9 @@ def orthogonalize_3d(
     reg_collinear : int
         Number of vectors that were regularized due to collinearity.
     """
+    eps_norm = torch.finfo(vecs.dtype).eps if eps_norm is None else eps_norm
+    eps_reg = torch.finfo(vecs.dtype).eps if eps_reg is None else eps_reg
+
     vecs, reg_collinear = regularize_collinear(vecs, eps_reg)
 
     if method == "cross":
@@ -43,7 +45,7 @@ def orthogonalize_3d(
     return (trafo, reg_collinear) if return_reg else trafo
 
 
-def orthogonalize_gramschmidt_3d(vecs, eps_norm=1e-15):
+def orthogonalize_gramschmidt_3d(vecs, eps_norm=None):
     """Gram-Schmidt orthogonalization algorithm for euclidean vectors.
 
     Parameters
@@ -69,7 +71,7 @@ def orthogonalize_gramschmidt_3d(vecs, eps_norm=1e-15):
     return torch.stack([e0, e1, e2], dim=-2)
 
 
-def orthogonalize_cross_3d(vecs, eps_norm=1e-15):
+def orthogonalize_cross_3d(vecs, eps_norm=None):
     """Cross product orthogonalization algorithm for euclidean vectors.
     This approach is equivalent to the Gram-Schmidt procedure for unlimited precision,
     but for limited precision it is more stable.
@@ -97,7 +99,7 @@ def orthogonalize_cross_3d(vecs, eps_norm=1e-15):
     return torch.stack([e0, e1, e2], dim=-2)
 
 
-def regularize_collinear(vecs, eps_reg=1e-16):
+def regularize_collinear(vecs, eps_reg=None):
     """If the cross product of two vectors is small, the vectors are collinear.
     In this case, we add a small amount of noise to the second vector to
     regularize the orthogonalization.
@@ -116,7 +118,6 @@ def regularize_collinear(vecs, eps_reg=1e-16):
     reg_collinear : int
         Number of vectors that were regularized due to collinearity.
     """
-    eps_reg = max(eps_reg, torch.finfo(vecs.dtype).eps)
     v0, v1 = vecs.unbind(dim=-2)
     cross = torch.cross(v0, v1, dim=-1)
     mask = (cross**2).sum(dim=-1) < eps_reg

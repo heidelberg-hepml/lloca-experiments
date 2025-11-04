@@ -56,9 +56,9 @@ def orthogonalize_4d(vecs, use_float64=True, return_reg=False, **kwargs):
 def orthogonalize_wrapper_4d(
     vecs,
     method="gramschmidt",
-    eps_norm=1e-15,
-    eps_reg_coplanar=1e-10,
-    eps_reg_lightlike=1e-10,
+    eps_norm=None,
+    eps_reg_coplanar=None,
+    eps_reg_lightlike=None,
     return_reg=False,
 ):
     """Wrapper for orthogonalization of Minkowski vectors.
@@ -69,12 +69,12 @@ def orthogonalize_wrapper_4d(
         Tensor containing list of three Minkowski vectors of shape (..., 3, 4).
     method : str
         Method for orthogonalization. Options are "cross" and "gramschmidt".
-    eps_norm : float
+    eps_norm : float or None
         Numerical regularization for the normalization of the vectors.
-    eps_reg_coplanar : float
+    eps_reg_coplanar : float or None
         Controls the scale of the regularization for coplanar vectors.
         eps_reg_coplanar**2 defines the selection threshold.
-    eps_reg_lightlike : float
+    eps_reg_lightlike : float or None
         Controls the scale of the regularization for lightlike vectors.
         eps_reg_lightlike**2 defines the selection threshold.
     return_reg : bool
@@ -90,6 +90,8 @@ def orthogonalize_wrapper_4d(
     reg_coplanar : int
         Number of vectors that were regularized due to coplanarity.
     """
+    eps_norm = torch.finfo(vecs.dtype).eps if eps_norm is None else eps_norm
+
     vecs, reg_lightlike = regularize_lightlike(vecs, eps_reg_lightlike)
     vecs, reg_coplanar = regularize_coplanar(vecs, eps_reg_coplanar)
 
@@ -103,7 +105,7 @@ def orthogonalize_wrapper_4d(
     return (trafo, reg_lightlike, reg_coplanar) if return_reg else trafo
 
 
-def orthogonalize_gramschmidt(vecs, eps_norm=1e-15):
+def orthogonalize_gramschmidt(vecs, eps_norm=None):
     """Gram-Schmidt orthogonalization algorithm for Minkowski vectors.
 
     Parameters
@@ -137,7 +139,7 @@ def orthogonalize_gramschmidt(vecs, eps_norm=1e-15):
     return torch.stack([e0, e1, e2, e3], dim=-2)
 
 
-def orthogonalize_cross(vecs, eps_norm=1e-15):
+def orthogonalize_cross(vecs, eps_norm=None):
     """Orthogonalization algorithm using repeated cross products.
     This approach gives the same result as orthogonalize_gramschmidt for unlimited
     precision, but we find empirically that the Gram-Schmidt approach is more stable.
@@ -187,7 +189,7 @@ def check_timelike_first(trafo):
     assert (num_pos_norm == 1).all(), "Don't always have exactly 1 timelike vector"
 
 
-def regularize_lightlike(vecs, eps_reg_lightlike=1e-16):
+def regularize_lightlike(vecs, eps_reg_lightlike=None):
     """If the Minkowski norm of a vector is close to zero,
     it is lightlike. In this case, we add a bit of noise to the vector
     to break the degeneracy and ensure that the orthogonalization works.
@@ -207,7 +209,9 @@ def regularize_lightlike(vecs, eps_reg_lightlike=1e-16):
     reg_lightlike : int
         Number of vectors that were regularized due to being lightlike.
     """
-    eps_reg_lightlike = max(eps_reg_lightlike, torch.finfo(vecs.dtype).eps)
+    eps_reg_lightlike = (
+        torch.finfo(vecs.dtype).eps if eps_reg_lightlike is None else eps_reg_lightlike
+    )
     inners = lorentz_squarednorm(vecs)
     mask = inners.abs() < eps_reg_lightlike
 
@@ -223,7 +227,7 @@ def regularize_lightlike(vecs, eps_reg_lightlike=1e-16):
     return vecs_reg, reg_lightlike
 
 
-def regularize_coplanar(vecs, eps_reg_coplanar=1e-16):
+def regularize_coplanar(vecs, eps_reg_coplanar=None):
     """If the cross product of three vectors is close to zero,
     they are coplanar. In this case, we add a bit of noise to each vector
     to break the degeneracy and ensure that the orthogonalization works.
@@ -242,7 +246,9 @@ def regularize_coplanar(vecs, eps_reg_coplanar=1e-16):
     reg_coplanar : int
         Number of vectors that were regularized due to coplanarity.
     """
-    eps_reg_coplanar = max(eps_reg_coplanar, torch.finfo(vecs.dtype).eps)
+    eps_reg_coplanar = (
+        torch.finfo(vecs.dtype).eps if eps_reg_coplanar is None else eps_reg_coplanar
+    )
     v0, v1, v2 = vecs.unbind(dim=-2)
     cross_norm2 = lorentz_squarednorm(lorentz_cross(v0, v1, v2))
     mask = cross_norm2.abs() < eps_reg_coplanar
@@ -254,7 +260,7 @@ def regularize_coplanar(vecs, eps_reg_coplanar=1e-16):
     return vecs_reg, reg_coplanar
 
 
-def normalize_4d(v, eps=1e-15):
+def normalize_4d(v, eps=None):
     """Normalize a Minkowski vector by the absolute value of the Minkowski norm.
     Note that this norm can be close to zero.
 
@@ -270,7 +276,6 @@ def normalize_4d(v, eps=1e-15):
     torch.Tensor
         Normalized Minkowski vector of shape (..., 4).
     """
-    eps = max(eps, torch.finfo(v.dtype).eps)
     norm = lorentz_squarednorm(v).unsqueeze(-1)
     norm = norm.abs().sqrt()
     return v / (norm + eps)

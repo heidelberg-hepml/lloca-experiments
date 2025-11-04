@@ -53,7 +53,7 @@ def polar_decomposition(
     references,
     use_float64=True,
     return_reg=False,
-    eps_reg_lightlike=1e-16,
+    eps_reg_lightlike=None,
     **kwargs
 ):
     """Construct a Lorentz transformation as a polar decomposition of a
@@ -69,7 +69,7 @@ def polar_decomposition(
         If True, use float64 for calculations to avoid numerical issues.
     return_reg : bool
         If True, return a tuple with the Lorentz transformation and regularization information.
-    eps_reg_lightlike : float
+    eps_reg_lightlike : float or None
         Epsilon value for regularization of lightlike four-momenta. The same value is used in the
         orthogonalization step.
     kwargs : dict
