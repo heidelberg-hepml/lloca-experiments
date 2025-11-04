@@ -5,6 +5,7 @@ fix_params: false
 gamma_max: null
 gamma_hardness: 10
 compile: false
+checks: true
 ortho_kwargs:
  use_float64: true
  method: gramschmidt

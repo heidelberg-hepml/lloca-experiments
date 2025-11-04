@@ -3,6 +3,7 @@ is_global: false
 random: false
 fix_params: false
 compile: false
+checks: true
 ortho_kwargs:
  use_float64: true
  method: gramschmidt

@@ -9,7 +9,7 @@ from .lorentz import (
 )
 
 
-def orthogonalize_4d(vecs, use_float64=True, return_reg=False, **kwargs):
+def orthogonalize_4d(vecs, use_float64=True, return_reg=False, checks=False, **kwargs):
     """High-level wrapper for orthogonalization of three Minkowski vectors.
 
     Parameters
@@ -21,6 +21,8 @@ def orthogonalize_4d(vecs, use_float64=True, return_reg=False, **kwargs):
     return_reg : bool
         If True, return a tuple with the orthogonalized vectors and the number of
         regularized vectors for lightlike and coplanar cases.
+    checks : bool
+        If True, perform additional assertion checks on predicted vectors
     kwargs : dict
         Additional keyword arguments passed to the orthogonalization function.
 
@@ -44,8 +46,9 @@ def orthogonalize_4d(vecs, use_float64=True, return_reg=False, **kwargs):
     else:
         orthogonal_vecs = out
     trafo = orthogonal_vecs
+    if checks:
+        check_timelike_first(trafo)
 
-    check_timelike_first(trafo)
     scale = trafo.new_tensor((1, -1, -1, -1))
     trafo = trafo * torch.outer(scale, scale)
     if use_float64:

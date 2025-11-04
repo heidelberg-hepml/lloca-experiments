@@ -21,6 +21,7 @@ class LearnedFrames(FramesPredictor):
         is_global=False,
         random=False,
         fix_params=False,
+        checks=False,
         ortho_kwargs={},
     ):
         """
@@ -37,6 +38,8 @@ class LearnedFrames(FramesPredictor):
             This is a fancy way of doing data augmentation
         fix_params: bool
             Like random, but without the resampling
+        checks : bool
+            If True, perform additional assertion checks on predicted vectors
         ortho_kwargs: dict
             Keyword arguments for orthogonalization
         """
@@ -45,6 +48,7 @@ class LearnedFrames(FramesPredictor):
         self.equivectors = equivectors(n_vectors=n_vectors)
         self.is_global = is_global
         self.random = random
+        self.checks = checks
         if random or fix_params:
             self.equivectors.requires_grad_(False)
 
@@ -127,6 +131,7 @@ class LearnedPDFrames(LearnedFrames):
             rotation_references,
             **self.ortho_kwargs,
             return_reg=True,
+            checks=self.checks,
         )
         tracker = {
             "reg_lightlike": reg_lightlike,
@@ -182,7 +187,7 @@ class LearnedSO13Frames(LearnedFrames):
         vecs = self.globalize_vecs_or_not(vecs, ptr)
 
         trafo, reg_lightlike, reg_coplanar = self.orthogonalize_4d(
-            vecs, **self.ortho_kwargs, return_reg=True
+            vecs, **self.ortho_kwargs, return_reg=True, checks=self.checks
         )
 
         tracker = {"reg_lightlike": reg_lightlike, "reg_coplanar": reg_coplanar}
@@ -242,6 +247,7 @@ class LearnedRestFrames(LearnedFrames):
             references,
             **self.ortho_kwargs,
             return_reg=True,
+            checks=self.checks,
         )
         tracker = {"reg_lightlike": reg_lightlike, "reg_collinear": reg_collinear}
         frames = Frames(trafo, is_global=self.is_global)
@@ -307,6 +313,7 @@ class LearnedSO3Frames(LearnedFrames):
             references,
             **self.ortho_kwargs,
             return_reg=True,
+            checks=self.checks,
         )
         tracker = {"reg_lightlike": reg_lightlike, "reg_collinear": reg_collinear}
         frames = Frames(trafo, is_global=self.is_global)
@@ -386,6 +393,7 @@ class LearnedZFrames(LearnedFrames):
             rotation_references,
             **self.ortho_kwargs,
             return_reg=True,
+            checks=self.checks,
         )
         tracker = {
             "reg_lightlike": reg_lightlike,
@@ -468,6 +476,7 @@ class LearnedSO2Frames(LearnedFrames):
             references,
             **self.ortho_kwargs,
             return_reg=True,
+            checks=self.checks,
         )
 
         tracker = {"reg_lightlike": reg_lightlike, "reg_collinear": reg_collinear}
