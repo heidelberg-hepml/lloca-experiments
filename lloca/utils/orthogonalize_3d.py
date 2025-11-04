@@ -31,7 +31,6 @@ def orthogonalize_3d(
         Number of vectors that were regularized due to collinearity.
     """
     eps_norm = torch.finfo(vecs.dtype).eps if eps_norm is None else eps_norm
-    eps_reg = torch.finfo(vecs.dtype).eps if eps_reg is None else eps_reg
 
     vecs, reg_collinear = regularize_collinear(vecs, eps_reg)
 
@@ -118,6 +117,8 @@ def regularize_collinear(vecs, eps_reg=None):
     reg_collinear : int
         Number of vectors that were regularized due to collinearity.
     """
+    eps_reg = torch.finfo(vecs.dtype).eps if eps_reg is None else eps_reg
+
     v0, v1 = vecs.unbind(dim=-2)
     cross = torch.cross(v0, v1, dim=-1)
     mask = (cross**2).sum(dim=-1) < eps_reg
