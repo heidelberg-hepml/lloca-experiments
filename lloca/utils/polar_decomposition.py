@@ -14,6 +14,9 @@ def restframe_boost(fourmomenta, checks=False):
     ----------
     fourmomenta : torch.Tensor
         Tensor of shape (..., 4) representing the four-momenta.
+    checks : bool
+        If True, perform additional assertion checks on predicted vectors.
+        It may cause slowdowns due to GPU/CPU synchronization, use only for debugging.
 
     Returns
     -------
