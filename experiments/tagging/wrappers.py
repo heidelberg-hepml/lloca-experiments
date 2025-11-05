@@ -279,6 +279,7 @@ class TransformerWrapper(AggregatedTaggerWrapper):
             is_global_channel[is_global] = 1
             features_local = torch.cat((features_local, is_global_channel), dim=-1)
 
+            # global token frames are identity
             matrices_new = (
                 torch.eye(4, device=frames.device, dtype=frames.dtype)
                 .unsqueeze(0)
