@@ -5,10 +5,13 @@ fix_params: false
 gamma_max: null
 gamma_hardness: 10
 compile: false
+checks: true
 ortho_kwargs:
+ use_float64: true
  method: gramschmidt
  eps_norm: 1e-15
- eps_reg: 1e-10
+ eps_reg_coplanar: 1e-16
+ eps_reg_lightlike: 1e-16
 
 defaults:
  - equivectors: equimlp

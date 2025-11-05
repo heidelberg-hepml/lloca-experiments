@@ -122,13 +122,14 @@ class LearnedPDFrames(LearnedFrames):
             boost, gamma_max=self.gamma_max, gamma_hardness=self.gamma_hardness
         )
 
-        trafo, reg_collinear = self.polar_decomposition(
+        trafo, reg_lightlike, reg_collinear = self.polar_decomposition(
             boost,
             rotation_references,
             **self.ortho_kwargs,
             return_reg=True,
         )
         tracker = {
+            "reg_lightlike": reg_lightlike,
             "reg_collinear": reg_collinear,
             "gamma_mean": gamma_mean,
             "gamma_max": gamma_max,
@@ -236,13 +237,13 @@ class LearnedRestFrames(LearnedFrames):
         references = self.equivectors(fourmomenta, scalars=scalars, ptr=ptr)
         references = self.globalize_vecs_or_not(references, ptr)
 
-        trafo, reg_collinear = self.polar_decomposition(
+        trafo, reg_lightlike, reg_collinear = self.polar_decomposition(
             fourmomenta,
             references,
             **self.ortho_kwargs,
             return_reg=True,
         )
-        tracker = {"reg_collinear": reg_collinear}
+        tracker = {"reg_lightlike": reg_lightlike, "reg_collinear": reg_collinear}
         frames = Frames(trafo, is_global=self.is_global)
         return (frames, tracker) if return_tracker else frames
 
@@ -301,13 +302,13 @@ class LearnedSO3Frames(LearnedFrames):
             ..., 0
         ]  # only difference compared to LearnedPolarDecompositionFrames
 
-        trafo, reg_collinear = self.polar_decomposition(
+        trafo, reg_lightlike, reg_collinear = self.polar_decomposition(
             fourmomenta,
             references,
             **self.ortho_kwargs,
             return_reg=True,
         )
-        tracker = {"reg_collinear": reg_collinear}
+        tracker = {"reg_lightlike": reg_lightlike, "reg_collinear": reg_collinear}
         frames = Frames(trafo, is_global=self.is_global)
         return (frames, tracker) if return_tracker else frames
 
@@ -380,13 +381,14 @@ class LearnedZFrames(LearnedFrames):
             [rotation_references, spurion_references], dim=-2
         )
 
-        trafo, reg_collinear = self.polar_decomposition(
+        trafo, reg_lightlike, reg_collinear = self.polar_decomposition(
             boost,
             rotation_references,
             **self.ortho_kwargs,
             return_reg=True,
         )
         tracker = {
+            "reg_lightlike": reg_lightlike,
             "reg_collinear": reg_collinear,
             "gamma_mean": gamma_mean,
             "gamma_max": gamma_max,
@@ -461,14 +463,14 @@ class LearnedSO2Frames(LearnedFrames):
             [spurion_references, extra_references[..., 0, :]], dim=-2
         )
 
-        trafo, reg_collinear = self.polar_decomposition(
+        trafo, reg_lightlike, reg_collinear = self.polar_decomposition(
             fourmomenta,
             references,
             **self.ortho_kwargs,
             return_reg=True,
         )
 
-        tracker = {"reg_collinear": reg_collinear}
+        tracker = {"reg_lightlike": reg_lightlike, "reg_collinear": reg_collinear}
         frames = Frames(trafo, is_global=self.is_global)
         return (frames, tracker) if return_tracker else frames
 

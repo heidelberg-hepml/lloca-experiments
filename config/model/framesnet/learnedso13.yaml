@@ -4,10 +4,12 @@ random: false
 fix_params: false
 compile: false
 ortho_kwargs:
+ use_float64: true
  method: gramschmidt
  eps_norm: 1e-15
- eps_reg_coplanar: 1e-10
- eps_reg_lightlike: 1e-10
+ eps_reg_coplanar: 1e-16
+ eps_reg_lightlike: 1e-16
+ checks: false
 
 defaults:
  - equivectors: equimlp
