@@ -1,3 +1,7 @@
+# PELICAN architecture allowing for fair comparison (similar memory and timing)
+# with the typical 200k-parameter LorentzNet and ParticleNet graph networks.
+# The original PELICAN also has 200k parameters, but uses `factorize=true`
+# and therefore has the same memory and timing cost as a 800k parameter network.
 _target_: experiments.tagging.wrappers.PELICANWrapper
 out_channels: null
 

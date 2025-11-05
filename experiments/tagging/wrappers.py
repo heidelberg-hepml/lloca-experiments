@@ -252,6 +252,8 @@ class TransformerWrapper(AggregatedTaggerWrapper):
         if self.mean_aggregation:
             is_global = None
         else:
+            # append global tokens to batch, ptr, features_local and frames
+            # and keep a is_global mask for later extraction
             batchsize = len(ptr) - 1
             global_idxs = ptr[:-1] + torch.arange(batchsize, device=batch.device)
             is_global = torch.zeros(
