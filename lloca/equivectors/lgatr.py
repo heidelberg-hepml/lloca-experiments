@@ -68,9 +68,8 @@ class LGATrVectors(EquiVectors, MessagePassing):
             fourmomenta, ptr, remove_self_loops=False
         )
 
-        if ptr is not None:
-            fourmomenta = fourmomenta.unsqueeze(0)
-            scalars = scalars.unsqueeze(0)
+        fourmomenta = fourmomenta.unsqueeze(0)
+        scalars = scalars.unsqueeze(0)
 
         # get query and key from LGATr
         mv = embed_vector(fourmomenta).unsqueeze(-2).to(scalars.dtype)
