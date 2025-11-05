@@ -75,12 +75,13 @@ def orthogonalize_wrapper_4d(
         Method for orthogonalization. Options are "cross" and "gramschmidt".
     eps_norm : float or None
         Numerical regularization for the normalization of the vectors.
+        If None, use the smallest representable value for the vectors dtype.
     eps_reg_coplanar : float or None
         Controls the scale of the regularization for coplanar vectors.
-        eps_reg_coplanar**2 defines the selection threshold.
+        eps_reg_coplanar defines the selection threshold.
     eps_reg_lightlike : float or None
         Controls the scale of the regularization for lightlike vectors.
-        eps_reg_lightlike**2 defines the selection threshold.
+        eps_reg_lightlike defines the selection threshold.
     return_reg : bool
         If True, return a tuple with the orthogonalized vectors and the number of
         regularized vectors for lightlike and coplanar cases.
@@ -116,7 +117,7 @@ def orthogonalize_gramschmidt(vecs, eps_norm=None):
     ----------
     vecs : torch.Tensor
         List of three Minkowski vectors of shape (..., 3, 4).
-    eps_norm : float
+    eps_norm : float or None
         Small value to avoid division by zero during normalization.
 
     Returns
@@ -152,7 +153,7 @@ def orthogonalize_cross(vecs, eps_norm=None):
     ----------
     vecs : torch.Tensor
         List of three Minkowski vectors of shape (..., 3, 4).
-    eps_norm : float
+    eps_norm : float or None
         Small value to avoid division by zero during normalization.
 
     Returns
@@ -203,8 +204,9 @@ def regularize_lightlike(vecs, eps_reg_lightlike=None):
     ----------
     vecs : torch.Tensor
         List of three Minkowski vectors of shape (..., 3, 4).
-    eps_reg_lightlike : float
+    eps_reg_lightlike : float or None
         Small value to control the scale of the regularization for lightlike vectors.
+        If None, use the smallest representable value for the vectors dtype.
 
     Returns
     -------
@@ -240,8 +242,9 @@ def regularize_coplanar(vecs, eps_reg_coplanar=None):
     ----------
     vecs : torch.Tensor
         List of three Minkowski vectors of shape (..., 3, 4).
-    eps_reg_coplanar : float
+    eps_reg_coplanar : float or None
         Small value to control the scale of the regularization for coplanar vectors.
+        If None, use the smallest representable value for the vectors dtype.
 
     Returns
     -------
@@ -272,7 +275,7 @@ def normalize_4d(v, eps=None):
     ----------
     v : torch.Tensor
         Minkowski vector of shape (..., 4).
-    eps : float
+    eps : float or None
         Small value to avoid division by zero.
 
     Returns

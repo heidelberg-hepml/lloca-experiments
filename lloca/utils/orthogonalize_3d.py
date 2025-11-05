@@ -18,6 +18,7 @@ def orthogonalize_3d(
         Method for orthogonalization. Options are "cross" and "gramschmidt".
     eps_norm : float or None
         Numerical regularization for the normalization of the vectors.
+        If None, use the smallest representable value for the vectors dtype.
     eps_reg : float or None
         Controls the scale of the regularization for collinear vectors.
     return_reg : bool
@@ -51,7 +52,7 @@ def orthogonalize_gramschmidt_3d(vecs, eps_norm=None):
     ----------
     vecs : torch.Tensor
         Two vectors of shape (..., 2, 3).
-    eps_norm : float
+    eps_norm : float or None
         Numerical regularization for the normalization of the vectors.
 
     Returns
@@ -79,7 +80,7 @@ def orthogonalize_cross_3d(vecs, eps_norm=None):
     ----------
     vecs : torch.Tensor
         Two vectors of shape (..., 2, 3).
-    eps_norm : float
+    eps_norm : float or None
         Numerical regularization for the normalization of the vectors.
 
     Returns
@@ -107,8 +108,9 @@ def regularize_collinear(vecs, eps_reg=None):
     ----------
     vecs : list of torch.Tensor
         List with 2 vectors of shape (..., 3).
-    eps_reg : float
+    eps_reg : float or None
         Regularization epsilon, controls the scale of the noise added to the second vector.
+        If None, use the smallest representable value for the vectors dtype.
 
     Returns
     -------
