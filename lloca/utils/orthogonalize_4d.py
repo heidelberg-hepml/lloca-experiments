@@ -22,7 +22,8 @@ def orthogonalize_4d(vecs, use_float64=True, return_reg=False, checks=False, **k
         If True, return a tuple with the orthogonalized vectors and the number of
         regularized vectors for lightlike and coplanar cases.
     checks : bool
-        If True, perform additional assertion checks on predicted vectors
+        If True, perform additional assertion checks on predicted vectors.
+        It may cause slowdowns due to GPU/CPU synchronization, use only for debugging.
     kwargs : dict
         Additional keyword arguments passed to the orthogonalization function.
 
