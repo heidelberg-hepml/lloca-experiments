@@ -3,7 +3,6 @@ in_channels: null
 out_channels: null
 use_amp: false
 add_fourmomenta_backbone: false
-only_ztransform_tagging_features: null
 
 net:
  _target_: lloca.backbone.particletransformer.ParticleTransformer

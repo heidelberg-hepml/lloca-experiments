@@ -20,11 +20,10 @@ from tests.experiments.utils import track_clamps
     "model_list",
     [
         ["model=tag_ParT"],
-        ["model=tag_particlenet-lite"],
         ["model=tag_transformer"],
         ["model=tag_graphnet"],
         ["model=tag_graphnet", "model.include_edges=true"],
-        ["model=tag_gatr"],
+        ["model=tag_lgatr"],
     ],
 )
 @pytest.mark.skip(reason="Clamping expected")

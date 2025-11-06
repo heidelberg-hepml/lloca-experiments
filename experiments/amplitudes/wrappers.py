@@ -46,8 +46,13 @@ class AmplitudeWrapper(nn.Module):
         particle_type = self.encode_particle_type(fourmomenta.shape[0]).to(
             dtype=self.network_dtype, device=fourmomenta.device
         )
+        num_graphs = fourmomenta.shape[0]
         frames, tracker = self.framesnet(
-            fourmomenta, scalars=particle_type, ptr=None, return_tracker=True
+            fourmomenta,
+            scalars=particle_type,
+            ptr=None,
+            return_tracker=True,
+            num_graphs=num_graphs,
         )
 
         fourmomenta_local = self.trafo_fourmomenta(fourmomenta, frames)
@@ -219,3 +224,56 @@ class DSIWrapper(AmplitudeWrapper):
 
         amp = self.net(fourmomenta_local.to(self.network_dtype))
         return amp, tracker, frames
+
+
+class PELICANWrapper(AmplitudeWrapper):
+    def __init__(self, net, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.net = net
+        assert isinstance(self.framesnet, IdentityFrames)
+
+        self.register_buffer("edge_mean", torch.tensor(0.0))
+        self.register_buffer("edge_std", torch.tensor(1.0))
+
+    def init_standardization(self, fourmomenta):
+        super().init_standardization(fourmomenta)
+
+        # edge feature standardization parameters
+        edge_index, _ = get_edge_index_from_shape(
+            fourmomenta.shape, fourmomenta.device, remove_self_loops=False
+        )
+        fourmomenta = fourmomenta.reshape(-1, 4)
+        edge_attr = get_edge_attr(fourmomenta, edge_index)
+        self.edge_mean = edge_attr.mean()
+        self.edge_std = edge_attr.std().clamp(min=1e-10)
+
+    def forward(self, fourmomenta_global):
+        (
+            _,
+            fourmomenta_local,
+            particle_type,
+            frames,
+            tracker,
+        ) = super().forward(fourmomenta_global)
+        num_graphs = fourmomenta_local.shape[0]
+
+        edge_index, batch = get_edge_index_from_shape(
+            fourmomenta_local.shape, fourmomenta_local.device, remove_self_loops=False
+        )
+        fourmomenta = fourmomenta_local.reshape(-1, 4)
+        edge_attr = self.get_edge_attr(fourmomenta, edge_index).to(self.network_dtype)
+        node_attr = particle_type.reshape(-1, particle_type.shape[-1])
+
+        out = self.net(
+            in_rank2=edge_attr,
+            in_rank1=node_attr,
+            edge_index=edge_index,
+            batch=batch,
+            num_graphs=num_graphs,
+        )
+        return out, tracker, frames
+
+    def get_edge_attr(self, fourmomenta, edge_index):
+        edge_attr = get_edge_attr(fourmomenta, edge_index)
+        edge_attr = (edge_attr - self.edge_mean) / self.edge_std
+        return edge_attr.unsqueeze(-1)

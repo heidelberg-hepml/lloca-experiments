@@ -27,7 +27,9 @@ class IdentityFrames(FramesPredictor):
     def __init__(self):
         super().__init__(is_global=True, is_identity=True)
 
-    def forward(self, fourmomenta, scalars=None, ptr=None, return_tracker=False):
+    def forward(
+        self, fourmomenta, scalars=None, ptr=None, return_tracker=False, **kwargs
+    ):
         frames = Frames(
             is_identity=True,
             device=fourmomenta.device,
@@ -98,7 +100,9 @@ class RandomFrames(FramesPredictor):
                 f"Transformation type {self.transform_type} not implemented"
             )
 
-    def forward(self, fourmomenta, scalars=None, ptr=None, return_tracker=False):
+    def forward(
+        self, fourmomenta, scalars=None, ptr=None, return_tracker=False, **kwargs
+    ):
         if not self.training:
             frames = Frames(
                 is_identity=True,
@@ -142,7 +146,9 @@ class COMRandomFrames(RandomFrames):
     the reference frame to the center of mass of the incoming particles.
     """
 
-    def forward(self, fourmomenta, scalars=None, ptr=None, return_tracker=False):
+    def forward(
+        self, fourmomenta, scalars=None, ptr=None, return_tracker=False, **kwargs
+    ):
         if not self.training:
             frames = Frames(
                 is_identity=True,

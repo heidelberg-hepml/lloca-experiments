@@ -90,7 +90,9 @@ class LearnedPDFrames(LearnedFrames):
         else:
             self.polar_decomposition = polar_decomposition
 
-    def forward(self, fourmomenta, scalars=None, ptr=None, return_tracker=False):
+    def forward(
+        self, fourmomenta, scalars=None, ptr=None, return_tracker=False, **kwargs
+    ):
         """
         Parameters
         ----------
@@ -111,7 +113,7 @@ class LearnedPDFrames(LearnedFrames):
             Dictionary containing regularization information, if return_tracker is True
         """
         self.init_weights_or_not()
-        vecs = self.equivectors(fourmomenta, scalars=scalars, ptr=ptr)
+        vecs = self.equivectors(fourmomenta, scalars=scalars, ptr=ptr, **kwargs)
         vecs = self.globalize_vecs_or_not(vecs, ptr)
         boost = vecs[..., 0, :]
         rotation_references = vecs[..., 1:, :]
@@ -157,7 +159,9 @@ class LearnedSO13Frames(LearnedFrames):
         else:
             self.orthogonalize_4d = orthogonalize_4d
 
-    def forward(self, fourmomenta, scalars=None, ptr=None, return_tracker=False):
+    def forward(
+        self, fourmomenta, scalars=None, ptr=None, return_tracker=False, **kwargs
+    ):
         """
         Parameters
         ----------
@@ -178,7 +182,7 @@ class LearnedSO13Frames(LearnedFrames):
             Dictionary containing regularization information, if return_tracker is True
         """
         self.init_weights_or_not()
-        vecs = self.equivectors(fourmomenta, scalars=scalars, ptr=ptr)
+        vecs = self.equivectors(fourmomenta, scalars=scalars, ptr=ptr, **kwargs)
         vecs = self.globalize_vecs_or_not(vecs, ptr)
 
         trafo, reg_lightlike, reg_coplanar = self.orthogonalize_4d(
@@ -213,7 +217,9 @@ class LearnedRestFrames(LearnedFrames):
         else:
             self.polar_decomposition = polar_decomposition
 
-    def forward(self, fourmomenta, scalars=None, ptr=None, return_tracker=False):
+    def forward(
+        self, fourmomenta, scalars=None, ptr=None, return_tracker=False, **kwargs
+    ):
         """
         Parameters
         ----------
@@ -234,7 +240,7 @@ class LearnedRestFrames(LearnedFrames):
             Dictionary containing regularization information, if return_tracker is True
         """
         self.init_weights_or_not()
-        references = self.equivectors(fourmomenta, scalars=scalars, ptr=ptr)
+        references = self.equivectors(fourmomenta, scalars=scalars, ptr=ptr, **kwargs)
         references = self.globalize_vecs_or_not(references, ptr)
 
         trafo, reg_lightlike, reg_collinear = self.polar_decomposition(
@@ -273,7 +279,9 @@ class LearnedSO3Frames(LearnedFrames):
         else:
             self.polar_decomposition = polar_decomposition
 
-    def forward(self, fourmomenta, scalars=None, ptr=None, return_tracker=False):
+    def forward(
+        self, fourmomenta, scalars=None, ptr=None, return_tracker=False, **kwargs
+    ):
         """
         Parameters
         ----------
@@ -294,7 +302,7 @@ class LearnedSO3Frames(LearnedFrames):
             Dictionary containing regularization information, if return_tracker is True
         """
         self.init_weights_or_not()
-        references = self.equivectors(fourmomenta, scalars=scalars, ptr=ptr)
+        references = self.equivectors(fourmomenta, scalars=scalars, ptr=ptr, **kwargs)
         references = self.globalize_vecs_or_not(references, ptr)
         fourmomenta = lorentz_eye(
             fourmomenta.shape[:-1], device=fourmomenta.device, dtype=fourmomenta.dtype
@@ -340,7 +348,9 @@ class LearnedZFrames(LearnedFrames):
         else:
             self.polar_decomposition = polar_decomposition
 
-    def forward(self, fourmomenta, scalars=None, ptr=None, return_tracker=False):
+    def forward(
+        self, fourmomenta, scalars=None, ptr=None, return_tracker=False, **kwargs
+    ):
         """
         Parameters
         ----------
@@ -424,7 +434,9 @@ class LearnedSO2Frames(LearnedFrames):
         else:
             self.polar_decomposition = polar_decomposition
 
-    def forward(self, fourmomenta, scalars=None, ptr=None, return_tracker=False):
+    def forward(
+        self, fourmomenta, scalars=None, ptr=None, return_tracker=False, **kwargs
+    ):
         """
         Parameters
         ----------
@@ -445,7 +457,7 @@ class LearnedSO2Frames(LearnedFrames):
             Dictionary containing regularization information, if return_tracker is True
         """
         self.init_weights_or_not()
-        references = self.equivectors(fourmomenta, scalars=scalars, ptr=ptr)
+        references = self.equivectors(fourmomenta, scalars=scalars, ptr=ptr, **kwargs)
         extra_references = self.globalize_vecs_or_not(references, ptr)
         fourmomenta = lorentz_eye(
             fourmomenta.shape[:-1], device=fourmomenta.device, dtype=fourmomenta.dtype

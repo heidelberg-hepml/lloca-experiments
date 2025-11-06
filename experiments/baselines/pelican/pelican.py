@@ -7,7 +7,7 @@ from .perm_equiv_models import Net2to2, Eq2to0
 from .generic_layers import InputEncoder, GInvariants, MyLinear, MessageNet, BasicMLP
 
 
-class PELICAN(nn.Module):
+class PELICANOfficial(nn.Module):
     def __init__(
         self,
         num_scalars,

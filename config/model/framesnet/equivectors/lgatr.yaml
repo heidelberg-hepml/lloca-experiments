@@ -1,0 +1,31 @@
+_target_: lloca.equivectors.lgatr.LGATrVectors
+_partial_: true
+
+n_vectors: null
+num_scalars: null
+
+operation: add
+nonlinearity: softmax
+aggr: sum
+layer_norm: false
+lgatr_norm: true
+
+hidden_mv_channels: ${model.framesnet.equivectors.net.hidden_mv_channels}
+hidden_s_channels: ${model.framesnet.equivectors.net.hidden_s_channels}
+
+net:
+ _target_: lgatr.nets.LGATr
+ _partial_: true
+
+ in_mv_channels: 1
+ in_s_channels: null
+ out_mv_channels: 0
+ out_s_channels: null
+ hidden_mv_channels: 2
+ hidden_s_channels: 24
+
+ num_blocks: 1
+ attention:
+  num_heads: 1
+ mlp:
+  activation: gelu

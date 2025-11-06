@@ -1,6 +1,5 @@
 data:
- add_tagging_features_framesnet: true
- only_ztransform_tagging_features: false
+ tagging_features_framesnet: all
  boost_jet: false
  beam_reference: lightlike
  two_beams: true

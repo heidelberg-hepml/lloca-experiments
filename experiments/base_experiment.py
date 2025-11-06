@@ -12,7 +12,7 @@ from hydra.utils import instantiate
 import mlflow
 from torch_ema import ExponentialMovingAverage
 import pytorch_optimizer
-from torch.amp import GradScaler
+from torch.cuda.amp import GradScaler
 
 from experiments.misc import get_device, flatten_dict
 import experiments.logger
@@ -437,8 +437,9 @@ class BaseExperiment:
         elif self.cfg.training.scheduler == "OneCycleLR":
             self.scheduler = torch.optim.lr_scheduler.OneCycleLR(
                 self.optimizer,
-                max_lr=self.cfg.training.lr * self.cfg.training.onecycle_max_lr,
+                max_lr=self.cfg.training.lr,
                 pct_start=self.cfg.training.onecycle_pct_start,
+                div_factor=self.cfg.training.onecycle_div_factor,
                 total_steps=int(
                     self.cfg.training.iterations * self.cfg.training.scheduler_scale
                 ),
@@ -558,6 +559,7 @@ class BaseExperiment:
             f"while validating every {self.cfg.training.validate_every_n_steps} iterations"
         )
         self.training_start_time = time.time()
+        self.training_start_time_corrected = time.time()  # reset at first iteration
         train_time, val_time = 0.0, 0.0
 
         # recycle trainloader
@@ -609,12 +611,15 @@ class BaseExperiment:
                     self.scheduler.step(val_loss)
 
             # output
+            if step == 0:
+                self.training_start_time_corrected = time.time()
             dt = time.time() - self.training_start_time
             if (
                 step in [0, 9, 99, 999, 9999, 99999]
                 or (step + 1) % self.cfg.training.validate_every_n_steps == 0
             ):
-                dt_estimate = dt * self.cfg.training.iterations / (step + 1)
+                dt_corrected = time.time() - self.training_start_time_corrected
+                dt_estimate = dt_corrected * self.cfg.training.iterations / (step + 1)
                 LOGGER.info(
                     f"Finished iteration {step+1} after {dt:.2f}s, "
                     f"training time estimate: {dt_estimate/60:.2f}min "
@@ -671,6 +676,7 @@ class BaseExperiment:
         loss, metrics = self._batch_loss(data)
         self.optimizer.zero_grad()
         self.scaler.scale(loss).backward()
+        self.scaler.unscale_(self.optimizer)  # unscale before clipping
 
         if self.cfg.training.log_grad_norm:
             grad_norm_frames = (
@@ -761,7 +767,8 @@ class BaseExperiment:
             log_dict = {
                 "loss": loss.item(),
                 "lr": self.train_lr[-1],
-                "time_per_step": (time.time() - self.training_start_time) / (step + 1),
+                "time_per_step": (time.time() - self.training_start_time_corrected)
+                / (step + 1),
                 "grad_norm": grad_norm,
                 "grad_norm_frames": grad_norm_frames,
                 "grad_norm_net": grad_norm_net,

@@ -1,0 +1,29 @@
+_target_: lloca.equivectors.pelican.PELICANVectors
+_partial_: true
+
+n_vectors: null
+num_scalars: null
+
+operation: add
+nonlinearity: softmax
+aggr: sum
+fm_norm: true
+layer_norm: true
+
+net:
+ _target_: pelican.nets.PELICAN
+ _partial_: true
+
+ num_blocks: 1
+ hidden_channels: 32
+ increase_hidden_channels: 0.5
+ in_channels_rank0: 0
+ in_channels_rank1: null
+ in_channels_rank2: 1
+ out_rank: 2
+ out_channels: null
+ map_multipliers: true
+ factorize: false
+ activation: leaky_relu
+ aggr: mean
+ compile: false

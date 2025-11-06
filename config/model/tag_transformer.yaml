@@ -3,7 +3,6 @@ in_channels: null
 out_channels: null
 use_amp: false
 add_fourmomenta_backbone: false
-only_ztransform_tagging_features: null
 mean_aggregation: true
 
 net:
@@ -17,7 +16,8 @@ net:
  num_blocks: 10
  num_heads: 8
  mlp_factor: 4
- attention_factor: 1
+ dropout_prob: null
+ checkpoint_blocks: false
 
 defaults:
  - framesnet: identity

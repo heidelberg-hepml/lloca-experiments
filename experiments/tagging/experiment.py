@@ -33,6 +33,8 @@ class TaggingExperiment(BaseExperiment):
         elif modelname == "LorentzNet":
             self.cfg.model.net.n_scalar = self.extra_scalars
         elif modelname == "PELICAN":
+            self.cfg.model.net.in_channels_rank1 = self.extra_scalars
+        elif modelname == "PELICANOfficial":
             self.cfg.model.net.num_scalars = self.extra_scalars
         elif modelname == "CGENN":
             # CGENN cant handle zero scalar inputs -> give 1 input with zeros
@@ -45,13 +47,7 @@ class TaggingExperiment(BaseExperiment):
             "MIParticleTransformer",
         ]:
             # LLoCa models
-            num_tagging_features = get_num_tagging_features(
-                only_ztransform=self.cfg.data.only_ztransform_tagging_features
-            )
-            self.cfg.model.only_ztransform_tagging_features = (
-                self.cfg.data.only_ztransform_tagging_features
-            )
-            self.cfg.model.in_channels = num_tagging_features + self.extra_scalars
+            self.cfg.model.in_channels = 7 + self.extra_scalars
             if self.cfg.model.add_fourmomenta_backbone:
                 self.cfg.model.in_channels += 4
 
@@ -70,12 +66,11 @@ class TaggingExperiment(BaseExperiment):
 
             # decide which entries to use for the framesnet
             if "equivectors" in self.cfg.model.framesnet:
-                self.cfg.model.framesnet.equivectors.num_scalars = self.extra_scalars
-                self.cfg.model.framesnet.equivectors.num_scalars += (
-                    num_tagging_features
-                    if self.cfg.data.add_tagging_features_framesnet
-                    else 0
+                num_tagging_features = get_num_tagging_features(
+                    tagging_features=self.cfg.data.tagging_features_framesnet
                 )
+                self.cfg.model.framesnet.equivectors.num_scalars = self.extra_scalars
+                self.cfg.model.framesnet.equivectors.num_scalars += num_tagging_features
         else:
             raise NotImplementedError(f"Model {modelname} not implemented")
 
@@ -370,6 +365,7 @@ class TaggingExperiment(BaseExperiment):
             ptr,
             self.cfg.data,
         )
+        embedding["num_graphs"] = label.shape[0]
         y_pred, tracker, frames = self.model(embedding)
         if isinstance(self.loss, torch.nn.BCEWithLogitsLoss):
             y_pred = y_pred[:, 0]

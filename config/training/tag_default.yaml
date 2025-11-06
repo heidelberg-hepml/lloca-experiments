@@ -18,7 +18,7 @@ scheduler_scale: 1
 cosanneal_eta_min: 0
 reduceplateau_factor: 0.1
 reduceplateau_patience: 50
-onecycle_max_lr: 10
+onecycle_div_factor: 25
 onecycle_pct_start: 0.3
 
 es_patience: 100
@@ -30,6 +30,6 @@ validate_every_n_epochs_min: null
 
 log_grad_norm: true
 clip_grad_norm_framesnet: null
-clip_grad_norm: null
+clip_grad_norm: 1
 clip_grad_value: null
 max_grad_norm: null
