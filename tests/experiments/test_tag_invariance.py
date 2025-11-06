@@ -79,7 +79,7 @@ def test_amplitudes(
         data_augmented = data.clone()
 
         # original data
-        y_pred = exp._get_ypred_and_label(data)[0]
+        y_pred, _, tracker, _ = exp._get_ypred_and_label(data)
 
         # augmented data
         mom = data_augmented.x
@@ -97,3 +97,5 @@ def test_amplitudes(
         rand_trafo.__name__,
         framesnet,
     )
+    for key in tracker.keys():
+        print(f"data tracker key={key}, value={tracker[key]}")

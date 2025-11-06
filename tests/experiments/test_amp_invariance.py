@@ -59,7 +59,7 @@ def test_amplitudes(
         mom = data[1]
 
         # original data
-        amp_original = exp.model(mom)[0]
+        amp_original, tracker, _ = exp.model(mom)
 
         # augmented data
         trafo = rand_trafo(mom.shape[:-2] + (1,), dtype=mom.dtype)
@@ -75,3 +75,5 @@ def test_amplitudes(
         rand_trafo.__name__,
         framesnet,
     )
+    for key in tracker.keys():
+        print(f"data tracker key={key}, value={tracker[key]}")

@@ -2,17 +2,21 @@
 
 import torch
 
-from .orthogonalize_3d import orthogonalize_3d
 from .lorentz import lorentz_squarednorm
+from .orthogonalize_3d import orthogonalize_3d
+from .orthogonalize_4d import regularize_lightlike
 
 
-def restframe_boost(fourmomenta):
+def restframe_boost(fourmomenta, checks=False):
     """Construct a Lorentz transformation that boosts four-momenta into their rest frame.
 
     Parameters
     ----------
     fourmomenta : torch.Tensor
         Tensor of shape (..., 4) representing the four-momenta.
+    checks : bool
+        If True, perform additional assertion checks on predicted vectors.
+        It may cause slowdowns due to GPU/CPU synchronization, use only for debugging.
 
     Returns
     -------
@@ -20,9 +24,10 @@ def restframe_boost(fourmomenta):
         Tensor of shape (..., 4, 4) representing the Lorentz transformation
         that boosts the four-momenta into their rest frame.
     """
-    assert (
-        lorentz_squarednorm(fourmomenta) > 0
-    ).all(), "Trying to boost spacelike vectors into their restframe (not possible). Consider changing the nonlinearity in equivectors."
+    if checks:
+        assert (
+            lorentz_squarednorm(fourmomenta) > 0
+        ).all(), "Trying to boost spacelike vectors into their restframe (not possible). Consider changing the nonlinearity in equivectors."
 
     # compute relevant quantities
     t0 = fourmomenta.narrow(-1, 0, 1)
@@ -49,7 +54,13 @@ def restframe_boost(fourmomenta):
 
 
 def polar_decomposition(
-    fourmomenta, references, use_float64=True, return_reg=False, **kwargs
+    fourmomenta,
+    references,
+    use_float64=True,
+    return_reg=False,
+    eps_reg_lightlike=None,
+    checks=False,
+    **kwargs
 ):
     """Construct a Lorentz transformation as a polar decomposition of a
     boost and a rotation.
@@ -64,6 +75,11 @@ def polar_decomposition(
         If True, use float64 for calculations to avoid numerical issues.
     return_reg : bool
         If True, return a tuple with the Lorentz transformation and regularization information.
+    eps_reg_lightlike : float or None
+        Epsilon value for regularization of lightlike four-momenta. The same value is used in the
+        orthogonalization step.
+    checks : bool
+        If True, perform additional assertion checks on predicted vectors
     kwargs : dict
 
     Returns
@@ -80,13 +96,16 @@ def polar_decomposition(
         fourmomenta = fourmomenta.to(torch.float64)
         references = references.to(torch.float64)
 
+    # fourmomenta for boost must be timelike
+    fourmomenta, reg_lightlike = regularize_lightlike(fourmomenta, eps_reg_lightlike)
+
     # construct rest frame transformation
-    boost = restframe_boost(fourmomenta)
+    boost = restframe_boost(fourmomenta, checks=checks)
 
     # references go into rest frame
     ref_rest = torch.matmul(references, boost.transpose(-1, -2))
 
-    # construct rotation
+    # construct rotation before orthogonalization
     ref3_rest = ref_rest[..., 1:]
     out = orthogonalize_3d(ref3_rest, return_reg=return_reg, **kwargs)
     if return_reg:
@@ -101,4 +120,4 @@ def polar_decomposition(
     trafo = torch.matmul(rotation, boost)
     if use_float64:
         trafo = trafo.to(original_dtype)
-    return (trafo, reg_collinear) if return_reg else trafo
+    return (trafo, reg_lightlike, reg_collinear) if return_reg else trafo
