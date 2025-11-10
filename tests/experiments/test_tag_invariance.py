@@ -14,7 +14,7 @@ from lloca.utils.rand_transforms import (
 BREAKING = [
     "data.beam_reference=null",
     "data.add_time_reference=false",
-    "data.add_tagging_features_framesnet=false",
+    "data.tagging_features_framesnet=null",
 ]
 
 

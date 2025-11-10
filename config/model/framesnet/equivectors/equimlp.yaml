@@ -1,4 +1,4 @@
-_target_: lloca.equivectors.equimlp.EquiMLP
+_target_: lloca.equivectors.mlp.MLPVectors
 _partial_: true
 
 n_vectors: null
