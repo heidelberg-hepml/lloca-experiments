@@ -11,7 +11,7 @@ float32_matmul_precision: highest
 
 warm_start_idx: null
 save: true
-use_mlflow: true
+use_mlflow: false
 save_source: true
 ema: false
 ema_decay: 0.999

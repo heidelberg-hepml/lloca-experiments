@@ -1,12 +1,13 @@
-# torch-cluster requires pre-build torch wheels
---find-links https://data.pyg.org/whl/torch-2.0.0+cpu.html
-
 # experiment management
 hydra-core
-mlflow==2.4.1
 pytest
 black==22.3.0
 pre-commit>=3.7
+mlflow-skinny # can optionally install extras, see https://pypi.org/project/mlflow-skinny/
+
+# standard science stack
+numpy
+matplotlib
 
 # deep learning
 torch>=2.0.0
@@ -14,18 +15,14 @@ torch-geometric>=2.4.0
 torch-ema
 pytorch_optimizer>=3.2.0
 
-# standard science stack
-numpy
-matplotlib
-
 # project-specific
-torch-cluster>=1.6.3
 torchdiffeq
-lgatr[xformers_attention]>=1.2.0
+xformers # might cause troubles, see https://github.com/facebookresearch/xformers
 pelican-lite
+lgatr[xformers_attention]>=1.3.2
 lloca[xformers_attention]>=1.3.1
 
-#weaver packages
+# weaver packages
 tqdm>=4.41.0
 PyYAML>=5.4
 awkward0>=0.15.5
