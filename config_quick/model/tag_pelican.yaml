@@ -21,6 +21,6 @@ net:
  aggr: mean
  compile: true
  checkpoint_blocks: false
- 
+
 defaults:
  - framesnet: identity

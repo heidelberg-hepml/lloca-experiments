@@ -1,14 +1,15 @@
+import math
+
 import pytest
 import torch
-import math
 from omegaconf import OmegaConf
 
 import experiments.eventgen.transforms as tr
 from experiments.eventgen.distributions import (
-    NaivePPPM2,
     NaivePPPLogM2,
-    StandardPPPLogM2,
+    NaivePPPM2,
     StandardLogPtPhiEtaLogM2,
+    StandardPPPLogM2,
 )
 from experiments.eventgen.processes import ttbarExperiment
 from tests.constants import TOLERANCES
@@ -17,9 +18,7 @@ from tests.constants import TOLERANCES
 def test_simple():
     """Some very simple tests"""
     fourmomentum = torch.tensor([[1, 1, 0, 0], [2, 1, 0, -1]]).float()
-    ptphietam2 = torch.tensor(
-        [[1, 0, 0, 0], [1, 0, math.atanh(-1 / 2**0.5), 2]]
-    ).float()
+    ptphietam2 = torch.tensor([[1, 0, 0, 0], [1, 0, math.atanh(-1 / 2**0.5), 2]]).float()
     transforms = [tr.EPPP_to_PtPhiEtaE(), tr.PtPhiEtaE_to_PtPhiEtaM2()]
     x = fourmomentum.clone()
     for t in transforms:
@@ -115,9 +114,7 @@ def test_invertibility(transforms, distribution, experiment_np, nevents):
         x = t.forward(x)
     x_transformed = x.clone()
 
-    torch.testing.assert_close(
-        fourmomenta_original, fourmomenta_transformed, **TOLERANCES
-    )
+    torch.testing.assert_close(fourmomenta_original, fourmomenta_transformed, **TOLERANCES)
     torch.testing.assert_close(x_original, x_transformed, **TOLERANCES)
 
 
@@ -366,9 +363,7 @@ def test_logdetjac(transforms, distribution, experiment_np, nevents):
         jac_inv_autograd.append(inv_autograd)
     jac_fw_autograd = torch.stack(jac_fw_autograd, dim=-2)
     jac_inv_autograd = torch.stack(jac_inv_autograd, dim=-2)
-    logdetjac_fw_autograd = (
-        torch.linalg.det(jac_fw_autograd).abs().log().sum(dim=-1, keepdims=True)
-    )
+    logdetjac_fw_autograd = torch.linalg.det(jac_fw_autograd).abs().log().sum(dim=-1, keepdims=True)
     logdetjac_inv_autograd = (
         torch.linalg.det(jac_inv_autograd).abs().log().sum(dim=-1, keepdims=True)
     )

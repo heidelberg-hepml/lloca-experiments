@@ -1,11 +1,12 @@
-import yaml
 import subprocess
 from pathlib import Path
+
+import yaml
 
 
 def run_github_workflow(workflow_file):
     """Parses and executes GitHub Actions workflow steps locally."""
-    with open(workflow_file, "r") as f:
+    with open(workflow_file) as f:
         workflow = yaml.safe_load(f)
 
     print(f"\n📂 Running workflow: {workflow_file}\n")
@@ -19,9 +20,7 @@ def run_github_workflow(workflow_file):
                 print(f"➡️ Running: {command}")
 
                 # Execute shell command
-                process = subprocess.run(
-                    command, shell=True, capture_output=True, text=True
-                )
+                process = subprocess.run(command, shell=True, capture_output=True, text=True)
 
                 # Print output
                 if process.stdout:

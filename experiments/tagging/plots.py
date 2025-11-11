@@ -7,9 +7,9 @@ from experiments.base_plots import plot_loss, plot_metric
 plt.rcParams["font.family"] = "serif"
 plt.rcParams["font.serif"] = "Charter"
 plt.rcParams["text.usetex"] = True
-plt.rcParams[
-    "text.latex.preamble"
-] = r"\usepackage[bitstream-charter]{mathdesign} \usepackage{amsmath} \usepackage{siunitx}"
+plt.rcParams["text.latex.preamble"] = (
+    r"\usepackage[bitstream-charter]{mathdesign} \usepackage{amsmath} \usepackage{siunitx}"
+)
 
 FONTSIZE = 14
 FONTSIZE_LEGEND = 13
@@ -193,9 +193,7 @@ def plot_roc(out, fpr, tpr, auc, title=None):
     plt.close()
 
 
-def plot_score(
-    out, labels_true, labels_predicted, title=None, xrange=[0, 1], bins=100, logy=False
-):
+def plot_score(out, labels_true, labels_predicted, title=None, xrange=[0, 1], bins=100, logy=False):
     cols = [colors[1], colors[2]]
 
     fig, ax = plt.subplots(figsize=(5, 4))

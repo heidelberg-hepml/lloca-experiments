@@ -1,11 +1,11 @@
 import torch
+from lloca.utils.lorentz import lorentz_squarednorm
+from lloca.utils.polar_decomposition import restframe_boost
+from lloca.utils.utils import get_batch_from_ptr
 from torch_geometric.utils import scatter
 
 from experiments.hep import get_eta, get_phi, get_pt
 from experiments.tagging.dataset import EPS
-from lloca.utils.utils import get_batch_from_ptr
-from lloca.utils.lorentz import lorentz_squarednorm
-from lloca.utils.polar_decomposition import restframe_boost
 
 # weaver defaults for tagging features standardization (mean, std)
 TAGGING_FEATURES_PREPROCESSING = [
@@ -90,9 +90,7 @@ def embed_tagging_data(fourmomenta, scalars, ptr, cfg_data):
     if cfg_data.mass_reg is not None:
         mass_reg = cfg_data.mass_reg
         mask = lorentz_squarednorm(fourmomenta) < mass_reg**2
-        fourmomenta[mask, 0] = (
-            (fourmomenta[mask, 1:] ** 2).sum(dim=-1).add(mass_reg**2).sqrt()
-        )
+        fourmomenta[mask, 0] = (fourmomenta[mask, 1:] ** 2).sum(dim=-1).add(mass_reg**2).sqrt()
 
     batch = get_batch_from_ptr(ptr)
 
@@ -142,21 +140,15 @@ def dense_to_sparse_jet(fourmomenta_dense, scalars_dense):
         Start indices of each jet, this way we don't lose information when concatenating everything
         Starts with 0 and ends with the first non-accessible index (=total number of particles)
     """
-    fourmomenta_dense = torch.transpose(
-        fourmomenta_dense, 1, 2
-    )  # (batchsize, num_particles, 4)
-    scalars_dense = torch.transpose(
-        scalars_dense, 1, 2
-    )  # (batchsize, num_particles, num_features)
+    fourmomenta_dense = torch.transpose(fourmomenta_dense, 1, 2)  # (batchsize, num_particles, 4)
+    scalars_dense = torch.transpose(scalars_dense, 1, 2)  # (batchsize, num_particles, num_features)
 
     mask = (fourmomenta_dense.abs() > EPS).any(dim=-1)
     num_particles = mask.sum(dim=-1)
     fourmomenta_sparse = fourmomenta_dense[mask]
     scalars_sparse = scalars_dense[mask]
 
-    ptr = torch.zeros(
-        len(num_particles) + 1, device=fourmomenta_dense.device, dtype=torch.long
-    )
+    ptr = torch.zeros(len(num_particles) + 1, device=fourmomenta_dense.device, dtype=torch.long)
     ptr[1:] = torch.cumsum(num_particles, dim=0)
     return fourmomenta_sparse, scalars_sparse, ptr
 

@@ -7,9 +7,9 @@ from experiments.base_plots import plot_loss, plot_metric
 plt.rcParams["font.family"] = "serif"
 plt.rcParams["font.serif"] = "Charter"
 plt.rcParams["text.usetex"] = True
-plt.rcParams[
-    "text.latex.preamble"
-] = r"\usepackage[bitstream-charter]{mathdesign} \usepackage{amsmath} \usepackage{siunitx}"
+plt.rcParams["text.latex.preamble"] = (
+    r"\usepackage[bitstream-charter]{mathdesign} \usepackage{amsmath} \usepackage{siunitx}"
+)
 
 FONTSIZE = 14
 FONTSIZE_LEGEND = 13
@@ -117,7 +117,7 @@ def plot_mixer(cfg, plot_path, title, plot_dict):
 
             xranges = [(-10.0, 10.0), (-30.0, 30.0), (-100.0, 100.0)]  # in %
             binss = [100, 50, 50]
-            for xrange, bins in zip(xranges, binss):
+            for xrange, bins in zip(xranges, binss, strict=False):
                 plot_delta_histogram(
                     file,
                     [delta_test * 100, delta_train * 100],
@@ -170,7 +170,7 @@ def plot_mixer(cfg, plot_path, title, plot_dict):
 
             xranges = [(-10.0, 10.0), (-30.0, 30.0), (-100.0, 100.0)]  # in %
             binss = [100, 50, 50]
-            for xrange, bins in zip(xranges, binss):
+            for xrange, bins in zip(xranges, binss, strict=False):
                 plot_delta_histogram(
                     file,
                     [delta_test * 100, delta_train * 100],
@@ -222,7 +222,9 @@ def plot_histograms(
         hists.append(hist)
     integrals = [np.sum((bins[1:] - bins[:-1]) * hist) for hist in hists]
     scales = [1 / integral if integral != 0.0 else 1.0 for integral in integrals]
-    dup_last = lambda a: np.append(a, a[-1])
+
+    def dup_last(a):
+        return np.append(a, a[-1])
 
     fig, axs = plt.subplots(
         2,
@@ -232,7 +234,7 @@ def plot_histograms(
         gridspec_kw={"height_ratios": [3, 1], "hspace": 0.0},
     )
     for i, hist, scale, label, color in zip(
-        range(len(hists)), hists, scales, labels, colors
+        range(len(hists)), hists, scales, labels, colors, strict=False
     ):
         axs[0].step(
             bins,
@@ -289,11 +291,12 @@ def plot_histograms(
     plt.close()
 
 
-def plot_delta_histogram(
-    file, datas, labels, title, xrange, bins=60, xlabel=None, logy=False
-):
+def plot_delta_histogram(file, datas, labels, title, xrange, bins=60, xlabel=None, logy=False):
     assert len(datas) == 2
-    dup_last = lambda a: np.append(a, a[-1])
+
+    def dup_last(a):
+        return np.append(a, a[-1])
+
     _, bins = np.histogram(datas[0], bins=bins - 1, range=xrange)
     hists, scales, mses = [], [], []
     for data in datas:
@@ -308,7 +311,7 @@ def plot_delta_histogram(
 
     fig, axs = plt.subplots(figsize=(6, 4))
     for hist, scale, mse, label, color in zip(
-        hists, scales, mses, labels, colors[1:3][::-1]
+        hists, scales, mses, labels, colors[1:3][::-1], strict=False
     ):
         axs.step(
             bins,

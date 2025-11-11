@@ -60,9 +60,7 @@ def _clip(a, a_min, a_max):
     if isinstance(a, np.ndarray) or a.ndim == 1:
         return np.clip(a, a_min, a_max)
     else:
-        return ak.unflatten(
-            np.clip(ak.to_numpy(ak.flatten(a)), a_min, a_max), ak.num(a)
-        )
+        return ak.unflatten(np.clip(ak.to_numpy(ak.flatten(a)), a_min, a_max), ak.num(a))
 
 
 def _knn(support, query, k, n_jobs=1):
@@ -77,9 +75,7 @@ def _batch_knn(supports, queries, k, maxlen_s, maxlen_q=None, n_jobs=1):
     assert len(supports) == len(queries)
     if maxlen_q is None:
         maxlen_q = maxlen_s
-    batch_knn_idx = np.ones((len(supports), maxlen_q, k), dtype="int32") * (
-        maxlen_s - 1
-    )
+    batch_knn_idx = np.ones((len(supports), maxlen_q, k), dtype="int32") * (maxlen_s - 1)
     for i, (s, q) in enumerate(zip(supports, queries)):
         batch_knn_idx[i, : len(q[:maxlen_q]), :] = _knn(
             s[:maxlen_s], q[:maxlen_q], k, n_jobs=n_jobs

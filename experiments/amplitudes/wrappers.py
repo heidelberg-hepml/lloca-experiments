@@ -1,14 +1,13 @@
 import torch
+from lgatr import embed_vector, extract_scalar
+from lloca.framesnet.nonequi_frames import IdentityFrames
+from lloca.reps.tensorreps import TensorReps
+from lloca.reps.tensorreps_transform import TensorRepsTransform
+from lloca.utils.utils import get_edge_attr, get_edge_index_from_shape
 from torch import nn
 from torch_geometric.nn.aggr import MeanAggregation
 
 from experiments.amplitudes.utils import standardize_momentum
-from lgatr import embed_vector, extract_scalar
-
-from lloca.reps.tensorreps import TensorReps
-from lloca.reps.tensorreps_transform import TensorRepsTransform
-from lloca.utils.utils import get_edge_index_from_shape, get_edge_attr
-from lloca.framesnet.nonequi_frames import IdentityFrames
 
 
 class AmplitudeWrapper(nn.Module):
@@ -56,9 +55,7 @@ class AmplitudeWrapper(nn.Module):
         )
 
         fourmomenta_local = self.trafo_fourmomenta(fourmomenta, frames)
-        features_local, _, _ = standardize_momentum(
-            fourmomenta_local, self.mom_mean, self.mom_std
-        )
+        features_local, _, _ = standardize_momentum(fourmomenta_local, self.mom_mean, self.mom_std)
 
         # move everything to less safe dtype
         features_local = features_local.to(self.network_dtype)
@@ -128,9 +125,7 @@ class GraphNetWrapper(AmplitudeWrapper):
 
         if self.include_edges:
             # edge feature standardization parameters
-            edge_index, _ = get_edge_index_from_shape(
-                fourmomenta.shape, fourmomenta.device
-            )
+            edge_index, _ = get_edge_index_from_shape(fourmomenta.shape, fourmomenta.device)
             fourmomenta = fourmomenta.reshape(-1, 4)
             edge_attr = get_edge_attr(fourmomenta, edge_index)
             self.edge_mean = edge_attr.mean()
@@ -154,9 +149,7 @@ class GraphNetWrapper(AmplitudeWrapper):
         frames = frames.reshape(-1, 4, 4)
         if self.include_edges:
             fourmomenta = fourmomenta_local.reshape(-1, 4)
-            edge_attr = self.get_edge_attr(fourmomenta, edge_index).to(
-                self.network_dtype
-            )
+            edge_attr = self.get_edge_attr(fourmomenta, edge_index).to(self.network_dtype)
         else:
             edge_attr = None
 
@@ -193,9 +186,7 @@ class LGATrWrapper(AmplitudeWrapper):
         ) = super().forward(fourmomenta_global)
 
         # prepare multivectors and scalars
-        multivectors = embed_vector(
-            fourmomenta_local.unsqueeze(-2).to(self.network_dtype)
-        )
+        multivectors = embed_vector(fourmomenta_local.unsqueeze(-2).to(self.network_dtype))
         scalars = particle_type
 
         # call network

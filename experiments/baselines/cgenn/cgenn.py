@@ -233,15 +233,11 @@ class CGLayer(nn.Module):
             m_h = None
 
         if self.use_invariants_to_update:
-            weights = self.psi_x(m_h).view(
-                len(m_h), self.out_features_x, self.algebra.n_subspaces
-            )
+            weights = self.psi_x(m_h).view(len(m_h), self.out_features_x, self.algebra.n_subspaces)
             weights = torch.repeat_interleave(weights, self.algebra.subspaces, dim=2)
             m_x = m_x * torch.sigmoid(weights)
 
-        x_red = self.reduce(m_x.flatten(1), i, num_segments=x.size(0)).view(
-            len(x), *m_x.shape[1:]
-        )
+        x_red = self.reduce(m_x.flatten(1), i, num_segments=x.size(0)).view(len(x), *m_x.shape[1:])
 
         if m_h is not None:
             h_red = self.reduce(m_h, i, num_segments=h.size(0))
@@ -255,9 +251,7 @@ class CGLayer(nn.Module):
             h_u = self.update_h(h, h_red, u_invariants, node_attr_h)
 
         if self.use_invariants_to_update:
-            weights = self.chi_x(h_u).view(
-                len(h_u), self.out_features_x, self.algebra.n_subspaces
-            )
+            weights = self.chi_x(h_u).view(len(h_u), self.out_features_x, self.algebra.n_subspaces)
 
             weights = torch.repeat_interleave(weights, self.algebra.subspaces, dim=2)
             x_u = x_u * torch.sigmoid(weights)
@@ -308,9 +302,7 @@ class CGENN(nn.Module):
         self.algebra = CliffordAlgebra((1.0, -1.0, -1.0, -1.0))
         self.n_layers = n_layers
         self.embedding_h = nn.Linear(in_features_h, hidden_features_h)
-        self.embedding_x = MVLinear(
-            self.algebra, in_features_x, hidden_features_x, subspaces=False
-        )
+        self.embedding_x = MVLinear(self.algebra, in_features_x, hidden_features_x, subspaces=False)
         self.CGLs = nn.ModuleList(
             [
                 CGLayer(

@@ -1,14 +1,16 @@
-import os, time
+import os
+import time
+
 import numpy as np
 import torch
 
-from experiments.base_experiment import BaseExperiment
-from experiments.amplitudes.utils import (
-    undo_preprocess_amplitude,
-    load_file,
-)
-from experiments.amplitudes.constants import PARTICLE_TYPE, DATASET_TITLE
+from experiments.amplitudes.constants import DATASET_TITLE, PARTICLE_TYPE
 from experiments.amplitudes.plots import plot_mixer
+from experiments.amplitudes.utils import (
+    load_file,
+    undo_preprocess_amplitude,
+)
+from experiments.base_experiment import BaseExperiment
 from experiments.logger import LOGGER
 from experiments.mlflow import log_mlflow
 
@@ -61,9 +63,7 @@ class AmplitudeExperiment(BaseExperiment):
     def init_data(self):
         LOGGER.info(f"Using dataset={self.cfg.data.dataset}")
 
-        data_path = os.path.join(
-            self.cfg.data.data_path, f"{self.cfg.data.dataset}.npy"
-        )
+        data_path = os.path.join(self.cfg.data.data_path, f"{self.cfg.data.dataset}.npy")
         (
             self.amplitude,
             self.momentum,
@@ -91,12 +91,8 @@ class AmplitudeExperiment(BaseExperiment):
             .astype("int")
             .tolist()
         )
-        trn_amp, tst_amp, val_amp = torch.split(
-            self.amplitude[: sum(splits)], splits, dim=0
-        )
-        trn_mom, tst_mom, val_mom = torch.split(
-            self.momentum[: sum(splits)], splits, dim=0
-        )
+        trn_amp, tst_amp, val_amp = torch.split(self.amplitude[: sum(splits)], splits, dim=0)
+        trn_mom, tst_mom, val_mom = torch.split(self.momentum[: sum(splits)], splits, dim=0)
 
         trn_set = torch.utils.data.TensorDataset(trn_amp, trn_mom)
         tst_set = torch.utils.data.TensorDataset(tst_amp, tst_mom)

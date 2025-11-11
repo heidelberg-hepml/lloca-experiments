@@ -1,24 +1,17 @@
 import torch
-
-from experiments.eventgen.cfm import EventCFM
-from experiments.tagging.embedding import get_spurion
+from lgatr import embed_vector, extract_vector
 from lloca.framesnet.frames import Frames, InverseFrames
 from lloca.reps.tensorreps import TensorReps
 from lloca.reps.tensorreps_transform import TensorRepsTransform
 from lloca.utils.utils import get_edge_index_from_shape
-from lgatr import embed_vector, extract_vector
+
+from experiments.eventgen.cfm import EventCFM
+from experiments.tagging.embedding import get_spurion
 
 
 class CFMWrapper(EventCFM):
     def __init__(
-        self,
-        framesnet,
-        cfm,
-        odeint,
-        n_particles,
-        spurions,
-        fourmomenta_velocity=False,
-        **kwargs
+        self, framesnet, cfm, odeint, n_particles, spurions, fourmomenta_velocity=False, **kwargs
     ):
         super().__init__(
             cfm,
@@ -203,9 +196,7 @@ class GraphNetCFM(CFMWrapper):
 
         fts_flat = fts.flatten(0, 1)
         frames_flat = frames.reshape(-1, *frames.shape[2:])
-        v_local_flat = self.net(
-            fts_flat, frames_flat, edge_index=edge_index, batch=batch
-        )
+        v_local_flat = self.net(fts_flat, frames_flat, edge_index=edge_index, batch=batch)
         v_local = v_local_flat.reshape(*fts.shape[:-1], v_local_flat.shape[-1])
 
         v = self.postprocess_velocity(v_local, x, frames)

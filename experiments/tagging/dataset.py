@@ -1,5 +1,5 @@
-import torch
 import numpy as np
+import torch
 from torch_geometric.data import Data
 
 EPS = 1e-5

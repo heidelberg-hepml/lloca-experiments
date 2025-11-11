@@ -53,7 +53,7 @@ jobs:
     - name: ParticleNet + Identity
       run: |
         python run.py model=tag_particlenet-lite save=false evaluate=false training.iterations=3
-    
+
     - name: ParticleNet + LearnedPDFrames
       run: |
         python run.py model=tag_particlenet-lite model/framesnet=learnedpd save=false evaluate=false training.iterations=3

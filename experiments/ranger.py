@@ -1,3 +1,5 @@
+# ruff: noqa
+
 import math
 import torch
 from torch.optim import Optimizer
@@ -45,11 +47,7 @@ class RAdam(Optimizer):
             raise ValueError("Invalid beta parameter at index 1: {}".format(betas[1]))
 
         self.degenerated_to_sgd = degenerated_to_sgd
-        if (
-            isinstance(params, (list, tuple))
-            and len(params) > 0
-            and isinstance(params[0], dict)
-        ):
+        if isinstance(params, (list, tuple)) and len(params) > 0 and isinstance(params[0], dict):
             for param in params:
                 if "betas" in param and (
                     param["betas"][0] != betas[0] or param["betas"][1] != betas[1]
@@ -131,17 +129,13 @@ class RAdam(Optimizer):
                 # more conservative since it's an approximated value
                 if N_sma >= 5:
                     if group["weight_decay"] != 0:
-                        p_data_fp32.add_(
-                            p_data_fp32, alpha=-group["weight_decay"] * group["lr"]
-                        )
+                        p_data_fp32.add_(p_data_fp32, alpha=-group["weight_decay"] * group["lr"])
                     denom = exp_avg_sq.sqrt().add_(group["eps"])
                     p_data_fp32.addcdiv_(exp_avg, denom, value=-step_size * group["lr"])
                     p.data.copy_(p_data_fp32)
                 elif step_size > 0:
                     if group["weight_decay"] != 0:
-                        p_data_fp32.add_(
-                            p_data_fp32, alpha=-group["weight_decay"] * group["lr"]
-                        )
+                        p_data_fp32.add_(p_data_fp32, alpha=-group["weight_decay"] * group["lr"])
                     p_data_fp32.add_(exp_avg, alpha=-step_size * group["lr"])
                     p.data.copy_(p_data_fp32)
 
@@ -243,17 +237,11 @@ class Lookahead(Optimizer):
                     param_state["cached_params"].copy_(p.data)
                     if self.pullback_momentum == "pullback":
                         internal_momentum = self.optimizer.state[p]["momentum_buffer"]
-                        self.optimizer.state[p][
-                            "momentum_buffer"
-                        ] = internal_momentum.mul_(self.alpha).add_(
-                            param_state["cached_mom"], alpha=1.0 - self.alpha
-                        )
-                        param_state["cached_mom"] = self.optimizer.state[p][
-                            "momentum_buffer"
-                        ]
+                        self.optimizer.state[p]["momentum_buffer"] = internal_momentum.mul_(
+                            self.alpha
+                        ).add_(param_state["cached_mom"], alpha=1.0 - self.alpha)
+                        param_state["cached_mom"] = self.optimizer.state[p]["momentum_buffer"]
                     elif self.pullback_momentum == "reset":
-                        self.optimizer.state[p]["momentum_buffer"] = torch.zeros_like(
-                            p.data
-                        )
+                        self.optimizer.state[p]["momentum_buffer"] = torch.zeros_like(p.data)
 
         return loss

@@ -11,7 +11,7 @@ net:
  out_s_channels: null
  hidden_mv_channels: 20
  hidden_s_channels: 32
- 
+
  num_blocks: 8
  attention:
   num_heads: 8

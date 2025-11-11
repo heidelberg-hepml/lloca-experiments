@@ -182,14 +182,10 @@ class MaskedBatchNorm2d(nn.BatchNorm2d):
             mean = self.running_mean
             var = self.running_var
 
-        inp = (inp - mean[None, None, None, :]) / (
-            torch.sqrt(var[None, None, None, :] + self.eps)
-        )
+        inp = (inp - mean[None, None, None, :]) / (torch.sqrt(var[None, None, None, :] + self.eps))
 
         if self.affine:
-            inp = (
-                inp * self.weight[None, None, None, :] + self.bias[None, None, None, :]
-            )
+            inp = inp * self.weight[None, None, None, :] + self.bias[None, None, None, :]
 
         inp = torch.where(mask_bool, inp, self.zero)
 
@@ -278,8 +274,7 @@ class MaskedBatchNorm3d(nn.BatchNorm3d):
 
         if self.affine:
             inp = (
-                inp * self.weight[None, None, None, None, :]
-                + self.bias[None, None, None, None, :]
+                inp * self.weight[None, None, None, None, :] + self.bias[None, None, None, None, :]
             )
 
         inp = torch.where(mask_bool, inp, self.zero)

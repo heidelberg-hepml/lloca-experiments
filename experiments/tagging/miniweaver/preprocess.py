@@ -86,13 +86,9 @@ class AutoStandardizer(object):
     def __init__(self, filelist, data_config, extra_selection=None):
         if isinstance(filelist, dict):
             filelist = sum(filelist.values(), [])
-        self._filelist = (
-            filelist if isinstance(filelist, (list, tuple)) else glob.glob(filelist)
-        )
+        self._filelist = filelist if isinstance(filelist, (list, tuple)) else glob.glob(filelist)
         self._data_config = data_config.copy()
-        self._data_config.selection = _strcat(
-            self._data_config.selection, extra_selection
-        )
+        self._data_config.selection = _strcat(self._data_config.selection, extra_selection)
         self.load_range = (0, data_config.preprocess.get("data_fraction", 0.1))
 
     def read_file(self, filelist):
@@ -111,9 +107,7 @@ class AutoStandardizer(object):
             for k in load_branches & func_vars:
                 aux_branches.add(k)
                 load_branches.remove(k)
-                load_branches.update(
-                    _get_variable_names(self._data_config.var_funcs[k])
-                )
+                load_branches.update(_get_variable_names(self._data_config.var_funcs[k]))
 
         table = _read_files(
             filelist,
@@ -178,13 +172,9 @@ class WeightMaker(object):
     def __init__(self, filelist, data_config, extra_selection=None):
         if isinstance(filelist, dict):
             filelist = sum(filelist.values(), [])
-        self._filelist = (
-            filelist if isinstance(filelist, (list, tuple)) else glob.glob(filelist)
-        )
+        self._filelist = filelist if isinstance(filelist, (list, tuple)) else glob.glob(filelist)
         self._data_config = data_config.copy()
-        self._data_config.selection = _strcat(
-            self._data_config.selection, extra_selection
-        )
+        self._data_config.selection = _strcat(self._data_config.selection, extra_selection)
 
     def read_file(self, filelist):
         keep_branches = set(
@@ -202,9 +192,7 @@ class WeightMaker(object):
             for k in load_branches & func_vars:
                 aux_branches.add(k)
                 load_branches.remove(k)
-                load_branches.update(
-                    _get_variable_names(self._data_config.var_funcs[k])
-                )
+                load_branches.update(_get_variable_names(self._data_config.var_funcs[k]))
 
         table = _read_files(
             filelist,
@@ -247,9 +235,7 @@ class WeightMaker(object):
             sum_evts += hist.sum()
             if self._data_config.reweight_basewgt:
                 w = ak.to_numpy(table[self._data_config.basewgt_name][pos])
-                hist, _, _ = np.histogram2d(
-                    x, y, weights=w, bins=self._data_config.reweight_bins
-                )
+                hist, _, _ = np.histogram2d(x, y, weights=w, bins=self._data_config.reweight_bins)
             raw_hists[label] = hist.astype("float64")
             result[label] = hist.astype("float64")
         if sum_evts != len(table):
@@ -262,12 +248,8 @@ class WeightMaker(object):
                 hist = result[label]
                 threshold_ = np.median(hist[hist > 0]) * 0.01
                 nonzero_vals = hist[hist > threshold_]
-                min_val, med_val = np.min(nonzero_vals), np.median(
-                    hist
-                )  # not really used
-                ref_val = np.percentile(
-                    nonzero_vals, self._data_config.reweight_threshold
-                )
+                min_val, med_val = np.min(nonzero_vals), np.median(hist)  # not really used
+                ref_val = np.percentile(nonzero_vals, self._data_config.reweight_threshold)
                 # wgt: bins w/ 0 elements will get a weight of 0; bins w/ content<ref_val will get 1
                 wgt = np.clip(np.nan_to_num(ref_val / hist, posinf=0), 0, 1)
                 result[label] = wgt
@@ -281,9 +263,7 @@ class WeightMaker(object):
             ):
                 # wgt: bins w/ 0 elements will get a weight of 0; bins w/ content<ref_val will get 1
                 ratio = np.nan_to_num(hist_ref / result[label], posinf=0)
-                upper = np.percentile(
-                    ratio[ratio > 0], 100 - self._data_config.reweight_threshold
-                )
+                upper = np.percentile(ratio[ratio > 0], 100 - self._data_config.reweight_threshold)
                 wgt = np.clip(ratio / upper, 0, 1)  # -> [0,1]
                 result[label] = wgt
                 # divide by classwgt here will effective increase the weight later

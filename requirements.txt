@@ -6,6 +6,7 @@ hydra-core
 mlflow==2.4.1
 pytest
 black==22.3.0
+pre-commit>=3.7
 
 # deep learning
 torch>=2.0.0

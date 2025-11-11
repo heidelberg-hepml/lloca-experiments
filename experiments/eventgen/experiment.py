@@ -1,14 +1,15 @@
+import os
+import time
+
 import numpy as np
 import torch
-
-import os, time
-from omegaconf import open_dict
 from hydra.utils import instantiate
-from tqdm import trange, tqdm
+from omegaconf import open_dict
+from tqdm import tqdm, trange
 
+import experiments.eventgen.plotter as plotter
 from experiments.base_experiment import BaseExperiment
 from experiments.eventgen.utils import ensure_onshell
-import experiments.eventgen.plotter as plotter
 from experiments.logger import LOGGER
 from experiments.mlflow import log_mlflow
 
@@ -23,16 +24,10 @@ class EventGenerationExperiment(BaseExperiment):
         with open_dict(self.cfg):
             self.cfg.model.n_particles = n_particles
             if self.modelname in ["Transformer", "GraphNet"]:
-                self.cfg.model.net.in_channels = (
-                    n_particles + self.cfg.cfm.embed_t_dim + 4
-                )
-                self.cfg.model.net.out_channels = 4 + len(
-                    self.cfg.data.spurions.scalar_dims
-                )
+                self.cfg.model.net.in_channels = n_particles + self.cfg.cfm.embed_t_dim + 4
+                self.cfg.model.net.out_channels = 4 + len(self.cfg.data.spurions.scalar_dims)
                 if self.modelname == "GraphNet":
-                    self.cfg.model.net.num_edge_attr = (
-                        1 if self.cfg.model.include_edges else 0
-                    )
+                    self.cfg.model.net.num_edge_attr = 1 if self.cfg.model.include_edges else 0
 
             elif self.modelname == "MLP":
                 self.cfg.model.net.in_shape = self.cfg.cfm.embed_t_dim + 4 * n_particles
@@ -41,9 +36,7 @@ class EventGenerationExperiment(BaseExperiment):
                 )
 
             elif self.modelname == "LGATr":
-                self.cfg.model.net.in_s_channels = (
-                    n_particles + self.cfg.cfm.embed_t_dim
-                )
+                self.cfg.model.net.in_s_channels = n_particles + self.cfg.cfm.embed_t_dim
                 self.cfg.model.net.in_mv_channels = (
                     2 if self.cfg.data.spurions.add_time_reference else 1
                 )
@@ -51,9 +44,7 @@ class EventGenerationExperiment(BaseExperiment):
                     self.cfg.model.net.in_mv_channels += (
                         2 if self.cfg.data.spurions.two_beams else 1
                     )
-                self.cfg.model.net.out_s_channels = len(
-                    self.cfg.data.spurions.scalar_dims
-                )
+                self.cfg.model.net.out_s_channels = len(self.cfg.data.spurions.scalar_dims)
 
             else:
                 raise NotImplementedError
@@ -73,9 +64,7 @@ class EventGenerationExperiment(BaseExperiment):
 
     def init_data(self):
         LOGGER.info(f"Working with {self.cfg.data.n_jets} extra jets")
-        momentum_dtype = (
-            torch.float64 if self.cfg.data.momentum_float64 else torch.float32
-        )
+        momentum_dtype = torch.float64 if self.cfg.data.momentum_float64 else torch.float32
 
         # load data
         data_path = eval(f"self.cfg.data.data_path_{self.cfg.data.n_jets}j")
@@ -219,7 +208,7 @@ class EventGenerationExperiment(BaseExperiment):
     def evaluate(self):
         if self.ema is not None:
             # no EMA + no-EMA evaluation implemented for generation
-            LOGGER.info(f"Evaluating with ema")
+            LOGGER.info("Evaluating with ema")
             with self.ema.average_parameters():
                 self.evaluate_inner()
         else:
@@ -256,9 +245,7 @@ class EventGenerationExperiment(BaseExperiment):
             num_particles = self.n_hard_particles + self.cfg.data.n_jets
             self.cfg.classifier.net.in_shape = 4 * num_particles
             if self.cfg.classifier.cfg_preprocessing.add_delta_r:
-                self.cfg.classifier.net.in_shape += (
-                    num_particles * (num_particles - 1) // 2
-                )
+                self.cfg.classifier.net.in_shape += num_particles * (num_particles - 1) // 2
             if self.cfg.classifier.cfg_preprocessing.add_virtual:
                 self.cfg.classifier.net.in_shape += 4 * len(self.virtual_components)
         classifier_factory = instantiate(self.cfg.classifier, _partial_=True)
@@ -315,14 +302,12 @@ class EventGenerationExperiment(BaseExperiment):
         self.NLLs = []
         LOGGER.info(f"Starting to evaluate log_prob for model on {title} dataset")
         t0 = time.time()
-        for i, data in enumerate(tqdm(loader)):
+        for data in tqdm(loader):
             data = data[0].to(self.device)
             NLL = -self.model.log_prob(data).squeeze().cpu()
             self.NLLs.extend(NLL.squeeze().numpy().tolist())
         dt = time.time() - t0
-        LOGGER.info(
-            f"Finished evaluating log_prob for {title} dataset after {dt/60:.2f}min"
-        )
+        LOGGER.info(f"Finished evaluating log_prob for {title} dataset after {dt/60:.2f}min")
         LOGGER.info(f"NLL = {np.mean(self.NLLs)}")
         if self.cfg.use_mlflow:
             log_mlflow(f"eval.{title}.NLL", np.mean(self.NLLs))
@@ -336,18 +321,14 @@ class EventGenerationExperiment(BaseExperiment):
             self.n_hard_particles + self.cfg.data.n_jets,
             4,
         )
-        n_batches = (
-            1 + (self.cfg.evaluation.nsamples - 1) // self.cfg.evaluation.batchsize
-        )
+        n_batches = 1 + (self.cfg.evaluation.nsamples - 1) // self.cfg.evaluation.batchsize
         LOGGER.info(f"Starting to generate {self.cfg.evaluation.nsamples} events")
         t0 = time.time()
-        for i in trange(n_batches, desc="Sampled batches"):
+        for _ in trange(n_batches, desc="Sampled batches"):
             x_t = self.model.sample(shape, self.device)
             sample.append(x_t)
         t1 = time.time()
-        LOGGER.info(
-            f"Finished generating events after {t1-t0:.2f}s = {(t1-t0)/60:.2f}min"
-        )
+        LOGGER.info(f"Finished generating events after {t1-t0:.2f}s = {(t1-t0)/60:.2f}min")
 
         samples = torch.cat(sample, dim=0)[: self.cfg.evaluation.nsamples, ...].cpu()
         self.data_prepd["gen"] = samples

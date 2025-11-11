@@ -4,10 +4,10 @@ from omegaconf import OmegaConf
 
 import experiments.eventgen.coordinates as c
 from experiments.eventgen.distributions import (
-    NaivePPPM2,
     NaivePPPLogM2,
-    StandardPPPLogM2,
+    NaivePPPM2,
     StandardLogPtPhiEtaLogM2,
+    StandardPPPLogM2,
 )
 from experiments.eventgen.processes import ttbarExperiment
 from tests.constants import TOLERANCES
@@ -85,9 +85,7 @@ def test_invertibility(coordinates, distribution, experiment_np, nevents):
     fourmomenta_transformed = coord.x_to_fourmomenta(x_original)
     x_transformed = coord.fourmomenta_to_x(fourmomenta_transformed)
 
-    torch.testing.assert_close(
-        fourmomenta_original, fourmomenta_transformed, **TOLERANCES
-    )
+    torch.testing.assert_close(fourmomenta_original, fourmomenta_transformed, **TOLERANCES)
     torch.testing.assert_close(x_original, x_transformed, **TOLERANCES)
 
 

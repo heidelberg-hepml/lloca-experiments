@@ -1,18 +1,18 @@
 import torch
 from torch import nn
 from torch.autograd import grad
-
 from torchdiffeq import odeint
+
+import experiments.eventgen.coordinates as c
 from experiments.eventgen.distributions import (
     BaseDistribution,
-    NaivePPPM2,
     NaivePPPLogM2,
-    StandardPPPLogM2,
+    NaivePPPM2,
     StandardLogPtPhiEtaLogM2,
+    StandardPPPLogM2,
 )
-from experiments.eventgen.utils import GaussianFourierProjection
-import experiments.eventgen.coordinates as c
 from experiments.eventgen.geometry import BaseGeometry, SimplePossiblyPeriodicGeometry
+from experiments.eventgen.utils import GaussianFourierProjection
 from experiments.logger import LOGGER
 
 
@@ -54,9 +54,7 @@ class CFM(nn.Module):
     ):
         super().__init__()
         self.t_embedding = nn.Sequential(
-            GaussianFourierProjection(
-                embed_dim=cfm.embed_t_dim, scale=cfm.embed_t_scale
-            ),
+            GaussianFourierProjection(embed_dim=cfm.embed_t_dim, scale=cfm.embed_t_scale),
             nn.Linear(cfm.embed_t_dim, cfm.embed_t_dim),
         )
         self.trace_fn = hutchinson_trace if cfm.hutchinson else autograd_trace
@@ -80,9 +78,7 @@ class CFM(nn.Module):
         raise NotImplementedError
 
     def sample_base(self, shape, device, dtype, generator=None):
-        fourmomenta = self.distribution.sample(
-            shape, device, dtype, generator=generator
-        )
+        fourmomenta = self.distribution.sample(shape, device, dtype, generator=generator)
         return fourmomenta
 
     def get_velocity(self, x, t):
@@ -153,9 +149,7 @@ class CFM(nn.Module):
 
         def velocity(t, xt):
             xt = self.geometry._handle_periodic(xt)
-            t = t * torch.ones(
-                shape[0], 1, 1, dtype=self.network_dtype, device=xt.device
-            )
+            t = t * torch.ones(shape[0], 1, 1, dtype=self.network_dtype, device=xt.device)
             vp_x = self.get_velocity(xt, t)[0]
             vp_x = self.handle_velocity(vp_x)
             return vp_x
@@ -258,9 +252,7 @@ class CFM(nn.Module):
 
         # collect log_probs
         log_prob_base_fm = self.distribution.log_prob(fm1)
-        log_prob_fm = (
-            log_prob_base_fm - logdetjac_cfm_x - logdetjac_forward - logdetjac_inverse
-        )
+        log_prob_fm = log_prob_base_fm - logdetjac_cfm_x - logdetjac_forward - logdetjac_inverse
 
         mask = log_prob_fm.abs() < 100
         if (~mask).any():

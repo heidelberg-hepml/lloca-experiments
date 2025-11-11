@@ -1,5 +1,5 @@
-import pytest
 import hydra
+import pytest
 
 import experiments.logger
 from experiments.tagging.experiment import TopTaggingExperiment

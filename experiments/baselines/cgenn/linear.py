@@ -24,9 +24,7 @@ class MVLinear(nn.Module):
         self.subspaces = subspaces
 
         if subspaces:
-            self.weight = nn.Parameter(
-                torch.empty(out_features, in_features, algebra.n_subspaces)
-            )
+            self.weight = nn.Parameter(torch.empty(out_features, in_features, algebra.n_subspaces))
             self._forward = self._forward_subspaces
         else:
             self.weight = nn.Parameter(torch.empty(out_features, in_features))

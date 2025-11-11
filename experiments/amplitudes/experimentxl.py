@@ -1,21 +1,22 @@
 import os
 import queue
-import threading
 import random
+import threading
+
 import torch
 import torch.distributed as dist
 from torch.utils.data import IterableDataset, get_worker_info
 
+from experiments.amplitudes.experiment import AmplitudeExperiment
 from experiments.amplitudes.utils import (
     load_file,
 )
 from experiments.logger import LOGGER
-from experiments.amplitudes.experiment import AmplitudeExperiment
 
 
 class AmplitudeXLExperiment(AmplitudeExperiment):
     def init_data(self):
-        assert not "train" in self.cfg.evaluation.eval_set
+        assert "train" not in self.cfg.evaluation.eval_set
 
         real_subsample = self.cfg.data.subsample
         self.cfg.data.subsample = None
@@ -30,9 +31,9 @@ class AmplitudeXLExperiment(AmplitudeExperiment):
         ), "You should not subsample while using multiple files"
 
         # overwrite self.train_loader
-        get_fname = lambda n: os.path.join(
-            self.cfg.data.data_path, f"{self.dataset}_{n}.npy"
-        )
+        def get_fname(n):
+            return os.path.join(self.cfg.data.data_path, f"{self.dataset}_{n}.npy")
+
         file_paths = [get_fname(n + 1) for n in range(self.cfg.data.num_train_files)]
         loading_kwargs = dict(
             cfg_data=self.cfg.data,

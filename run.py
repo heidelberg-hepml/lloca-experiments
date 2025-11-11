@@ -1,17 +1,18 @@
-import hydra
-import os
 import datetime
-import torch
-import torch.multiprocessing as mp
-import torch.distributed as dist
+import os
 
-from experiments.tagging.experiment import TopTaggingExperiment
-from experiments.tagging.finetuneexperiment import TopTaggingFineTuneExperiment
-from experiments.tagging.topxlexperiment import TopXLTaggingExperiment
-from experiments.tagging.jetclassexperiment import JetClassTaggingExperiment
+import hydra
+import torch
+import torch.distributed as dist
+import torch.multiprocessing as mp
+
 from experiments.amplitudes.experiment import AmplitudeExperiment
 from experiments.amplitudes.experimentxl import AmplitudeXLExperiment
 from experiments.eventgen.processes import ttbarExperiment
+from experiments.tagging.experiment import TopTaggingExperiment
+from experiments.tagging.finetuneexperiment import TopTaggingFineTuneExperiment
+from experiments.tagging.jetclassexperiment import JetClassTaggingExperiment
+from experiments.tagging.topxlexperiment import TopXLTaggingExperiment
 
 
 @hydra.main(config_path="config_quick", config_name="toptagging", version_base=None)

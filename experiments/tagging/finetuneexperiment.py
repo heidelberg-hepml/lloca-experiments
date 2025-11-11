@@ -1,10 +1,12 @@
-import os, torch
-from omegaconf import OmegaConf, open_dict
+import os
+
+import torch
 from hydra.core.hydra_config import HydraConfig
+from omegaconf import OmegaConf, open_dict
 from torch_ema import ExponentialMovingAverage
 
-from experiments.tagging.experiment import TopTaggingExperiment
 from experiments.logger import LOGGER
+from experiments.tagging.experiment import TopTaggingExperiment
 
 
 def _extract_cli_overrides(cfg, prefix):
@@ -34,7 +36,7 @@ class TopTaggingFineTuneExperiment(TopTaggingExperiment):
         assert self.warmstart_cfg.exp_type in ["jctagging", "topxltagging"]
         assert self.warmstart_cfg.data.features == "fourmomenta"
 
-        if not self.warmstart_cfg.model._target_ in [
+        if self.warmstart_cfg.model._target_ not in [
             "experiments.tagging.wrappers.TransformerWrapper",
             "experiments.tagging.wrappers.ParTWrapper",
         ]:
@@ -55,9 +57,7 @@ class TopTaggingFineTuneExperiment(TopTaggingExperiment):
             )
             self.cfg.data.beam_reference = self.warmstart_cfg.data.beam_reference
             self.cfg.data.two_beams = self.warmstart_cfg.data.two_beams
-            self.cfg.data.add_time_reference = (
-                self.warmstart_cfg.data.add_time_reference
-            )
+            self.cfg.data.add_time_reference = self.warmstart_cfg.data.add_time_reference
             self.cfg.data.mass_reg = self.warmstart_cfg.data.mass_reg
             self.cfg.data.spurion_scale = self.warmstart_cfg.data.spurion_scale
             self.cfg.data.momentum_float64 = self.warmstart_cfg.data.momentum_float64
@@ -79,31 +79,23 @@ class TopTaggingFineTuneExperiment(TopTaggingExperiment):
             f"model_run{self.warmstart_cfg.run_idx}.pt",
         )
         try:
-            state_dict = torch.load(model_path, map_location="cpu", weights_only=False)[
-                "model"
-            ]
-        except FileNotFoundError:
-            raise ValueError(f"Cannot load model from {model_path}")
+            state_dict = torch.load(model_path, map_location="cpu", weights_only=False)["model"]
+        except FileNotFoundError as err:
+            raise ValueError(f"Cannot load model from {model_path}") from err
         LOGGER.info(f"Loading pretrained model from {model_path}")
         self.model.load_state_dict(state_dict)
         self.model.to(self.device, dtype=self.dtype)
 
         # overwrite output layer
-        if (
-            self.warmstart_cfg.model._target_
-            == "experiments.tagging.wrappers.TransformerWrapper"
-        ):
+        if self.warmstart_cfg.model._target_ == "experiments.tagging.wrappers.TransformerWrapper":
             self.model.net.linear_out = torch.nn.Linear(
                 self.model.net.hidden_channels, self.num_outputs
             ).to(self.device)
-        elif (
-            self.warmstart_cfg.model._target_
-            == "experiments.tagging.wrappers.ParTWrapper"
-        ):
+        elif self.warmstart_cfg.model._target_ == "experiments.tagging.wrappers.ParTWrapper":
             # overwrite output layer, reset parameters for all other layers in the final MLP
-            self.model.net.fc[-1] = torch.nn.Linear(
-                self.model.net.embed_dim, self.num_outputs
-            ).to(self.device)
+            self.model.net.fc[-1] = torch.nn.Linear(self.model.net.embed_dim, self.num_outputs).to(
+                self.device
+            )
             for module in self.model.net.fc.modules():
                 if hasattr(module, "reset_parameters"):
                     module.reset_parameters()
@@ -111,17 +103,14 @@ class TopTaggingFineTuneExperiment(TopTaggingExperiment):
             raise NotImplementedError
 
         if self.cfg.ema:
-            LOGGER.info(f"Re-initializing EMA")
+            LOGGER.info("Re-initializing EMA")
             self.ema = ExponentialMovingAverage(
                 self.model.parameters(), decay=self.cfg.training.ema_decay
             ).to(self.device)
 
     def _init_optimizer(self):
         # collect parameter lists
-        if (
-            self.warmstart_cfg.model._target_
-            == "experiments.tagging.wrappers.TransformerWrapper"
-        ):
+        if self.warmstart_cfg.model._target_ == "experiments.tagging.wrappers.TransformerWrapper":
             params_backbone_lfnet = list(self.model.framesnet.parameters())
             params_backbone_main = list(self.model.net.linear_in.parameters()) + list(
                 self.model.net.blocks.parameters()
@@ -132,8 +121,7 @@ class TopTaggingFineTuneExperiment(TopTaggingExperiment):
             param_groups = [
                 {
                     "params": params_backbone_lfnet,
-                    "lr": self.cfg.finetune.lr_backbone
-                    * self.cfg.training.lr_factor_framesnet,
+                    "lr": self.cfg.finetune.lr_backbone * self.cfg.training.lr_factor_framesnet,
                     "weight_decay": self.cfg.training.weight_decay_framesnet,
                 },
                 {
@@ -147,10 +135,7 @@ class TopTaggingFineTuneExperiment(TopTaggingExperiment):
                     "weight_decay": self.cfg.training.weight_decay,
                 },
             ]
-        elif (
-            self.warmstart_cfg.model._target_
-            == "experiments.tagging.wrappers.ParTWrapper"
-        ):
+        elif self.warmstart_cfg.model._target_ == "experiments.tagging.wrappers.ParTWrapper":
             # adapted version of the basic _init_optimizer() in TaggingExperiment
             decay, no_decay, head_decay, head_nodecay = {}, {}, {}, {}
             for name, param in self.model.net.named_parameters():
@@ -159,10 +144,7 @@ class TopTaggingFineTuneExperiment(TopTaggingExperiment):
                 if (
                     len(param.shape) == 1
                     or name.endswith(".bias")
-                    or (
-                        hasattr(self.model.net, "no_weight_decay")
-                        and name in {"cls_token"}
-                    )
+                    or (hasattr(self.model.net, "no_weight_decay") and name in {"cls_token"})
                 ):
                     if name.startswith("fc."):
                         head_nodecay[name] = param
@@ -192,8 +174,7 @@ class TopTaggingFineTuneExperiment(TopTaggingExperiment):
                 {
                     "params": self.model.framesnet.parameters(),
                     "weight_decay": self.cfg.training.weight_decay_framesnet,
-                    "lr": self.cfg.finetune.lr_backbone
-                    * self.cfg.training.lr_factor_framesnet,
+                    "lr": self.cfg.finetune.lr_backbone * self.cfg.training.lr_factor_framesnet,
                 },
                 {
                     "params": head_nodecay_1x,

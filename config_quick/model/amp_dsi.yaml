@@ -15,6 +15,6 @@ net:
  out_dim_prenet_sep: 64
  hidden_channels_net: 128
  hidden_layers_net: 4
- 
+
 defaults:
  - framesnet: identity

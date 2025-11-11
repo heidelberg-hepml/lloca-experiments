@@ -11,7 +11,7 @@ data:
 
 evaluation:
  eval_set: [test, val]
- 
+
 defaults:
  - amplitudes
  - _self_

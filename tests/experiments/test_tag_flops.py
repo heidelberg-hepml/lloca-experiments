@@ -1,7 +1,7 @@
 # Should be evaluated on GPU
 # otherwise the transformer FLOPs will be off, because it is not using flash-attention
-import pytest
 import hydra
+import pytest
 from torch.utils.flop_counter import FlopCounterMode
 
 import experiments.logger

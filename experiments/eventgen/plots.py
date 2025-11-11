@@ -1,8 +1,7 @@
-import numpy as np
-import matplotlib.pyplot as plt
-
 # load fonts
 import matplotlib.font_manager as font_manager
+import matplotlib.pyplot as plt
+import numpy as np
 
 font_dir = ["src/utils/bitstream-charter-ttf/Charter/"]
 for font in font_manager.findSystemFonts(font_dir):
@@ -13,14 +12,18 @@ font_manager.findSystemFonts(fontpaths=None, fontext="ttf")
 plt.rcParams["font.family"] = "serif"
 plt.rcParams["font.serif"] = "Charter"
 plt.rcParams["text.usetex"] = True
-plt.rcParams[
-    "text.latex.preamble"
-] = r"\usepackage[bitstream-charter]{mathdesign} \usepackage{amsmath}"
+plt.rcParams["text.latex.preamble"] = (
+    r"\usepackage[bitstream-charter]{mathdesign} \usepackage{amsmath}"
+)
 
 # fontsize
 FONTSIZE = 14
 FONTSIZE_LEGEND = 13
 TICKLABELSIZE = 10
+
+
+def dup_last(a):
+    return np.append(a, a[-1])
 
 
 def plot_histogram(
@@ -88,10 +91,8 @@ def plot_histogram(
     integrals = [np.sum((bins[1:] - bins[:-1]) * y) for y in hists]
     scales = [1 / integral if integral != 0.0 else 1.0 for integral in integrals]
 
-    dup_last = lambda a: np.append(a, a[-1])
-
     if mask_dict is None:
-        fig, axs = plt.subplots(
+        _, axs = plt.subplots(
             2,
             1,
             sharex=True,
@@ -99,11 +100,11 @@ def plot_histogram(
             gridspec_kw={"height_ratios": [3, 1], "hspace": 0.00},
         )
     else:
-        fig, ax = plt.subplots(figsize=(6, 4))
+        _, ax = plt.subplots(figsize=(6, 4))
         axs = [ax]
 
-    for i, y, y_err, scale, label, color in zip(
-        range(len(hists)), hists, hist_errors, scales, labels, colors
+    for y, y_err, scale, label, color in zip(
+        hists, hist_errors, scales, labels, colors, strict=False
     ):
 
         axs[0].step(
@@ -195,10 +196,7 @@ def plot_histogram(
     axs[0].set_ylim(0.0, ymax)
     axs[0].set_xlim(xrange)
     axs[0].tick_params(axis="both", labelsize=TICKLABELSIZE)
-    plt.xlabel(
-        r"${%s}$" % xlabel,
-        fontsize=FONTSIZE,
-    )
+    plt.xlabel(rf"${{{xlabel}}}$", fontsize=FONTSIZE)
     axs[0].text(
         0.02,
         0.95,
@@ -211,7 +209,7 @@ def plot_histogram(
 
     if mask_dict is None:
         axs[1].set_ylabel(
-            r"$\frac{\mathrm{{%s}}}{\mathrm{Test}}$" % model_label, fontsize=FONTSIZE
+            rf"$\frac{{\mathrm{{{model_label}}}}}{{\mathrm{{Test}}}}$", fontsize=FONTSIZE
         )
         axs[1].set_yticks(error_ticks)
         axs[1].set_ylim(error_range)
@@ -241,7 +239,7 @@ def plot_histogram_2d(
     subtitles = ["Test", model_label]
 
     fig, axs = plt.subplots(1, len(data), figsize=(4 * len(data), 4))
-    for ax, dat, weight, subtitle in zip(axs, data, weights, subtitles):
+    for ax, dat, weight, subtitle in zip(axs, data, weights, subtitles, strict=False):
         ax.set_title(subtitle)
         ax.hist2d(
             dat[:, 0],
@@ -251,8 +249,8 @@ def plot_histogram_2d(
             rasterized=True,
             weights=weight,
         )
-        ax.set_xlabel(r"${%s}$" % xlabel)
-        ax.set_ylabel(r"${%s}$" % ylabel)
+        ax.set_xlabel(rf"${{{xlabel}}}$")
+        ax.set_ylabel(rf"${{{ylabel}}}$")
     fig.suptitle(title)
     plt.savefig(file, format="pdf", bbox_inches="tight")
     plt.close()
@@ -260,9 +258,7 @@ def plot_histogram_2d(
 
 def plot_calibration(file, prob_true, prob_pred):
     fig, ax = plt.subplots(figsize=(5, 4))
-    ax.plot(
-        prob_true, prob_pred, color="#A52A2A", marker="o", markersize=3, linewidth=1
-    )
+    ax.plot(prob_true, prob_pred, color="#A52A2A", marker="o", markersize=3, linewidth=1)
     ax.plot([0, 1], [0, 1], "k--", linewidth=1, alpha=0.5)
     ax.set_xlabel("classifier probability for true events", fontsize=FONTSIZE)
     ax.set_ylabel("true fraction of true events", fontsize=FONTSIZE)
@@ -293,12 +289,9 @@ def plot_roc(file, tpr, fpr, auc):
     plt.close()
 
 
-def simple_histogram(
-    file, data, labels, xrange, xlabel, logx=False, logy=False, n_bins=80
-):
+def simple_histogram(file, data, labels, xrange, xlabel, logx=False, logy=False, n_bins=80):
     assert len(data) == 2 and len(labels) == 2
     colors = ["#0343DE", "#A52A2A"]
-    dup_last = lambda a: np.append(a, a[-1])
 
     data = [np.clip(data_i.clone(), xrange[0], xrange[1]) for data_i in data]
     if logx:
@@ -314,7 +307,7 @@ def simple_histogram(
         xrange = np.exp(xrange)
 
     fig, ax = plt.subplots(figsize=(5, 4))
-    for y, scale, label, color in zip(hists, scales, labels, colors):
+    for y, scale, label, color in zip(hists, scales, labels, colors, strict=False):
         ax.step(
             bins,
             dup_last(y) * scale,

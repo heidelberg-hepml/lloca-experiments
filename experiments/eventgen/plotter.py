@@ -1,22 +1,23 @@
-import numpy as np
 import math
+
+import numpy as np
 import torch
 from matplotlib.backends.backend_pdf import PdfPages
 
+from experiments.base_plots import plot_loss, plot_metric
+from experiments.eventgen.plots import (
+    plot_calibration,
+    plot_histogram,
+    plot_histogram_2d,
+    plot_roc,
+    simple_histogram,
+)
 from experiments.eventgen.utils import (
     delta_eta,
     delta_phi,
     delta_r,
-    get_virtual_particle,
     fourmomenta_to_jetmomenta,
-)
-from experiments.base_plots import plot_loss, plot_metric
-from experiments.eventgen.plots import (
-    plot_histogram,
-    plot_histogram_2d,
-    plot_calibration,
-    simple_histogram,
-    plot_roc,
+    get_virtual_particle,
 )
 
 
@@ -108,7 +109,7 @@ def plot_classifier(exp, filename, model_label):
             file,
             [exp.classifiers.tracker[key] for key in ["loss", "val_loss"]],
             lr=exp.classifiers.tracker["lr"],
-            labels=[f"train mse", f"val mse"],
+            labels=["train mse", "val mse"],
             logy=True,
         )
 
@@ -191,7 +192,7 @@ def plot_fourmomenta(exp, filename, model_label, weights, mask_dict):
         num_components = 4 * (exp.n_hard_particles + exp.cfg.data.n_jets)
         for channel in range(num_components):
 
-            def extract(event):
+            def extract(event, channel=channel):
                 event = event.clone()
                 event = event.reshape(event.shape[0], -1)[:, channel]
                 return event
@@ -234,7 +235,7 @@ def plot_jetmomenta(exp, filename, model_label, weights, mask_dict):
         num_components = 4 * (exp.n_hard_particles + exp.cfg.data.n_jets)
         for channel in range(num_components):
 
-            def extract(event):
+            def extract(event, channel=channel):
                 event = event.clone()
                 event = fourmomenta_to_jetmomenta(event)
                 event = event.reshape(event.shape[0], -1)[:, channel]
@@ -304,13 +305,11 @@ def plot_delta(exp, filename, model_label, weights, mask_dict):
                     continue
 
                 # delta eta
-                get_delta_eta = lambda x: delta_eta(
-                    fourmomenta_to_jetmomenta(x), idx1, idx2
-                )
-                xlabel = (
-                    r"\Delta \eta_{%s}"
-                    % f"{exp.obs_names_index[idx1]},{exp.obs_names_index[idx2]}"
-                )
+                def get_delta_eta(x, idx1=idx1, idx2=idx2):
+                    return delta_eta(fourmomenta_to_jetmomenta(x), idx1, idx2)
+
+                label_dR = f"{exp.obs_names_index[idx1]},{exp.obs_names_index[idx2]}"
+                xlabel = rf"\Delta \eta_{label_dR}"
                 xrange = [-6.0, 6.0]
                 train = get_delta_eta(exp.data_raw["trn"])
                 test = get_delta_eta(exp.data_raw["tst"])
@@ -330,13 +329,11 @@ def plot_delta(exp, filename, model_label, weights, mask_dict):
                 )
 
                 # delta phi
-                get_delta_phi = lambda x: delta_phi(
-                    fourmomenta_to_jetmomenta(x), idx1, idx2
-                )
-                xlabel = (
-                    r"\Delta \phi_{%s}"
-                    % f"{exp.obs_names_index[idx1]},{exp.obs_names_index[idx2]}"
-                )
+                def get_delta_phi(x, idx1=idx1, idx2=idx2):
+                    return delta_phi(fourmomenta_to_jetmomenta(x), idx1, idx2)
+
+                label_phi = f"{exp.obs_names_index[idx1]},{exp.obs_names_index[idx2]}"
+                xlabel = rf"\Delta \phi_{label_phi}"
                 xrange = [-math.pi, math.pi]
                 train = get_delta_phi(exp.data_raw["trn"])
                 test = get_delta_phi(exp.data_raw["tst"])
@@ -356,13 +353,11 @@ def plot_delta(exp, filename, model_label, weights, mask_dict):
                 )
 
                 # delta R
-                get_delta_r = lambda x: delta_r(
-                    fourmomenta_to_jetmomenta(x), idx1, idx2
-                )
-                xlabel = (
-                    r"\Delta R_{%s}"
-                    % f"{exp.obs_names_index[idx1]},{exp.obs_names_index[idx2]}"
-                )
+                def get_delta_r(x, idx1=idx1, idx2=idx2):
+                    return delta_r(fourmomenta_to_jetmomenta(x), idx1, idx2)
+
+                label_R = f"{exp.obs_names_index[idx1]},{exp.obs_names_index[idx2]}"
+                xlabel = rf"\Delta R_{label_R}"
                 xrange = [0.0, 8.0]
                 train = get_delta_r(exp.data_raw["trn"])
                 test = get_delta_r(exp.data_raw["tst"])
@@ -386,9 +381,10 @@ def plot_virtual(exp, filename, model_label, weights, mask_dict):
     logys = [True, False, False, False]
     with PdfPages(filename) as file:
         for i, components in enumerate(exp.virtual_components):
-            get_virtual = lambda x: get_virtual_particle(
-                fourmomenta_to_jetmomenta(x), components
-            )
+
+            def get_virtual(x, components=components):
+                return get_virtual_particle(fourmomenta_to_jetmomenta(x), components)
+
             train = get_virtual(exp.data_raw["trn"])
             test = get_virtual(exp.data_raw["tst"])
             model = get_virtual(exp.data_raw["gen"])
@@ -418,21 +414,17 @@ def plot_deta_dphi(exp, filename, model_label):
                 if idx1 >= idx2:
                     continue
 
-                def construct(event):
+                def construct(event, idx1=idx1, idx2=idx2):
                     deta = delta_eta(fourmomenta_to_jetmomenta(event), idx1, idx2)
                     dphi = delta_phi(fourmomenta_to_jetmomenta(event), idx1, idx2)
                     return np.stack([deta, dphi], axis=-1)
 
                 test = construct(exp.data_raw["tst"])
                 model = construct(exp.data_raw["gen"])
-                xlabel = (
-                    r"\Delta \eta_{%s}"
-                    % f"{exp.obs_names_index[idx1]},{exp.obs_names_index[idx2]}"
-                )
-                ylabel = (
-                    r"\Delta \phi_{%s}"
-                    % f"{exp.obs_names_index[idx1]},{exp.obs_names_index[idx2]}"
-                )
+                label_eta = f"{exp.obs_names_index[idx1]},{exp.obs_names_index[idx2]}"
+                label_phi = f"{exp.obs_names_index[idx1]},{exp.obs_names_index[idx2]}"
+                xlabel = rf"\Delta \eta_{label_eta}"
+                ylabel = rf"\Delta \phi_{label_phi}"
                 xrange = [-4.0, 4.0]
                 yrange = [-np.pi, np.pi]
                 plot_histogram_2d(

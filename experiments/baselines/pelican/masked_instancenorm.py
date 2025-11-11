@@ -36,12 +36,8 @@ def masked_instance_norm(
     _dims = tuple(range(-num_dims, 0))
     _slice = (...,) + (None,) * num_dims
 
-    running_mean_ = (
-        running_mean[None, :].repeat(b, 1) if running_mean is not None else None
-    )
-    running_var_ = (
-        running_var[None, :].repeat(b, 1) if running_mean is not None else None
-    )
+    running_mean_ = running_mean[None, :].repeat(b, 1) if running_mean is not None else None
+    running_var_ = running_var[None, :].repeat(b, 1) if running_mean is not None else None
 
     if use_input_stats:
         lengths = mask.sum(_dims)

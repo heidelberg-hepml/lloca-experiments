@@ -25,9 +25,7 @@ class FullyConnectedSteerableGeometricProductLayer(nn.Module):
         self.include_first_order = include_first_order
 
         if normalization_init is not None:
-            self.normalization = NormalizationLayer(
-                algebra, in_features, normalization_init
-            )
+            self.normalization = NormalizationLayer(algebra, in_features, normalization_init)
         else:
             self.normalization = nn.Identity()
         self.linear_right = MVLinear(algebra, in_features, in_features, bias=False)
@@ -35,9 +33,7 @@ class FullyConnectedSteerableGeometricProductLayer(nn.Module):
             self.linear_left = MVLinear(algebra, in_features, out_features, bias=True)
 
         self.product_paths = algebra.geometric_product_paths
-        self.weight = nn.Parameter(
-            torch.empty(out_features, in_features, self.product_paths.sum())
-        )
+        self.weight = nn.Parameter(torch.empty(out_features, in_features, self.product_paths.sum()))
 
         self.reset_parameters()
 

@@ -1,16 +1,17 @@
+import os
+import time
+
 import numpy as np
 import torch
+from sklearn.metrics import accuracy_score, roc_auc_score, roc_curve
 from torch_geometric.loader import DataLoader
-import os, time
-
-from sklearn.metrics import roc_curve, roc_auc_score, accuracy_score
 
 from experiments.base_experiment import BaseExperiment
+from experiments.logger import LOGGER
+from experiments.mlflow import log_mlflow
 from experiments.tagging.dataset import TopTaggingDataset
 from experiments.tagging.embedding import embed_tagging_data, get_num_tagging_features
 from experiments.tagging.plots import plot_mixer
-from experiments.logger import LOGGER
-from experiments.mlflow import log_mlflow
 
 
 class TaggingExperiment(BaseExperiment):
@@ -20,15 +21,11 @@ class TaggingExperiment(BaseExperiment):
 
     def init_physics(self):
         modelname = self.cfg.model.net._target_.rsplit(".", 1)[-1]
-        self.momentum_dtype = (
-            torch.float64 if self.cfg.data.momentum_float64 else torch.float32
-        )
+        self.momentum_dtype = torch.float64 if self.cfg.data.momentum_float64 else torch.float32
 
         self.cfg.model.out_channels = self.num_outputs
         if modelname == "LGATr":
-            self.cfg.model.net.in_s_channels = (
-                0 if self.cfg.model.mean_aggregation else 1
-            )
+            self.cfg.model.net.in_s_channels = 0 if self.cfg.model.mean_aggregation else 1
             self.cfg.model.net.in_s_channels += self.extra_scalars
         elif modelname == "LorentzNet":
             self.cfg.model.net.n_scalar = self.extra_scalars
@@ -52,17 +49,11 @@ class TaggingExperiment(BaseExperiment):
                 self.cfg.model.in_channels += 4
 
             if modelname == "Transformer":
-                self.cfg.model.in_channels += (
-                    0 if self.cfg.model.mean_aggregation else 1
-                )
+                self.cfg.model.in_channels += 0 if self.cfg.model.mean_aggregation else 1
             elif modelname == "GraphNet":
-                self.cfg.model.net.num_edge_attr = (
-                    1 if self.cfg.model.include_edges else 0
-                )
+                self.cfg.model.net.num_edge_attr = 1 if self.cfg.model.include_edges else 0
             elif modelname == "ParticleNet":
-                self.cfg.model.net.hidden_reps_list[
-                    0
-                ] = f"{self.cfg.model.in_channels}x0n"
+                self.cfg.model.net.hidden_reps_list[0] = f"{self.cfg.model.in_channels}x0n"
 
             # decide which entries to use for the framesnet
             if "equivectors" in self.cfg.model.framesnet:
@@ -163,10 +154,7 @@ class TaggingExperiment(BaseExperiment):
                 if (
                     len(param.shape) == 1
                     or name.endswith(".bias")
-                    or (
-                        hasattr(self.model.net, "no_weight_decay")
-                        and name in {"cls_token"}
-                    )
+                    or (hasattr(self.model.net, "no_weight_decay") and name in {"cls_token"})
                 ):
                     no_decay[name] = param
                 else:
@@ -283,9 +271,7 @@ class TaggingExperiment(BaseExperiment):
 
         if mode == "eval":
             framesString = type(self.model.framesnet).__name__
-            num_parameters = sum(
-                p.numel() for p in self.model.parameters() if p.requires_grad
-            )
+            num_parameters = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
 
             LOGGER.info(
                 f"table {title}: {framesString} ({self.cfg.training.iterations} iterations)"
@@ -306,9 +292,7 @@ class TaggingExperiment(BaseExperiment):
             and ("test" in self.cfg.evaluation.eval_set)
         ):
             file = f"{plot_path}/roc.txt"
-            roc = np.stack(
-                (self.results["test"]["fpr"], self.results["test"]["tpr"]), axis=-1
-            )
+            roc = np.stack((self.results["test"]["fpr"], self.results["test"]["tpr"]), axis=-1)
             np.savetxt(file, roc)
 
         plot_dict = {}
@@ -332,13 +316,9 @@ class TaggingExperiment(BaseExperiment):
     def _validate(self, step):
         if self.ema is not None:
             with self.ema.average_parameters():
-                metrics = self._evaluate_single(
-                    self.val_loader, "val", mode="val", step=step
-                )
+                metrics = self._evaluate_single(self.val_loader, "val", mode="val", step=step)
         else:
-            metrics = self._evaluate_single(
-                self.val_loader, "val", mode="val", step=step
-            )
+            metrics = self._evaluate_single(self.val_loader, "val", mode="val", step=step)
         self.val_loss.append(metrics["loss"])
         return metrics["loss"]
 
@@ -389,7 +369,5 @@ class TopTaggingExperiment(TaggingExperiment):
         self.extra_scalars = 0
 
     def init_data(self):
-        data_path = os.path.join(
-            self.cfg.data.data_dir, f"toptagging_{self.cfg.data.dataset}.npz"
-        )
+        data_path = os.path.join(self.cfg.data.data_dir, f"toptagging_{self.cfg.data.dataset}.npz")
         self._init_data(TopTaggingDataset, data_path)

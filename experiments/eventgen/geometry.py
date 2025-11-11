@@ -26,9 +26,7 @@ class SimplePossiblyPeriodicGeometry(SimpleGeometry):
         self.periodic_components = [1] if contains_phi and periodic else []
 
     def _handle_periodic(self, x):
-        x[..., self.periodic_components] = ensure_angle(
-            x[..., self.periodic_components]
-        )
+        x[..., self.periodic_components] = ensure_angle(x[..., self.periodic_components])
         return x
 
     def get_trajectory(self, x0, x1, t):

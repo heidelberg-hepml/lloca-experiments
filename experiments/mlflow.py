@@ -9,14 +9,14 @@ from experiments.logger import LOGGER
 MAX_LOG_ATTEMPTS = 20
 BASE_WAIT_TIME = 0.2  # Base wait time between attempts in seconds
 WAIT_TIME_FACTOR = 1.5  # Increase of the wait time for each successive trial
-WAIT_TIME_RANDOM = 0.5  # Upper bound on random wait time that is added to break synchronicity of multiple jobs
+WAIT_TIME_RANDOM = (
+    0.5  # Upper bound on random wait time that is added to break synchronicity of multiple jobs
+)
 
 LOGGING_ENABLED = True
 
 
-def log_mlflow(
-    key: str, value: Union[float, str], step: Optional[int] = None, kind: str = "metric"
-) -> None:
+def log_mlflow(key: str, value: float | str, step: int | None = None, kind: str = "metric") -> None:
     """Logs metric or param to MLflow.
 
     Catches exceptions due to locked or unavailable DB and then retries.
@@ -53,8 +53,7 @@ def log_mlflow(
             return
         except Exception:  # pylint: disable=broad-except
             wait_time = (
-                BASE_WAIT_TIME * WAIT_TIME_FACTOR**attempt
-                + WAIT_TIME_RANDOM * np.random.rand()
+                BASE_WAIT_TIME * WAIT_TIME_FACTOR**attempt + WAIT_TIME_RANDOM * np.random.rand()
             )
             LOGGER.warning(
                 f"Exception when logging key {key} to MLflow at step {step} (attempt {attempt + 1}). "
