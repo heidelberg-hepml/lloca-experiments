@@ -11,7 +11,7 @@
 
 </div>
 
-This repository contains the official implementation of [Lorentz Local Canonicalization: How to make any Network Lorentz-Equivariant](https://arxiv.org/abs/2505.20280) by [Jonas Spinner](mailto:j.spinner@thphys.uni-heidelberg.de), [Luigi Favaro](mailto:luigi.favaro@uclouvain.be), [Peter Lippmann](mailto:peter.lippmann@iwr.uni-heidelberg.de), [Sebastian Pitz](mailto:pitz@thphys.uni-heidelberg.de), [Gerrit Gerhartz](mailto:gerhartz@thphys.uni-heidelberg.de), Tilman Plehn, and Fred A. Hamprecht.
+This repository contains code to reproduce the results of [Lorentz Local Canonicalization: How to make any Network Lorentz-Equivariant](https://arxiv.org/abs/2505.20280) and [Lorentz-equivariance without limitations](arxiv.org/abs/2508.14898) by [Jonas Spinner](mailto:j.spinner@thphys.uni-heidelberg.de), [Luigi Favaro](mailto:luigi.favaro@uclouvain.be), [Peter Lippmann](mailto:peter.lippmann@iwr.uni-heidelberg.de), [Sebastian Pitz](mailto:pitz@thphys.uni-heidelberg.de), [Gerrit Gerhartz](mailto:gerhartz@thphys.uni-heidelberg.de), Huilin Qu, Tilman Plehn, and Fred A. Hamprecht. The code imports the [lloca package](https://github.com/heidelberg-hepml/lloca).
 
 ## 1. Getting started
 
