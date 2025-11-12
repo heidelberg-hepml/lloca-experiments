@@ -5,16 +5,13 @@ import torch
 from torch.utils.data import DataLoader
 
 from experiments.logger import LOGGER
-from experiments.tagging.embedding import (
-    dense_to_sparse_jet,
-    embed_tagging_data,
-)
+from experiments.tagging.embedding import dense_to_sparse_jet
 from experiments.tagging.experiment import TaggingExperiment
 from experiments.tagging.miniweaver.dataset import SimpleIterDataset
 from experiments.tagging.miniweaver.loader import to_filelist
 
 
-class TopXLTaggingExperiment(TaggingExperiment):
+class TopTagXLExperiment(TaggingExperiment):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.num_outputs = 1
