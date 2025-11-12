@@ -8,7 +8,7 @@ net:
  out_channels: null
  hidden_reps: "64x0n+16x1n"
  num_edge_attr: null
- 
+
  num_blocks: 3
  num_layers_mlp1: 3
  num_layers_mlp2: 0

@@ -1,10 +1,10 @@
-import torch
-import pytest
 import hydra
+import pytest
+import torch
+from lloca.utils.rand_transforms import rand_lorentz, rand_rotation
 
 import experiments.logger
 from experiments.amplitudes.experiment import AmplitudeExperiment
-from lloca.utils.rand_transforms import rand_rotation, rand_lorentz
 
 
 @pytest.mark.parametrize(
@@ -49,8 +49,7 @@ def test_amplitudes(
 
     def cycle(iterable):
         while True:
-            for x in iterable:
-                yield x
+            yield from iterable
 
     mses = []
     iterator = iter(cycle(exp.train_loader))

@@ -11,7 +11,7 @@ class ttbarExperiment(EventGenerationExperiment):
     """
 
     def define_process_specifics(self):
-        self.plot_title = r"$t\bar t+{%s}j$" % self.cfg.data.n_jets
+        self.plot_title = rf"$t\bar t+{self.cfg.data.n_jets}j$"
         self.n_hard_particles = 6
         self.n_jets_max = 4
         self.onshell_list = []

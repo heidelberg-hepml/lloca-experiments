@@ -2,6 +2,7 @@
 
 Copied from https://github.com/USST-HEP/MIParT/blob/main/example_MIParticleTransformer.py
 """
+
 import math
 import random
 import warnings
@@ -51,9 +52,7 @@ class MIAttention(nn.Module):
 
         attn_output = torch.bmm(attn_output_weights, v)
 
-        attn_output = (
-            attn_output.transpose(0, 1).contiguous().view(tgt_len, bsz, embed_dim)
-        )
+        attn_output = attn_output.transpose(0, 1).contiguous().view(tgt_len, bsz, embed_dim)
 
         return attn_output
 
@@ -103,9 +102,7 @@ class MultiheadLinearAttention(nn.Module):
         )
 
         kv_input = (
-            F.linear(kvinput, self.compress_k.weight[:, 0:tgt_lenk])
-            .permute(0, 2, 1)
-            .contiguous()
+            F.linear(kvinput, self.compress_k.weight[:, 0:tgt_lenk]).permute(0, 2, 1).contiguous()
         )
 
         kv = (
@@ -176,25 +173,19 @@ class MultiheadLinearAttention(nn.Module):
                 attn_output_weights += attn_mask
 
         if key_padding_mask is not None:
-            attn_output_weights = attn_output_weights.view(
-                bsz, num_heads, tgt_len, src_len
-            )
+            attn_output_weights = attn_output_weights.view(bsz, num_heads, tgt_len, src_len)
             attn_output_weights = attn_output_weights.masked_fill(
                 key_padding_mask.unsqueeze(1).unsqueeze(2),
                 float("-inf"),
             )
-            attn_output_weights = attn_output_weights.view(
-                bsz * num_heads, tgt_len, src_len
-            )
+            attn_output_weights = attn_output_weights.view(bsz * num_heads, tgt_len, src_len)
 
         attn_output_weights = attn_output_weights.softmax(dim=-1)
         attn_output_weights = self.attn_drop(attn_output_weights)
 
         attn_output = torch.bmm(attn_output_weights, v)
 
-        attn_output = (
-            attn_output.transpose(0, 1).contiguous().view(tgt_len, bsz, embed_dim)
-        )
+        attn_output = attn_output.transpose(0, 1).contiguous().view(tgt_len, bsz, embed_dim)
 
         return attn_output
 
@@ -263,12 +254,8 @@ def p3_norm(p, eps=1e-8):
 
 
 def pairwise_lv_fts(xi, xj, num_outputs=4, eps=1e-8, for_onnx=False):
-    pti, rapi, phii = to_ptrapphim(xi, False, eps=None, for_onnx=for_onnx).split(
-        (1, 1, 1), dim=1
-    )
-    ptj, rapj, phij = to_ptrapphim(xj, False, eps=None, for_onnx=for_onnx).split(
-        (1, 1, 1), dim=1
-    )
+    pti, rapi, phii = to_ptrapphim(xi, False, eps=None, for_onnx=for_onnx).split((1, 1, 1), dim=1)
+    ptj, rapj, phij = to_ptrapphim(xj, False, eps=None, for_onnx=for_onnx).split((1, 1, 1), dim=1)
 
     delta = delta_r2(rapi, phii, rapj, phij).sqrt()
     lndelta = torch.log(delta.clamp(min=eps))
@@ -276,11 +263,7 @@ def pairwise_lv_fts(xi, xj, num_outputs=4, eps=1e-8, for_onnx=False):
         return lndelta
 
     if num_outputs > 1:
-        ptmin = (
-            ((pti <= ptj) * pti + (pti > ptj) * ptj)
-            if for_onnx
-            else torch.minimum(pti, ptj)
-        )
+        ptmin = ((pti <= ptj) * pti + (pti > ptj) * ptj) if for_onnx else torch.minimum(pti, ptj)
         lnkt = torch.log((ptmin * delta).clamp(min=eps))
         lnz = torch.log((ptmin / (pti + ptj).clamp(min=eps)).clamp(min=eps))
         outputs = [lnkt, lnz, lndelta]
@@ -297,9 +280,7 @@ def pairwise_lv_fts(xi, xj, num_outputs=4, eps=1e-8, for_onnx=False):
     # the following features are not symmetric for (i, j)
     if num_outputs > 5:
         xj_boost = boost(xj, xij)
-        costheta = (p3_norm(xj_boost, eps=eps) * p3_norm(xij, eps=eps)).sum(
-            dim=1, keepdim=True
-        )
+        costheta = (p3_norm(xj_boost, eps=eps) * p3_norm(xij, eps=eps)).sum(dim=1, keepdim=True)
         outputs.append(costheta)
 
     if num_outputs > 6:
@@ -783,14 +764,10 @@ class Block(nn.Module):
         self.fc2 = nn.Linear(self.ffn_dim, embed_dim)
 
         self.c_attn = (
-            nn.Parameter(torch.ones(num_heads), requires_grad=True)
-            if scale_heads
-            else None
+            nn.Parameter(torch.ones(num_heads), requires_grad=True) if scale_heads else None
         )
         self.w_resid = (
-            nn.Parameter(torch.ones(embed_dim), requires_grad=True)
-            if scale_resids
-            else None
+            nn.Parameter(torch.ones(embed_dim), requires_grad=True) if scale_resids else None
         )
 
     def forward(self, x, x_cls=None, padding_mask=None, attn_mask=None):
@@ -816,9 +793,7 @@ class Block(nn.Module):
             residual = x_cls
             u = torch.cat((x_cls, x), dim=0)  # (seq_len+1, batch, embed_dim)
             u = self.pre_attn_norm(u)
-            x = self.attn(x_cls, u, u, key_padding_mask=padding_mask)[
-                0
-            ]  # (1, batch, embed_dim)
+            x = self.attn(x_cls, u, u, key_padding_mask=padding_mask)[0]  # (1, batch, embed_dim)
         else:
             residual = x
             x = self.pre_attn_norm(x)
@@ -892,14 +867,10 @@ class BlockMI(nn.Module):
         self.fc2 = nn.Linear(self.ffn_dim, embed_dim)
 
         self.c_attn = (
-            nn.Parameter(torch.ones(num_MIheads), requires_grad=True)
-            if scale_heads
-            else None
+            nn.Parameter(torch.ones(num_MIheads), requires_grad=True) if scale_heads else None
         )
         self.w_resid = (
-            nn.Parameter(torch.ones(embed_dim), requires_grad=True)
-            if scale_resids
-            else None
+            nn.Parameter(torch.ones(embed_dim), requires_grad=True) if scale_resids else None
         )
 
     def forward(self, x, x_cls=None, attn_output_weights=None):
@@ -1042,7 +1013,7 @@ class MIParticleTransformer(nn.Module):
         for_inference=False,
         use_amp=False,
         groups=1,
-        **kwargs
+        **kwargs,
     ) -> None:
         super().__init__(**kwargs)
 
@@ -1140,9 +1111,7 @@ class MIParticleTransformer(nn.Module):
 
         self.blocks = nn.ModuleList([BlockMI(**cfg_block) for _ in range(num_MIlayers)])
         self.blocks2 = nn.ModuleList([Block(**cfg_block) for _ in range(num_layers)])
-        self.cls_blocks = nn.ModuleList(
-            [Block(**cfg_cls_block) for _ in range(num_cls_layers)]
-        )
+        self.cls_blocks = nn.ModuleList([Block(**cfg_cls_block) for _ in range(num_cls_layers)])
 
         self.norm = nn.LayerNorm(embed_dim)
 
@@ -1151,9 +1120,7 @@ class MIParticleTransformer(nn.Module):
             in_dim = embed_dim
             for out_dim, drop_rate in fc_params:
                 fcs.append(
-                    nn.Sequential(
-                        nn.Linear(in_dim, out_dim), nn.ReLU(), nn.Dropout(drop_rate)
-                    )
+                    nn.Sequential(nn.Linear(in_dim, out_dim), nn.ReLU(), nn.Dropout(drop_rate))
                 )
                 in_dim = out_dim
             fcs.append(nn.Linear(in_dim, num_classes))
@@ -1208,16 +1175,12 @@ class MIParticleTransformer(nn.Module):
             # pre-computed weights
             tgt_len, bsz, embed_dim = x.shape
             attn_output_weights = attn_mask1
-            attn_output_weights = attn_output_weights.view(
-                bsz, self.num_MIheads, tgt_len, tgt_len
-            )
+            attn_output_weights = attn_output_weights.view(bsz, self.num_MIheads, tgt_len, tgt_len)
             attn_output_weights = attn_output_weights.masked_fill(
                 padding_mask.unsqueeze(1).unsqueeze(2),
                 float("-inf"),
             )
-            attn_output_weights = attn_output_weights.view(
-                bsz * self.num_MIheads, tgt_len, tgt_len
-            )
+            attn_output_weights = attn_output_weights.view(bsz * self.num_MIheads, tgt_len, tgt_len)
             attn_output_weights = attn_output_weights.softmax(dim=-1)
 
             for block in self.blocks:
@@ -1227,9 +1190,7 @@ class MIParticleTransformer(nn.Module):
             #     x = block(x, x_cls=None, padding_mask=padding_mask, attn_mask=attn_mask2)
 
             for block in self.blocks2:
-                x = block(
-                    x, x_cls=None, padding_mask=padding_mask, attn_mask=attn_mask2
-                )
+                x = block(x, x_cls=None, padding_mask=padding_mask, attn_mask=attn_mask2)
 
             # extract class token
             cls_tokens = self.cls_token.expand(1, x.size(1), -1)  # (1, N, C)
@@ -1463,9 +1424,7 @@ def get_model(data_config, **kwargs):
 
     model_info = {
         "input_names": list(data_config.input_names),
-        "input_shapes": {
-            k: ((1,) + s[1:]) for k, s in data_config.input_shapes.items()
-        },
+        "input_shapes": {k: ((1,) + s[1:]) for k, s in data_config.input_shapes.items()},
         "output_names": ["softmax"],
         "dynamic_axes": {
             **{k: {0: "N", 2: "n_" + k.split("_")[0]} for k in data_config.input_names},

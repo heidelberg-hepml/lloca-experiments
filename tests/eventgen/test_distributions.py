@@ -3,10 +3,10 @@ import torch
 from omegaconf import OmegaConf
 
 from experiments.eventgen.distributions import (
-    NaivePPPM2,
     NaivePPPLogM2,
-    StandardPPPLogM2,
+    NaivePPPM2,
     StandardLogPtPhiEtaLogM2,
+    StandardPPPLogM2,
 )
 from experiments.eventgen.processes import ttbarExperiment
 from experiments.eventgen.transforms import EPPP_to_PPPM2
@@ -109,7 +109,5 @@ def test_onshell(
     tr = EPPP_to_PPPM2()
     pppm2 = tr.forward(fourmomenta)
     mass = torch.sqrt(pppm2[..., 3])[..., exp.onshell_list] * exp.units
-    expected_mass = (
-        torch.tensor(exp.onshell_mass).unsqueeze(0).expand(mass.shape).to(dtype)
-    )
+    expected_mass = torch.tensor(exp.onshell_mass).unsqueeze(0).expand(mass.shape).to(dtype)
     torch.testing.assert_close(mass, expected_mass, **TOLERANCES)

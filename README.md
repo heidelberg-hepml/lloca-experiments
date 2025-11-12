@@ -28,9 +28,10 @@ python -m venv venv
 source venv/bin/activate
 pip install -e .
 pip install -r requirements.txt
+pre-commit install
 ```
 
-In case you want to run our experiments, you first have to collect the datasets. Small test datasets are contained in the `data/` directory. The full datasets can be downloaded from the Heidelberg ITP website ([amplitudes](https://www.thphys.uni-heidelberg.de/~plehn/data/amplitudes.hdf5), [toptagging](https://www.thphys.uni-heidelberg.de/~plehn/data/toptagging_full.npz), [event-generation](https://www.thphys.uni-heidelberg.de/~plehn/data/event_generation_ttbar.hdf5)) and from zenodo ([amplitudesXL](https://zenodo.org/records/16793011), [JetClass](https://zenodo.org/records/6619768), [TopTagXL](https://zenodo.org/records/10878355)). 
+In case you want to run our experiments, you first have to collect the datasets. Small test datasets are contained in the `data/` directory. The full datasets can be downloaded from the Heidelberg ITP website ([amplitudes](https://www.thphys.uni-heidelberg.de/~plehn/data/amplitudes.hdf5), [toptagging](https://www.thphys.uni-heidelberg.de/~plehn/data/toptagging_full.npz), [event-generation](https://www.thphys.uni-heidelberg.de/~plehn/data/event_generation_ttbar.hdf5)) and from zenodo ([amplitudesXL](https://zenodo.org/records/16793011), [JetClass](https://zenodo.org/records/6619768), [TopTagXL](https://zenodo.org/records/10878355)).
 hdf5 archives have to be unpacked to npy files for each key in the archive. Finally, keys in the `data` section of the config files have to be adapted to specify where the datasets are located on your machine (`data_path` or `data_dir` depending on the experiment). The following command automates this procedure, and modifying the script allows you to collect only some datasets
 ```bash
 python data/collect_data.py
@@ -64,7 +65,7 @@ python run.py -cp config_quick -cn toptagging model=tag_transformer training=def
 ```
 
 We recommend the `save=false` key to avoid creating a folder for every test. Typical commands to reproduce the results in the papers are
-```bash  
+```bash
 python run.py -cp config -cn amplitudesxl model=amp_transformer training=amp_transformer model/framesnet=learnedpd
 python run.py -cp config -cn jctagging model=tag_transformer training=jc_transformer model/framesnet=learnedpd
 python run.py -cp config -cn ttbar model=eg_transformer training=eg_default model/framesnet=learnedpd
@@ -82,7 +83,7 @@ An existing run can be reloaded to perform additional tests with the trained mod
 python run.py -cn config -cp runs/toptagging/hello_world_toptagging train=false warm_start_idx=0
 ```
 
-Note that `-cn` and `-cp` now point to the config file of the past run, and not to the default files in the `config_quick/` or `config/` directory. The warm_start_idx specifies which model in the models folder should be loaded, and defaults to 0. 
+Note that `-cn` and `-cp` now point to the config file of the past run, and not to the default files in the `config_quick/` or `config/` directory. The warm_start_idx specifies which model in the models folder should be loaded, and defaults to 0.
 
 ## 4. Citation
 

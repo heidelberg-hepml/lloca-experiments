@@ -1,17 +1,19 @@
+import os
+import time
+
 import numpy as np
 import torch
+from sklearn.calibration import calibration_curve
+from sklearn.metrics import accuracy_score, roc_auc_score, roc_curve
 from torch import nn
 from torch.nn.functional import sigmoid
 
-import os, time
-from experiments.logger import LOGGER
 from experiments.eventgen.utils import (
-    fourmomenta_to_jetmomenta,
     delta_r_fast,
+    fourmomenta_to_jetmomenta,
     get_virtual_particle,
 )
-from sklearn.metrics import roc_curve, roc_auc_score, accuracy_score
-from sklearn.calibration import calibration_curve
+from experiments.logger import LOGGER
 
 
 class MLPClassifier:
@@ -22,19 +24,13 @@ class MLPClassifier:
         self.exp = experiment  # this is bad style (but convenient)
         self.device = device
 
-        num_parameters = sum(
-            p.numel() for p in self.net.parameters() if p.requires_grad
-        )
-        LOGGER.info(
-            f"Instantiated MLPClassifier with {num_parameters} learnable parameters"
-        )
+        num_parameters = sum(p.numel() for p in self.net.parameters() if p.requires_grad)
+        LOGGER.info(f"Instantiated MLPClassifier with {num_parameters} learnable parameters")
 
     def preprocess(self, events, cls_params, eps=1e-10):
         # naive channels
         naive_raw = fourmomenta_to_jetmomenta(events)
-        naive = naive_raw.reshape(
-            *naive_raw.shape[:-2], naive_raw.shape[-2] * naive_raw.shape[-1]
-        )
+        naive = naive_raw.reshape(*naive_raw.shape[:-2], naive_raw.shape[-2] * naive_raw.shape[-1])
 
         # delta_r channels
         dr = delta_r_fast(naive_raw[..., None, :], naive_raw[..., None, :, :])
@@ -48,9 +44,7 @@ class MLPClassifier:
                 v = get_virtual_particle(naive_raw, idx)
                 virtual.append(v)
             virtual = torch.stack(virtual, dim=-2)
-            virtual = virtual.reshape(
-                *virtual.shape[:-2], virtual.shape[-2] * virtual.shape[-1]
-            )
+            virtual = virtual.reshape(*virtual.shape[:-2], virtual.shape[-2] * virtual.shape[-1])
 
         # combine everything and standardize
         x = naive
@@ -69,9 +63,7 @@ class MLPClassifier:
         return x, cls_params
 
     def init_training(self):
-        self.optimizer = torch.optim.Adam(
-            self.net.parameters(), lr=self.cfg_training.lr
-        )
+        self.optimizer = torch.optim.Adam(self.net.parameters(), lr=self.cfg_training.lr)
 
         if self.cfg_training.scheduler == "ReduceLROnPlateau":
             self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
@@ -86,9 +78,7 @@ class MLPClassifier:
         self.get_LR = lambda x: torch.exp(x)  # likelihood ratio function
 
     def train_test_val_split(self, data):
-        splits = np.round(
-            np.cumsum(self.cfg_training.train_test_val) * data.shape[0]
-        ).astype("int")
+        splits = np.round(np.cumsum(self.cfg_training.train_test_val) * data.shape[0]).astype("int")
         trn, tst, val, _ = np.split(data, splits, axis=0)
         return {"trn": trn, "tst": tst, "val": val}
 
@@ -119,13 +109,11 @@ class MLPClassifier:
         self.init_training()
         self.tracker = {"loss": [], "val_loss": [], "lr": []}
 
-        LOGGER.info(
-            f"Starting to train classifier for {self.cfg_training.nepochs} epochs"
-        )
+        LOGGER.info(f"Starting to train classifier for {self.cfg_training.nepochs} epochs")
         t0 = time.time()
         smallest_val_loss, smallest_val_loss_epoch, es_patience = 1e10, 0, 0
         for epoch in range(self.cfg_training.nepochs):
-            for (x_true,), (x_fake,) in zip(*self.loaders_trn):
+            for (x_true,), (x_fake,) in zip(*self.loaders_trn, strict=False):
                 self.training_step(x_true, x_fake)
 
             val_loss = self.validate()
@@ -175,7 +163,7 @@ class MLPClassifier:
     def validate(self):
         self.net.eval()
         losses = []
-        for (x_true,), (x_fake,) in zip(*self.loaders_val):
+        for (x_true,), (x_fake,) in zip(*self.loaders_val, strict=False):
             loss = self.batch_loss(x_true, x_fake)
             losses.append(loss)
         val_loss = torch.stack(losses, dim=0).mean()
@@ -218,12 +206,8 @@ class MLPClassifier:
             scores_fake.append(self.net(x.to(self.device)))
         scores_true = torch.cat(scores_true, dim=0).squeeze().cpu()
         scores_fake = torch.cat(scores_fake, dim=0).squeeze().cpu()
-        LOGGER.info(
-            f"Collected {scores_true.shape[0]} true and {scores_fake.shape[0]} fake scores"
-        )
-        labels = torch.cat(
-            (torch.ones_like(scores_true), torch.zeros_like(scores_fake)), dim=0
-        )
+        LOGGER.info(f"Collected {scores_true.shape[0]} true and {scores_fake.shape[0]} fake scores")
+        labels = torch.cat((torch.ones_like(scores_true), torch.zeros_like(scores_fake)), dim=0)
         scores = torch.cat((scores_true, scores_fake), dim=0)  # raw network output
         logits = sigmoid(scores)  # probabilities
         weights = self.get_LR(scores)  # likelihood ratio p_true/p_fake
@@ -239,9 +223,7 @@ class MLPClassifier:
                 torch.zeros_like(scores_fake)[:n_min],
             )
         )
-        logits_calib = torch.cat(
-            (sigmoid(scores_true)[:n_min], sigmoid(scores_fake)[:n_min])
-        )
+        logits_calib = torch.cat((sigmoid(scores_true)[:n_min], sigmoid(scores_fake)[:n_min]))
         prob_true, prob_pred = calibration_curve(labels_calib, logits_calib, n_bins=30)
         LOGGER.info(f"Classifier score: AUC={auc:.4f}, accuracy={accuracy:.4f}")
         self.results = {

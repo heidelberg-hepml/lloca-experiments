@@ -13,6 +13,6 @@ net:
  n_outputs: null
  n_layers: 4
  dropout: 0.2
- 
+
 defaults:
  - framesnet: identity

@@ -103,9 +103,7 @@ class LorentzNet(nn.Module):
         - `dropout`  (float): dropout rate.
     """
 
-    def __init__(
-        self, n_scalar, n_hidden, n_class=2, n_layers=6, c_weight=1e-3, dropout=0.0
-    ):
+    def __init__(self, n_scalar, n_hidden, n_class=2, n_layers=6, c_weight=1e-3, dropout=0.0):
         super(LorentzNet, self).__init__()
         self.n_hidden = n_hidden
         self.n_layers = n_layers

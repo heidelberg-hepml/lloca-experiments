@@ -7,9 +7,7 @@ from lloca.backbone.mlp import MLP
 
 def compute_invariants(particles, eps=1e-4):
     # compute matrix of all inner products
-    inner_product = lambda p1, p2: p1[..., 0] * p2[..., 0] - (
-        p1[..., 1:] * p2[..., 1:]
-    ).sum(dim=-1)
+    inner_product = lambda p1, p2: p1[..., 0] * p2[..., 0] - (p1[..., 1:] * p2[..., 1:]).sum(dim=-1)
     idxs = torch.triu_indices(particles.shape[-2], particles.shape[-2], offset=1)
     invariants = inner_product(particles[..., idxs[0], :], particles[..., idxs[1], :])
     invariants = invariants.clamp(min=eps)
@@ -140,11 +138,7 @@ class DSI(nn.Module):
             for i in range(max(type_token) + 1):
                 identical_particles = particles[..., type_token == i, :]
                 embedding = self.prenets[i](identical_particles)
-                embedding = (
-                    embedding.sum(dim=-2, keepdim=True)
-                    if self.sum_deepset
-                    else embedding
-                )
+                embedding = embedding.sum(dim=-2, keepdim=True) if self.sum_deepset else embedding
                 preprocessing.append(embedding)
             preprocessing = torch.cat(preprocessing, dim=-2)
             preprocessing = preprocessing.view(*particles.shape[:-2], -1)

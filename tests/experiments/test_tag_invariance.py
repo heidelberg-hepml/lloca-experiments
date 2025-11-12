@@ -1,20 +1,19 @@
-import torch
-import pytest
 import hydra
-
-import experiments.logger
-from experiments.tagging.experiment import TopTaggingExperiment
+import pytest
+import torch
 from lloca.utils.rand_transforms import (
-    rand_rotation,
     rand_lorentz,
+    rand_rotation,
     rand_xyrotation,
 )
 
+import experiments.logger
+from experiments.tagging.experiment import TopTaggingExperiment
 
 BREAKING = [
     "data.beam_reference=null",
     "data.add_time_reference=false",
-    "data.add_tagging_features_framesnet=false",
+    "data.tagging_features_framesnet=null",
 ]
 
 
@@ -69,8 +68,7 @@ def test_amplitudes(
 
     def cycle(iterable):
         while True:
-            for x in iterable:
-                yield x
+            yield from iterable
 
     mses = []
     iterator = iter(cycle(exp.train_loader))

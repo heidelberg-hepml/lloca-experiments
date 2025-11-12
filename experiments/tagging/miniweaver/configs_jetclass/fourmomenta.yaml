@@ -6,7 +6,7 @@ inputs:
    pf_vectors:
       length: 128
       pad_mode: constant
-      vars: 
+      vars:
          - [part_energy, null]
          - [part_px, null]
          - [part_py, null]
@@ -19,7 +19,7 @@ labels:
    value: [label_QCD, label_Hbb, label_Hcc, label_Hgg, label_H4q, label_Hqql, label_Tbqq, label_Tbl, label_Wqq, label_Zqq]
    ### [option 2] otherwise use `custom` to define the label, then `value` is a map
    # type: custom
-   # value: 
+   # value:
    #    truth_label: label.argmax(1)
 
-weights: 
+weights:

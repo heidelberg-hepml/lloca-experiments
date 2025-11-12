@@ -51,9 +51,7 @@ def masked_amin(x, nobj, dim=None, keepdims=False):
 
 
 def masked_var(x, nobj, dim=None, keepdims=False):
-    var = masked_mean(
-        (x - masked_mean(x, nobj, dim, keepdims=True)) ** 2, nobj, dim, keepdims
-    )
+    var = masked_mean((x - masked_mean(x, nobj, dim, keepdims=True)) ** 2, nobj, dim, keepdims)
     return var
 
 
@@ -125,14 +123,10 @@ def eops_2_to_0(inputs, nobj=None, nobj_avg=49, aggregation="mean", weight=None)
         nobj = nobj_avg
 
     if weight is not None:
-        sum_diag_part = aggregation_fn(
-            diag_part * weight.unsqueeze(1), nobj, dim=2
-        )  # B x C x 1
+        sum_diag_part = aggregation_fn(diag_part * weight.unsqueeze(1), nobj, dim=2)  # B x C x 1
         weight_rows = weight.unsqueeze(1).unsqueeze(2)
         weight_cols = weight.unsqueeze(1).unsqueeze(3)
-        sum_all = aggregation_fn(
-            inputs * weight_rows * weight_cols, nobj, dim=(2, 3)
-        )  # B x C
+        sum_all = aggregation_fn(inputs * weight_rows * weight_cols, nobj, dim=(2, 3))  # B x C
     else:
         sum_diag_part = aggregation_fn(diag_part, nobj, dim=2)
         sum_all = aggregation_fn(inputs, nobj, dim=(2, 3))  # B x C
@@ -163,14 +157,10 @@ def eops_2_to_1(inputs, nobj=None, nobj_avg=49, aggregation="mean", weight=None)
     if weight is not None:
         weight_rows = weight.unsqueeze(1).unsqueeze(2)
         weight_cols = weight.unsqueeze(1).unsqueeze(3)
-        sum_diag_part = aggregation_fn(
-            diag_part * weight.unsqueeze(1), nobj, dim=2, keepdims=True
-        )
+        sum_diag_part = aggregation_fn(diag_part * weight.unsqueeze(1), nobj, dim=2, keepdims=True)
         sum_rows = aggregation_fn(inputs * weight_rows, nobj, dim=3)
         sum_cols = aggregation_fn(inputs * weight_cols, nobj, dim=2)
-        sum_all = aggregation_fn(
-            inputs * weight_rows * weight_cols, nobj, dim=(2, 3)
-        )  # B x C
+        sum_all = aggregation_fn(inputs * weight_rows * weight_cols, nobj, dim=(2, 3))  # B x C
     else:
         sum_diag_part = aggregation_fn(diag_part, nobj, dim=2, keepdims=True)
         sum_rows = aggregation_fn(inputs, nobj, dim=3)
@@ -268,13 +258,9 @@ def eops_2_to_2(
         )  # B x C x 1
         sum_rows = aggregation_fn(inputs * weight_rows, nobj, dim=3)  # B x C x N
         sum_cols = aggregation_fn(inputs * weight_cols, nobj, dim=2)  # B x C x N
-        sum_all = aggregation_fn(
-            inputs * weight_rows * weight_cols, nobj, dim=(2, 3)
-        )  # B x C
+        sum_all = aggregation_fn(inputs * weight_rows * weight_cols, nobj, dim=(2, 3))  # B x C
     else:
-        sum_diag_part = aggregation_fn(
-            diag_part, nobj, dim=2, keepdims=True
-        )  # B x C x 1
+        sum_diag_part = aggregation_fn(diag_part, nobj, dim=2, keepdims=True)  # B x C x 1
         sum_rows = aggregation_fn(inputs, nobj, dim=3)  # B x C x N
         sum_cols = aggregation_fn(inputs, nobj, dim=2)  # B x C x N
         sum_all = aggregation_fn(inputs, nobj, dim=(2, 3))  # B x C

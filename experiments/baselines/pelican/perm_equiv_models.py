@@ -62,13 +62,9 @@ class Eq2to0(nn.Module):
         self.alphas = nn.ParameterList([None] * len(config))
         for i, char in enumerate(config):
             if char in ["M", "X", "N"]:
-                self.alphas[i] = nn.Parameter(
-                    torch.rand(1, in_dim, 2, device=device, dtype=dtype)
-                )
+                self.alphas[i] = nn.Parameter(torch.rand(1, in_dim, 2, device=device, dtype=dtype))
             elif char == "S":
-                self.alphas[i] = nn.Parameter(
-                    torch.rand(1, in_dim, 2, device=device, dtype=dtype)
-                )
+                self.alphas[i] = nn.Parameter(torch.rand(1, in_dim, 2, device=device, dtype=dtype))
 
         self.out_dim = out_dim
         self.in_dim = in_dim
@@ -165,9 +161,9 @@ class Eq2to0(nn.Module):
             ops = self.activation_fn(ops)
 
         if self.factorize:
-            coefs = self.coefs00.unsqueeze(1) * self.coefs10.unsqueeze(
-                -1
-            ) + self.coefs01.unsqueeze(0) * self.coefs11.unsqueeze(-1)
+            coefs = self.coefs00.unsqueeze(1) * self.coefs10.unsqueeze(-1) + self.coefs01.unsqueeze(
+                0
+            ) * self.coefs11.unsqueeze(-1)
         else:
             coefs = self.coefs
 
@@ -314,9 +310,9 @@ class Eq1to2(nn.Module):
             ops = self.activation_fn(ops)
 
         if self.factorize:
-            coefs = self.coefs00.unsqueeze(1) * self.coefs10.unsqueeze(
-                -1
-            ) + self.coefs01.unsqueeze(0) * self.coefs11.unsqueeze(-1)
+            coefs = self.coefs00.unsqueeze(1) * self.coefs10.unsqueeze(-1) + self.coefs01.unsqueeze(
+                0
+            ) * self.coefs11.unsqueeze(-1)
         else:
             coefs = self.coefs
 
@@ -463,9 +459,9 @@ class Eq2to1(nn.Module):
             ops = self.activation_fn(ops)
 
         if self.factorize:
-            coefs = self.coefs00.unsqueeze(1) * self.coefs10.unsqueeze(
-                -1
-            ) + self.coefs01.unsqueeze(0) * self.coefs11.unsqueeze(-1)
+            coefs = self.coefs00.unsqueeze(1) * self.coefs10.unsqueeze(-1) + self.coefs01.unsqueeze(
+                0
+            ) * self.coefs11.unsqueeze(-1)
         else:
             coefs = self.coefs
 
@@ -508,9 +504,7 @@ class Eq2to2(nn.Module):
         self.folklore = folklore
 
         self.average_nobj = average_nobj
-        self.basis_dim = (16 if folklore else 15) + (11 if folklore else 10) * (
-            len(config) - 1
-        )
+        self.basis_dim = (16 if folklore else 15) + (11 if folklore else 10) * (len(config) - 1)
         # self.basis_dim = 6
 
         self.alphas = nn.ParameterList([None] * len(config))
@@ -648,9 +642,9 @@ class Eq2to2(nn.Module):
             ops = self.activation_fn(ops)
 
         if self.factorize:
-            coefs = self.coefs00.unsqueeze(1) * self.coefs10.unsqueeze(
-                -1
-            ) + self.coefs01.unsqueeze(0) * self.coefs11.unsqueeze(-1)
+            coefs = self.coefs00.unsqueeze(1) * self.coefs10.unsqueeze(-1) + self.coefs01.unsqueeze(
+                0
+            ) * self.coefs11.unsqueeze(-1)
         else:
             coefs = self.coefs
 
@@ -713,14 +707,10 @@ class Net2to2(nn.Module):
         self.activate_lin = activate_lin
         self.batchnorm = batchnorm
         num_layers = len(num_channels) - 1
-        self.in_dim = (
-            num_channels_m[0][0] if len(num_channels_m[0]) > 0 else num_channels[0]
-        )
+        self.in_dim = num_channels_m[0][0] if len(num_channels_m[0]) > 0 else num_channels[0]
 
         eq_out_dims = [
-            num_channels_m[i + 1][0]
-            if len(num_channels_m[i + 1]) > 0
-            else num_channels[i + 1]
+            num_channels_m[i + 1][0] if len(num_channels_m[i + 1]) > 0 else num_channels[i + 1]
             for i in range(num_layers - 1)
         ] + [num_channels[-1]]
 

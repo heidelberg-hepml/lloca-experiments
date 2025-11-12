@@ -36,7 +36,7 @@ jobs:
 
     - name: Transformer + LearnedPDFrames no symmetry breaking
       run: |
-        python run.py model=tag_transformer model/framesnet=learnedpd save=false evaluate=false training.iterations=3 data.add_tagging_features_framesnet=False data.add_time_reference=false data.beam_reference=null
+        python run.py model=tag_transformer model/framesnet=learnedpd save=false evaluate=false training.iterations=3 data.tagging_features_framesnet=null data.add_time_reference=false data.beam_reference=null
 
     - name: GraphNet + IdentityFrames
       run: |
@@ -52,11 +52,11 @@ jobs:
 
     - name: ParticleNet + Identity
       run: |
-        python run.py model=tag_particlenet-lite save=false evaluate=false training.iterations=3
-    
+        python run.py model=tag_particlenet save=false evaluate=false training.iterations=3
+
     - name: ParticleNet + LearnedPDFrames
       run: |
-        python run.py model=tag_particlenet-lite model/framesnet=learnedpd save=false evaluate=false training.iterations=3
+        python run.py model=tag_particlenet model/framesnet=learnedpd save=false evaluate=false training.iterations=3
 
     - name: ParT + LearnedPDFrames
       run: |

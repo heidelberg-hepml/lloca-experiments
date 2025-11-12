@@ -66,21 +66,15 @@ class DataConfig(object):
 
         self.selection = opts["selection"]
         self.test_time_selection = (
-            opts["test_time_selection"]
-            if opts["test_time_selection"]
-            else self.selection
+            opts["test_time_selection"] if opts["test_time_selection"] else self.selection
         )
         self.var_funcs = copy.deepcopy(opts["new_variables"])
         # preprocessing config
         self.preprocess = opts["preprocess"]
-        self._auto_standardization = (
-            opts["preprocess"]["method"].lower().startswith("auto")
-        )
+        self._auto_standardization = opts["preprocess"]["method"].lower().startswith("auto")
         self._missing_standardization_info = False
         self.preprocess_params = (
-            opts["preprocess"]["params"]
-            if opts["preprocess"]["params"] is not None
-            else {}
+            opts["preprocess"]["params"] if opts["preprocess"]["params"] is not None else {}
         )
         # inputs
         self.input_names = tuple(opts["inputs"].keys())
@@ -103,26 +97,20 @@ class DataConfig(object):
                     params = {
                         "length": o["length"],
                         "pad_mode": o.get("pad_mode", "constant").lower(),
-                        "center": _get(
-                            1, "auto" if self._auto_standardization else None
-                        ),
+                        "center": _get(1, "auto" if self._auto_standardization else None),
                         "scale": _get(2, 1),
                         "min": _get(3, -5),
                         "max": _get(4, 5),
                         "pad_value": _get(5, 0),
                     }
-                    if (
-                        v[0] in self.preprocess_params
-                        and params != self.preprocess_params[v[0]]
-                    ):
+                    if v[0] in self.preprocess_params and params != self.preprocess_params[v[0]]:
                         raise RuntimeError(
                             "Incompatible info for variable %s, had: \n  %s\nnow got:\n  %s"
                             % (v[0], str(self.preprocess_params[v[0]]), str(params))
                         )
                     if k.endswith("_mask") and params["pad_mode"] != "constant":
                         raise RuntimeError(
-                            "The `pad_mode` must be set to `constant` for the mask input `%s`"
-                            % k
+                            "The `pad_mode` must be set to `constant` for the mask input `%s`" % k
                         )
                     if params["center"] == "auto":
                         self._missing_standardization_info = True
@@ -165,9 +153,7 @@ class DataConfig(object):
                 self.reweight_branches = tuple(opts["weights"]["reweight_vars"].keys())
                 self.reweight_bins = tuple(opts["weights"]["reweight_vars"].values())
                 self.reweight_classes = tuple(opts["weights"]["reweight_classes"])
-                self.register(
-                    self.reweight_branches + self.reweight_classes, to="train"
-                )
+                self.register(self.reweight_branches + self.reweight_classes, to="train")
                 self.class_weights = opts["weights"].get("class_weights", None)
                 if self.class_weights is None:
                     self.class_weights = np.ones(len(self.reweight_classes))
@@ -191,14 +177,10 @@ class DataConfig(object):
         # monitor variables
         self.monitor_variables = tuple(opts["monitor_variables"])
         if self.observer_names and self.monitor_variables:
-            raise RuntimeError(
-                "Cannot set `observers` and `monitor_variables` at the same time."
-            )
+            raise RuntimeError("Cannot set `observers` and `monitor_variables` at the same time.")
         # Z variables: returned as `Z` in the dataloader (use monitor_variables for training, observers for eval)
         self.z_variables = (
-            self.observer_names
-            if len(self.observer_names) > 0
-            else self.monitor_variables
+            self.observer_names if len(self.observer_names) > 0 else self.monitor_variables
         )
 
         # remove self mapping from var_funcs
@@ -221,7 +203,7 @@ class DataConfig(object):
         self.register(self.monitor_variables)
         # resolve dependencies
         func_vars = set(self.var_funcs.keys())
-        for (load_branches, aux_branches) in (
+        for load_branches, aux_branches in (
             self.train_load_branches,
             self.train_aux_branches,
         ), (self.test_load_branches, self.test_aux_branches):
@@ -277,13 +259,8 @@ class DataConfig(object):
         if extra_selection:
             options["selection"] = _strcat(_opts["selection"], extra_selection)
         if extra_test_selection:
-            if (
-                "test_time_selection" not in options
-                or options["test_time_selection"] is None
-            ):
-                options["test_time_selection"] = _strcat(
-                    _opts["selection"], extra_test_selection
-                )
+            if "test_time_selection" not in options or options["test_time_selection"] is None:
+                options["test_time_selection"] = _strcat(_opts["selection"], extra_test_selection)
             else:
                 options["test_time_selection"] = _strcat(
                     _opts["test_time_selection"], extra_test_selection

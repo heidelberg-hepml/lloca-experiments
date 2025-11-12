@@ -25,11 +25,7 @@ def _read_root(filepath, branches, load_range=None, treename=None, branch_magic=
     with uproot.open(filepath) as f:
         if treename is None:
             treenames = set(
-                [
-                    k.split(";")[0]
-                    for k, v in f.items()
-                    if getattr(v, "classname", "") == "TTree"
-                ]
+                [k.split(";")[0] for k, v in f.items() if getattr(v, "classname", "") == "TTree"]
             )
             if len(treenames) == 1:
                 treename = treenames.pop()
@@ -61,9 +57,7 @@ def _read_root(filepath, branches, load_range=None, treename=None, branch_magic=
                 if name != decoded_name:
                     outputs[name] = outputs[decoded_name]
         else:
-            outputs = tree.arrays(
-                filter_name=branches, entry_start=start, entry_stop=stop
-            )
+            outputs = tree.arrays(filter_name=branches, entry_start=start, entry_stop=stop)
     return outputs
 
 
@@ -116,17 +110,13 @@ def _read_files(
             assert len(load_ranges) == len(filelist)
         else:
             load_ranges = (load_ranges,) * len(filelist)
-    assert all(
-        r is None or (len(r) == 2 and 0 <= r[0] < r[1] <= 1) for r in load_ranges
-    )
+    assert all(r is None or (len(r) == 2 and 0 <= r[0] < r[1] <= 1) for r in load_ranges)
     for filepath, load_range in zip(filelist, load_ranges):
         if load_range is not None and load_range[0] >= load_range[1]:
             continue
         ext = os.path.splitext(filepath)[1]
         if ext not in (".h5", ".root", ".awkd", ".parquet"):
-            raise RuntimeError(
-                "File %s of type `%s` is not supported!" % (filepath, ext)
-            )
+            raise RuntimeError("File %s of type `%s` is not supported!" % (filepath, ext))
         try:
             if ext == ".h5":
                 a = _read_hdf5(filepath, branches, load_range=load_range)

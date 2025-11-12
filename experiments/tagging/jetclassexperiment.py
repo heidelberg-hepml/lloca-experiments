@@ -1,21 +1,19 @@
-import torch
+import os
+import time
+
 import numpy as np
-from torch.utils.data import DataLoader
-
-import os, time
-
-from sklearn.metrics import roc_curve, roc_auc_score, accuracy_score
+import torch
 from scipy.interpolate import interp1d
+from sklearn.metrics import accuracy_score, roc_auc_score, roc_curve
+from torch.utils.data import DataLoader
 
 from experiments.logger import LOGGER
 from experiments.mlflow import log_mlflow
-
-from experiments.tagging.experiment import TaggingExperiment
 from experiments.tagging.embedding import (
     dense_to_sparse_jet,
     embed_tagging_data,
 )
-
+from experiments.tagging.experiment import TaggingExperiment
 from experiments.tagging.miniweaver.dataset import SimpleIterDataset
 from experiments.tagging.miniweaver.loader import to_filelist
 
@@ -45,9 +43,7 @@ class JetClassTaggingExperiment(TaggingExperiment):
             )
         elif self.cfg.data.features == "pid":
             self.extra_scalars = 6
-            self.cfg.data.data_config = (
-                "experiments/tagging/miniweaver/configs_jetclass/pid.yaml"
-            )
+            self.cfg.data.data_config = "experiments/tagging/miniweaver/configs_jetclass/pid.yaml"
         elif self.cfg.data.features == "displacements":
             self.extra_scalars = 4
             self.cfg.data.data_config = (
@@ -59,9 +55,7 @@ class JetClassTaggingExperiment(TaggingExperiment):
                 "experiments/tagging/miniweaver/configs_jetclass/default.yaml"
             )
         else:
-            raise ValueError(
-                f"Input feature option {self.cfg.data.features} not implemented"
-            )
+            raise ValueError(f"Input feature option {self.cfg.data.features} not implemented")
 
     def _init_loss(self):
         self.loss = torch.nn.CrossEntropyLoss()
@@ -79,9 +73,7 @@ class JetClassTaggingExperiment(TaggingExperiment):
             "test": self.cfg.data.test_files_range,
             "val": self.cfg.data.val_files_range,
         }
-        self.num_files = {
-            label: frange[1] - frange[0] for label, frange in files_range.items()
-        }
+        self.num_files = {label: frange[1] - frange[0] for label, frange in files_range.items()}
         for label in ["train", "test", "val"]:
             path = os.path.join(self.cfg.data.data_dir, folder[label])
             flist = [
@@ -181,9 +173,7 @@ class JetClassTaggingExperiment(TaggingExperiment):
             )
 
         # ce loss
-        metrics["loss"] = torch.nn.functional.cross_entropy(
-            labels_predict, labels_true
-        ).item()
+        metrics["loss"] = torch.nn.functional.cross_entropy(labels_predict, labels_true).item()
         labels_true, labels_predict = (
             labels_true.numpy(),
             torch.softmax(labels_predict, dim=1).numpy(),
@@ -209,16 +199,12 @@ class JetClassTaggingExperiment(TaggingExperiment):
         class_rej_dict = [None, 0.5, 0.5, 0.5, 0.5, 0.99, 0.5, 0.995, 0.5, 0.5]
 
         for i in range(1, len(self.class_names)):
-            labels_predict_class = labels_predict[
-                (labels_true == 0) | (labels_true == i)
-            ]
+            labels_predict_class = labels_predict[(labels_true == 0) | (labels_true == i)]
             labels_true_class = labels_true[(labels_true == 0) | (labels_true == i)]
             labels_predict_class = labels_predict_class[:, [0, i]]
 
             denom = labels_predict_class[:, 0] + labels_predict_class[:, 1]
-            predict_score = labels_predict_class[:, 1] / np.clip(
-                denom, a_min=1e-10, a_max=None
-            )
+            predict_score = labels_predict_class[:, 1] / np.clip(denom, a_min=1e-10, a_max=None)
 
             fpr, tpr, _ = roc_curve(labels_true_class == i, predict_score)
 
@@ -231,7 +217,9 @@ class JetClassTaggingExperiment(TaggingExperiment):
 
         # create latex string
         if mode == "eval":
-            tex_string = f"{self.cfg.run_name} & {metrics['accuracy']:.3f} & {metrics['auc_ovo']:.3f}"
+            tex_string = (
+                f"{self.cfg.run_name} & {metrics['accuracy']:.3f} & {metrics['auc_ovo']:.3f}"
+            )
             for i, rej in enumerate(class_rej_dict):
                 if rej is None:
                     continue

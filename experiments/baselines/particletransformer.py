@@ -2,6 +2,7 @@
 
 Paper: "Particle Transformer for Jet Tagging" - https://arxiv.org/abs/2202.03772
 """
+
 import math
 import random
 import copy
@@ -84,9 +85,7 @@ def to_cos_sin_angles(xi, xj, normed_inputs=False, eps=1e-8):
     else:
         ni, nj = p3_norm(xi, eps), p3_norm(xj, eps)
     cos = (ni * nj).sum(dim=1, keepdim=True).clamp(min=-1, max=1)
-    sin = (
-        torch.linalg.cross(ni, nj, dim=1).norm(dim=1, keepdim=True).clamp(min=0, max=1)
-    )
+    sin = torch.linalg.cross(ni, nj, dim=1).norm(dim=1, keepdim=True).clamp(min=0, max=1)
     return cos, sin
 
 
@@ -115,9 +114,7 @@ def pairwise_lv_fts_pp(xi, xj, num_outputs=4, eps=1e-8):
     # the following features are not symmetric for (i, j)
     if num_outputs > 5:
         xj_boost = boost(xj, xij)
-        costheta = (p3_norm(xj_boost, eps=eps) * p3_norm(xij, eps=eps)).sum(
-            dim=1, keepdim=True
-        )
+        costheta = (p3_norm(xj_boost, eps=eps) * p3_norm(xij, eps=eps)).sum(dim=1, keepdim=True)
         outputs.append(costheta)
 
     if num_outputs > 6:
@@ -186,9 +183,7 @@ def tril_indices(row, col, offset=0, *, dtype=torch.long, device="cpu"):
 
 
 class SequenceTrimmer(nn.Module):
-    def __init__(
-        self, enabled=False, target=(0.9, 1.02), warmup_steps=5, **kwargs
-    ) -> None:
+    def __init__(self, enabled=False, target=(0.9, 1.02), warmup_steps=5, **kwargs) -> None:
         super().__init__(**kwargs)
         self.enabled = enabled
         self.target = target
@@ -317,18 +312,12 @@ class PairEmbed(nn.Module):
 
         if pairwise_lv_type == "pp":
             self.is_symmetric = (pairwise_lv_dim <= 5) and (pairwise_input_dim == 0)
-            self.pairwise_lv_fts = partial(
-                pairwise_lv_fts_pp, num_outputs=pairwise_lv_dim, eps=eps
-            )
+            self.pairwise_lv_fts = partial(pairwise_lv_fts_pp, num_outputs=pairwise_lv_dim, eps=eps)
         elif pairwise_lv_type == "ee":
             self.is_symmetric = (pairwise_lv_dim <= 6) and (pairwise_input_dim == 0)
-            self.pairwise_lv_fts = partial(
-                pairwise_lv_fts_ee, num_outputs=pairwise_lv_dim, eps=eps
-            )
+            self.pairwise_lv_fts = partial(pairwise_lv_fts_ee, num_outputs=pairwise_lv_dim, eps=eps)
         else:
-            raise RuntimeError(
-                "Invalid value for `pairwise_lv_type`: " + pairwise_lv_type
-            )
+            raise RuntimeError("Invalid value for `pairwise_lv_type`: " + pairwise_lv_type)
 
         if pairwise_lv_dim > 0:
             input_dim = pairwise_lv_dim
@@ -431,9 +420,7 @@ class PairEmbed(nn.Module):
 
             i0, i1, i2, i3 = (Ellipsis,) * 4
             if mask is not None:
-                mask = mask.unsqueeze(-1) * mask.unsqueeze(
-                    -2
-                )  # (batch_size, 1, seq_len, seq_len)
+                mask = mask.unsqueeze(-1) * mask.unsqueeze(-2)  # (batch_size, 1, seq_len, seq_len)
                 if self.is_symmetric:
                     offset = -1 if self.remove_self_pair else 0
                     i0, _, i2, i3 = mask.float().tril(offset).nonzero(as_tuple=True)
@@ -442,17 +429,11 @@ class PairEmbed(nn.Module):
 
             if x is not None:
                 x = self.pairwise_lv_fts(x.unsqueeze(-1), x.unsqueeze(-2))
-                x = x.permute(0, 2, 3, 1)[
-                    i0, i2, i3, :
-                ]  # (num_elements, pairwise_lv_dim)
+                x = x.permute(0, 2, 3, 1)[i0, i2, i3, :]  # (num_elements, pairwise_lv_dim)
                 x = x.T.unsqueeze(0).contiguous()  # (1, pairwise_lv_dim, num_elements)
             if uu is not None:
-                uu = uu.permute(0, 2, 3, 1)[
-                    i0, i2, i3, :
-                ]  # (num_elements, pairwise_input_dim)
-                uu = uu.T.unsqueeze(
-                    0
-                ).contiguous()  # (1, pairwise_input_dim, num_elements)
+                uu = uu.permute(0, 2, 3, 1)[i0, i2, i3, :]  # (num_elements, pairwise_input_dim)
+                uu = uu.T.unsqueeze(0).contiguous()  # (1, pairwise_input_dim, num_elements)
 
         # with grad
         elements = 0
@@ -497,13 +478,9 @@ def _canonical_mask(
         _mask_dtype = mask.dtype
         _mask_is_float = torch.is_floating_point(mask)
         if _mask_dtype != torch.bool and not _mask_is_float:
-            raise AssertionError(
-                f"only bool and floating types of {mask_name} are supported"
-            )
+            raise AssertionError(f"only bool and floating types of {mask_name} are supported")
         if not _mask_is_float:
-            mask = torch.zeros_like(mask, dtype=target_type).masked_fill_(
-                mask, float("-inf")
-            )
+            mask = torch.zeros_like(mask, dtype=target_type).masked_fill_(mask, float("-inf"))
     return mask
 
 
@@ -529,12 +506,8 @@ class Attention(torch.nn.Module):
             self.head_dim * num_heads == self.embed_dim
         ), "embed_dim must be divisible by num_heads"
 
-        self.in_proj = torch.nn.Linear(
-            embed_dim, 3 * embed_dim, bias=bias, **factory_kwargs
-        )
-        self.out_proj = torch.nn.Linear(
-            embed_dim, embed_dim, bias=bias, **factory_kwargs
-        )
+        self.in_proj = torch.nn.Linear(embed_dim, 3 * embed_dim, bias=bias, **factory_kwargs)
+        self.out_proj = torch.nn.Linear(embed_dim, embed_dim, bias=bias, **factory_kwargs)
 
         self.use_sdpa = hasattr(torch.nn.functional, "scaled_dot_product_attention")
         if torch.cuda.is_available() and torch.cuda.get_device_capability()[0] < 7:
@@ -619,26 +592,12 @@ class Attention(torch.nn.Module):
                 attn_mask = attn_mask + key_padding_mask
 
         # (bsz, seq_len, num_heads*head_dim)
-        q, k, v = F._in_projection_packed(
-            query, key, value, self.in_proj.weight, self.in_proj.bias
-        )
+        q, k, v = F._in_projection_packed(query, key, value, self.in_proj.weight, self.in_proj.bias)
 
         # -> (bsz, num_heads, src/tgt_len, head_dim)
-        q = (
-            q.view(bsz, tgt_len, self.num_heads, self.head_dim)
-            .transpose(1, 2)
-            .contiguous()
-        )
-        k = (
-            k.view(bsz, src_len, self.num_heads, self.head_dim)
-            .transpose(1, 2)
-            .contiguous()
-        )
-        v = (
-            v.view(bsz, src_len, self.num_heads, self.head_dim)
-            .transpose(1, 2)
-            .contiguous()
-        )
+        q = q.view(bsz, tgt_len, self.num_heads, self.head_dim).transpose(1, 2).contiguous()
+        k = k.view(bsz, src_len, self.num_heads, self.head_dim).transpose(1, 2).contiguous()
+        v = v.view(bsz, src_len, self.num_heads, self.head_dim).transpose(1, 2).contiguous()
 
         dropout_p = self.dropout if self.training else 0.0
 
@@ -649,9 +608,7 @@ class Attention(torch.nn.Module):
             q_scaled = q * math.sqrt(
                 1.0 / float(self.head_dim)
             )  # (bsz, num_heads, tgt_len, head_dim)
-            attn_weight = q_scaled @ k.transpose(
-                -2, -1
-            )  # (bsz, num_heads, tgt_len, src_len)
+            attn_weight = q_scaled @ k.transpose(-2, -1)  # (bsz, num_heads, tgt_len, src_len)
             if attn_mask is not None:
                 attn_weight = attn_weight + attn_mask
             attn_weight = F.softmax(attn_weight, dim=-1)
@@ -679,9 +636,7 @@ class LayerScale(nn.Module):
         return x.mul_(self.gamma) if self.inplace else x * self.gamma
 
 
-def drop_path(
-    x, drop_prob: float = 0.0, training: bool = False, scale_by_keep: bool = True
-):
+def drop_path(x, drop_prob: float = 0.0, training: bool = False, scale_by_keep: bool = True):
     """Drop paths (Stochastic Depth) per sample (when applied in main path of residual blocks).
 
     This is the same as the DropConnect impl I created for EfficientNet, etc networks, however,
@@ -694,9 +649,7 @@ def drop_path(
     if drop_prob == 0.0 or not training:
         return x
     keep_prob = 1 - drop_prob
-    shape = (x.shape[0],) + (1,) * (
-        x.ndim - 1
-    )  # work with diff dim tensors, not just 2D ConvNets
+    shape = (x.shape[0],) + (1,) * (x.ndim - 1)  # work with diff dim tensors, not just 2D ConvNets
     random_tensor = x.new_empty(shape).bernoulli_(keep_prob)
     if keep_prob > 0.0 and scale_by_keep:
         random_tensor.div_(keep_prob)
@@ -752,9 +705,7 @@ class Block(nn.Module):
             if layer_scale_init_values
             else nn.Identity()
         )
-        self.drop_path1 = (
-            DropPath(drop_path_rate) if drop_path_rate > 0.0 else nn.Identity()
-        )
+        self.drop_path1 = DropPath(drop_path_rate) if drop_path_rate > 0.0 else nn.Identity()
 
         self.pre_fc_norm = nn.LayerNorm(embed_dim)
         self.fc1 = nn.Linear(embed_dim, self.ffn_dim)
@@ -772,22 +723,14 @@ class Block(nn.Module):
             if layer_scale_init_values
             else nn.Identity()
         )
-        self.drop_path2 = (
-            DropPath(drop_path_rate) if drop_path_rate > 0.0 else nn.Identity()
-        )
+        self.drop_path2 = DropPath(drop_path_rate) if drop_path_rate > 0.0 else nn.Identity()
 
-        self.c_mask = (
-            nn.Parameter(torch.ones(1), requires_grad=True) if scale_attn_mask else None
-        )
+        self.c_mask = nn.Parameter(torch.ones(1), requires_grad=True) if scale_attn_mask else None
         self.c_attn = (
-            nn.Parameter(torch.ones(num_heads), requires_grad=True)
-            if scale_heads
-            else None
+            nn.Parameter(torch.ones(num_heads), requires_grad=True) if scale_heads else None
         )
         self.w_resid = (
-            nn.Parameter(torch.ones(embed_dim), requires_grad=True)
-            if scale_resids
-            else None
+            nn.Parameter(torch.ones(embed_dim), requires_grad=True) if scale_resids else None
         )
 
     def forward(self, x, x_cls=None, padding_mask=None, attn_mask=None):
@@ -813,9 +756,7 @@ class Block(nn.Module):
             residual = x_cls
             u = torch.cat((x_cls, x), dim=1)  # (batch, 1+seq_len, embed_dim)
             u = self.pre_attn_norm(u)
-            x = self.attn(x_cls, u, u, key_padding_mask=padding_mask)[
-                0
-            ]  # (1, batch, embed_dim)
+            x = self.attn(x_cls, u, u, key_padding_mask=padding_mask)[0]  # (1, batch, embed_dim)
         else:
             if self.c_mask is not None and attn_mask is not None:
                 attn_mask = torch.mul(self.c_mask, attn_mask)
@@ -985,9 +926,7 @@ class ParticleTransformer(nn.Module):
 
         # cls tokens
         if not self.for_segmentation and num_cls_layers > 0:
-            self.cls_token = nn.Parameter(
-                torch.zeros(1, 1, embed_dim), requires_grad=True
-            )
+            self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim), requires_grad=True)
             nn.init.trunc_normal_(self.cls_token, std=0.02)
         else:
             self.cls_token = None
@@ -1050,9 +989,7 @@ class ParticleTransformer(nn.Module):
         with torch.autocast("cuda", enabled=self.use_amp):
             if self.cls_blocks is not None:
                 # for classification: extract using class token
-                cls_tokens = self.cls_token.expand(
-                    x.size(0), 1, -1
-                )  # (batch, 1, embed_dim)
+                cls_tokens = self.cls_token.expand(x.size(0), 1, -1)  # (batch, 1, embed_dim)
                 for block in self.cls_blocks:
                     cls_tokens = block(
                         x, x_cls=cls_tokens, padding_mask=padding_mask
@@ -1124,9 +1061,7 @@ def init_weights_vit_moco(module: nn.Module, name: str = "") -> None:
     if isinstance(module, nn.Linear):
         if "in_proj" in name:
             # treat the weights of Q, K, V separately
-            val = math.sqrt(
-                6.0 / float(module.weight.shape[0] // 3 + module.weight.shape[1])
-            )
+            val = math.sqrt(6.0 / float(module.weight.shape[0] // 3 + module.weight.shape[1]))
             nn.init.uniform_(module.weight, -val, val)
         else:
             nn.init.xavier_uniform_(module.weight)

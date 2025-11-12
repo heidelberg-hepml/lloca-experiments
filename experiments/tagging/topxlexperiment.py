@@ -1,16 +1,15 @@
+import os
+import time
+
 import torch
 from torch.utils.data import DataLoader
 
-import os, time
-
 from experiments.logger import LOGGER
-
-from experiments.tagging.experiment import TaggingExperiment
 from experiments.tagging.embedding import (
     dense_to_sparse_jet,
     embed_tagging_data,
 )
-
+from experiments.tagging.experiment import TaggingExperiment
 from experiments.tagging.miniweaver.dataset import SimpleIterDataset
 from experiments.tagging.miniweaver.loader import to_filelist
 
@@ -28,9 +27,7 @@ class TopXLTaggingExperiment(TaggingExperiment):
             )
         elif self.cfg.data.features == "pid":
             self.extra_scalars = 6
-            self.cfg.data.data_config = (
-                "experiments/tagging/miniweaver/configs_topxl/pid.yaml"
-            )
+            self.cfg.data.data_config = "experiments/tagging/miniweaver/configs_topxl/pid.yaml"
         elif self.cfg.data.features == "displacements":
             self.extra_scalars = 4
             self.cfg.data.data_config = (
@@ -38,13 +35,9 @@ class TopXLTaggingExperiment(TaggingExperiment):
             )
         elif self.cfg.data.features == "default":
             self.extra_scalars = 10
-            self.cfg.data.data_config = (
-                "experiments/tagging/miniweaver/configs_topxl/default.yaml"
-            )
+            self.cfg.data.data_config = "experiments/tagging/miniweaver/configs_topxl/default.yaml"
         else:
-            raise ValueError(
-                f"Input feature option {self.cfg.data.features} not implemented"
-            )
+            raise ValueError(f"Input feature option {self.cfg.data.features} not implemented")
 
     def init_data(self):
         LOGGER.info("Creating SimpleIterDataset")
@@ -59,9 +52,7 @@ class TopXLTaggingExperiment(TaggingExperiment):
             "test": self.cfg.data.test_files_range,
             "val": self.cfg.data.val_files_range,
         }
-        self.num_files = {
-            label: frange[1] - frange[0] for label, frange in files_range.items()
-        }
+        self.num_files = {label: frange[1] - frange[0] for label, frange in files_range.items()}
         for label in ["train", "test", "val"]:
             path = os.path.join(self.cfg.data.data_dir, folder[label])
             flist = [

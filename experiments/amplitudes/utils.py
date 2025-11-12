@@ -1,12 +1,12 @@
 import os
-from numpy import load
+
 import torch
+from lloca.utils.lorentz import lorentz_eye
+from lloca.utils.polar_decomposition import restframe_boost
+from lloca.utils.rand_transforms import rand_lorentz
+from numpy import load
 
 from experiments.amplitudes.constants import get_mass
-
-from lloca.utils.lorentz import lorentz_eye
-from lloca.utils.rand_transforms import rand_lorentz
-from lloca.utils.polar_decomposition import restframe_boost
 
 
 def standardize_momentum(momentum, mean=None, std=None):
@@ -96,15 +96,11 @@ def load_file(
         # then apply general Lorentz trafo L=R*B
         lab_momentum = momentum[..., :2, :].sum(dim=-2)
         to_com = restframe_boost(lab_momentum)
-        trafo = rand_lorentz(
-            momentum.shape[:-2], generator=generator, dtype=momentum_dtype
-        )
+        trafo = rand_lorentz(momentum.shape[:-2], generator=generator, dtype=momentum_dtype)
         trafo = torch.einsum("...ij,...jk->...ik", trafo, to_com)
     elif cfg_data.prepare == "identity":
         # keep the data unchanged
-        trafo = lorentz_eye(
-            momentum.shape[:-2], device=momentum.device, dtype=momentum_dtype
-        )
+        trafo = lorentz_eye(momentum.shape[:-2], device=momentum.device, dtype=momentum_dtype)
     else:
         raise ValueError(f"cfg.data.prepare={cfg_data.prepare} not implemented")
     momentum = torch.einsum("...ij,...kj->...ki", trafo, momentum)
@@ -113,9 +109,7 @@ def load_file(
         mom_std = momentum.std()
     momentum /= mom_std
 
-    amplitude, amp_mean, amp_std = preprocess_amplitude(
-        amplitude, std=amp_std, mean=amp_mean
-    )
+    amplitude, amp_mean, amp_std = preprocess_amplitude(amplitude, std=amp_std, mean=amp_mean)
 
     # move everything except momentum to less safe dtype
     amplitude = amplitude.to(network_dtype)

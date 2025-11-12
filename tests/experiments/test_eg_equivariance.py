@@ -1,10 +1,10 @@
-import torch
-import pytest
 import hydra
+import pytest
+import torch
+from lloca.utils.rand_transforms import rand_lorentz, rand_rotation, rand_xyrotation
 
 import experiments.logger
 from experiments.eventgen.processes import ttbarExperiment
-from lloca.utils.rand_transforms import rand_rotation, rand_lorentz, rand_xyrotation
 
 BREAKING = [
     "data.spurions.beam_reference=null",
@@ -66,8 +66,7 @@ def test_amplitudes(
 
     def cycle(iterable):
         while True:
-            for x in iterable:
-                yield x
+            yield from iterable
 
     mses = []
     iterator = iter(cycle(exp.train_loader))
@@ -78,9 +77,7 @@ def test_amplitudes(
         # mimic batch_loss in cfm.py
         fm0 = mom_original
         t = torch.rand(fm0.shape[0], 1, 1)
-        fm1 = exp.model.sample_base(
-            fm0.shape, device=torch.device("cpu"), dtype=torch.float32
-        )
+        fm1 = exp.model.sample_base(fm0.shape, device=torch.device("cpu"), dtype=torch.float32)
         x0 = exp.model.coordinates.fourmomenta_to_x(fm0)
         x1 = exp.model.coordinates.fourmomenta_to_x(fm1)
         xt = exp.model.geometry.get_trajectory(x0, x1, t)[0]

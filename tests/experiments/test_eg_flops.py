@@ -1,5 +1,5 @@
-import pytest
 import hydra
+import pytest
 from torch.utils.flop_counter import FlopCounterMode
 
 import experiments.logger

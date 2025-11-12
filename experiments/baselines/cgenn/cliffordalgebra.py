@@ -22,9 +22,7 @@ class CliffordAlgebra(nn.Module):
         self.dim = len(self.metric)
         self.n_blades = len(self.bbo.grades)
         cayley = (
-            construct_gmt(
-                self.bbo.index_to_bitmap, self.bbo.bitmap_to_index, self.metric
-            )
+            construct_gmt(self.bbo.index_to_bitmap, self.bbo.bitmap_to_index, self.metric)
             .to_dense()
             .to(torch.get_default_dtype())
         )
@@ -35,13 +33,9 @@ class CliffordAlgebra(nn.Module):
         )
         self.n_subspaces = len(self.grades)
         self.grade_to_slice = self._grade_to_slice(self.subspaces)
-        self.grade_to_index = [
-            torch.tensor(range(*s.indices(s.stop))) for s in self.grade_to_slice
-        ]
+        self.grade_to_index = [torch.tensor(range(*s.indices(s.stop))) for s in self.grade_to_slice]
 
-        self.register_buffer(
-            "bbo_grades", self.bbo.grades.to(torch.get_default_dtype())
-        )
+        self.register_buffer("bbo_grades", self.bbo.grades.to(torch.get_default_dtype()))
         self.register_buffer("even_grades", self.bbo_grades % 2 == 0)
         self.register_buffer("odd_grades", ~self.even_grades)
         self.register_buffer("cayley", cayley)
@@ -101,9 +95,7 @@ class CliffordAlgebra(nn.Module):
         return mv[..., :1]
 
     def embed(self, tensor: torch.Tensor, tensor_index: torch.Tensor) -> torch.Tensor:
-        mv = torch.zeros(
-            *tensor.shape[:-1], 2**self.dim, device=tensor.device, dtype=tensor.dtype
-        )
+        mv = torch.zeros(*tensor.shape[:-1], 2**self.dim, device=tensor.device, dtype=tensor.dtype)
         mv[..., tensor_index] = tensor
         return mv
 
@@ -131,9 +123,7 @@ class CliffordAlgebra(nn.Module):
                 blades[1].to(x.device, dtype=torch.long),
             )
         else:
-            blades = torch.tensor(
-                range(self.n_blades), device=x.device, dtype=torch.long
-            )
+            blades = torch.tensor(range(self.n_blades), device=x.device, dtype=torch.long)
             blades = (
                 blades,
                 torch.tensor([0], device=x.device, dtype=torch.long),
@@ -170,8 +160,7 @@ class CliffordAlgebra(nn.Module):
         if grades is None:
             grades = self.grades
         return [
-            self.q(self.get_grade(mv, grade), blades=self.grade_to_index[grade])
-            for grade in grades
+            self.q(self.get_grade(mv, grade), blades=self.grade_to_index[grade]) for grade in grades
         ]
 
     def sandwich(self, u, v, w):
@@ -199,9 +188,7 @@ class CliffordAlgebra(nn.Module):
             n = 1
         vector_indices = self.bbo_grades == 1
         v = torch.zeros(n, self.n_blades, device=self.cayley.device)
-        v[:, vector_indices] = torch.randn(
-            n, vector_indices.sum(), device=self.cayley.device
-        )
+        v[:, vector_indices] = torch.randn(n, vector_indices.sum(), device=self.cayley.device)
         return v
 
     def parity(self, mv):

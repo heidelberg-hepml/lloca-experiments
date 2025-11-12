@@ -1,6 +1,7 @@
-import torch
 import inspect
 from contextlib import contextmanager
+
+import torch
 
 
 @contextmanager
@@ -20,9 +21,7 @@ def track_clamps():
                     "filename": frame.filename,
                     "line": frame.lineno,
                     "function": frame.function,
-                    "code": frame.code_context[0].strip()
-                    if frame.code_context
-                    else None,
+                    "code": frame.code_context[0].strip() if frame.code_context else None,
                     "op_type": op_type,
                     "num_elements_clamped": diff,
                     "total_elements": before.numel(),

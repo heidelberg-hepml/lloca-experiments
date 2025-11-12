@@ -44,6 +44,7 @@ class MyLinear(nn.Module):
         >>> print(output.size())
         torch.Size([128, 30])
     """
+
     __constants__ = ["in_features", "out_features"]
     in_features: int
     out_features: int
@@ -68,9 +69,7 @@ class MyLinear(nn.Module):
         else:
             self.register_parameter("bias", None)
         if weight is None:
-            self.weight = nn.Parameter(
-                torch.empty((out_features, in_features), **factory_kwargs)
-            )
+            self.weight = nn.Parameter(torch.empty((out_features, in_features), **factory_kwargs))
             self.reset_weight()
             self.reset_bias()
         else:
@@ -81,9 +80,7 @@ class MyLinear(nn.Module):
                 nn.init.zeros_(self.bias)
 
     def reset_weight(self) -> None:
-        nn.init.kaiming_normal_(
-            self.weight, a=0.01, mode="fan_in", nonlinearity="leaky_relu"
-        )
+        nn.init.kaiming_normal_(self.weight, a=0.01, mode="fan_in", nonlinearity="leaky_relu")
         # nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))
 
     def reset_bias(self) -> None:
@@ -138,9 +135,7 @@ class BasicMLP(nn.Module):
                 nn.Linear(num_channels[1 + i], num_channels[2 + i], bias=not ir_safe)
             )
         if self.num_hidden > 0:
-            self.linear.append(
-                nn.Linear(num_channels[-2], self.num_out, bias=not ir_safe)
-            )
+            self.linear.append(nn.Linear(num_channels[-2], self.num_out, bias=not ir_safe))
 
         activation_fn = get_activation_fn(activation)
 
@@ -160,7 +155,7 @@ class BasicMLP(nn.Module):
     def forward(self, x, mask=None):
         # Standard MLP. Loop over a linear layer followed by a non-linear activation
 
-        for (lin, activation) in zip(self.linear, self.activations):
+        for lin, activation in zip(self.linear, self.activations):
             x = activation(lin(x))
 
         # Use Batch Normalization for Deep Learning.
@@ -236,22 +231,16 @@ class MessageNet(nn.Module):
         if self.batchnorm:
             if self.batchnorm.startswith("b"):
                 if masked:
-                    self.normlayer = MaskedBatchNorm2d(
-                        num_channels[-1], device=device, dtype=dtype
-                    )
+                    self.normlayer = MaskedBatchNorm2d(num_channels[-1], device=device, dtype=dtype)
                 else:
-                    self.normlayer = nn.BatchNorm2d(
-                        num_channels[-1], device=device, dtype=dtype
-                    )
+                    self.normlayer = nn.BatchNorm2d(num_channels[-1], device=device, dtype=dtype)
             elif self.batchnorm.startswith("i"):
                 if masked:
                     self.normlayer = MaskedInstanceNorm2d(
                         num_channels[-1], device=device, dtype=dtype
                     )
                 else:
-                    self.normlayer = nn.InstanceNorm2d(
-                        num_channels[-1], device=device, dtype=dtype
-                    )
+                    self.normlayer = nn.InstanceNorm2d(num_channels[-1], device=device, dtype=dtype)
             elif self.batchnorm.startswith("l"):
                 if masked:
                     self.normlayer = MaskedInstanceNorm3d(1, device=device, dtype=dtype)
@@ -266,7 +255,7 @@ class MessageNet(nn.Module):
     def forward(self, x, mask=None):
         # Standard MLP. Loop over a linear layer followed by a non-linear activation
 
-        for (lin, activation) in zip(self.linear, self.activations):
+        for lin, activation in zip(self.linear, self.activations):
             x = activation(lin(x))
 
         # If mask is included, mask the output
@@ -340,9 +329,7 @@ class InputEncoder(nn.Module):
         self.mode = mode
         if rank1_in_dim > 0:
             self.rank1_alphas = nn.Parameter(
-                torch.linspace(
-                    0.05, 0.5, rank1_dim_multiplier, device=device, dtype=dtype
-                )
+                torch.linspace(0.05, 0.5, rank1_dim_multiplier, device=device, dtype=dtype)
                 .unsqueeze(-1)
                 .repeat((1, rank1_in_dim))
                 .t()
@@ -351,9 +338,7 @@ class InputEncoder(nn.Module):
             # rank2_dim is never higher than 1 for us, so these alphas are defined with that in mind
             # self.rank2_alphas = nn.Parameter(torch.linspace(0.05, 0.5, rank2_dim_multiplier, device=device, dtype=dtype).unsqueeze(-1).repeat((1, rank2_in_dim)).t())
             self.rank2_alphas = nn.Parameter(
-                torch.linspace(
-                    0.05, 0.5, rank2_dim_multiplier, device=device, dtype=dtype
-                )
+                torch.linspace(0.05, 0.5, rank2_dim_multiplier, device=device, dtype=dtype)
             )
         # self.alphas = nn.Parameter(0.5 * torch.rand(1, 1, 1, out_dim, device=device, dtype=dtype))
         # self.betas = nn.Parameter(torch.randn(1, 1, 1, out_dim, device=device, dtype=dtype))
@@ -452,9 +437,9 @@ class GInvariants(nn.Module):
             rank2 = rank1.unsqueeze(1) * rank1.unsqueeze(2)
             rank1 = None
         else:
-            dot_products = dot4(
-                event_momenta.unsqueeze(1), event_momenta.unsqueeze(2)
-            ).unsqueeze(-1)
+            dot_products = dot4(event_momenta.unsqueeze(1), event_momenta.unsqueeze(2)).unsqueeze(
+                -1
+            )
             if self.stabilizer == "so13":  # L_x, L_y, L_z, K_x, K_y, K_z
                 rank1 = None
             elif self.stabilizer == "so3":  # L_x, L_y, L_z
@@ -487,9 +472,7 @@ class GInvariants(nn.Module):
             if rank1 == None:
                 rank2 = dot_products
             else:
-                rank2 = torch.cat(
-                    [rank1.unsqueeze(1) * rank1.unsqueeze(2), dot_products], dim=-1
-                )
+                rank2 = torch.cat([rank1.unsqueeze(1) * rank1.unsqueeze(2), dot_products], dim=-1)
 
         # TODO: make irc_safe option work with rank1 inputs
         irc_weight = None
@@ -504,9 +487,7 @@ class GInvariants(nn.Module):
                 dot_products.sum(1).unsqueeze(1) * dot_products.sum(1).unsqueeze(2)
             ) / dot_products.sum((1, 2), keepdim=True)
             inputs1 = rank2.clone()
-            rank2 = (
-                2 * inputs1 / (eps + energies)
-            )  # 2*(1-cos(theta_ij)) in massless case
+            rank2 = 2 * inputs1 / (eps + energies)  # 2*(1-cos(theta_ij)) in massless case
 
         return rank1, rank2, irc_weight
 
@@ -665,11 +646,7 @@ def fn(x, alphas, mode):
     if mode == "log":
         x = ((1 + x).abs().pow(1e-6 + alphas**2) - 1) / (1e-6 + alphas**2)
     elif mode == "slog":
-        x = (
-            ((1 + x.abs()).pow(1e-6 + alphas**2) - 1)
-            / (1e-6 + alphas**2)
-            * x.sign()
-        )
+        x = ((1 + x.abs()).pow(1e-6 + alphas**2) - 1) / (1e-6 + alphas**2) * x.sign()
     elif mode == "angle":
         x = ((1e-5 + x.abs()).pow(1e-6 + alphas**2) - 1) / (1e-6 + alphas**2)
     elif mode == "arcsinh":

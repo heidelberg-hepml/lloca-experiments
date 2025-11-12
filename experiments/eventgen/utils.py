@@ -1,5 +1,6 @@
-import torch
 import math
+
+import torch
 from torch import nn
 
 # log(x) -> log(x+EPS1)
@@ -92,21 +93,15 @@ def ensure_angle(phi):
 
 
 def ensure_onshell(fourmomenta, onshell_list, onshell_mass, mass_reg=1e-1):
-    onshell_mass = torch.tensor(
-        onshell_mass, device=fourmomenta.device, dtype=fourmomenta.dtype
-    )
-    onshell_mass = onshell_mass.unsqueeze(0).expand(
-        fourmomenta.shape[0], onshell_mass.shape[-1]
-    )
+    onshell_mass = torch.tensor(onshell_mass, device=fourmomenta.device, dtype=fourmomenta.dtype)
+    onshell_mass = onshell_mass.unsqueeze(0).expand(fourmomenta.shape[0], onshell_mass.shape[-1])
     fourmomenta[..., onshell_list, 0] = torch.sqrt(
         onshell_mass**2 + torch.sum(fourmomenta[..., onshell_list, 1:] ** 2, dim=-1)
     )
 
     # ensure minimal mass
     mask = get_mass(fourmomenta) < mass_reg
-    fourmomenta[mask][..., 0] = (
-        (fourmomenta[mask][..., 1:] ** 2).sum(dim=-1) + mass_reg**2
-    ).sqrt()
+    fourmomenta[mask][..., 0] = ((fourmomenta[mask][..., 1:] ** 2).sum(dim=-1) + mass_reg**2).sqrt()
     return fourmomenta
 
 
@@ -122,9 +117,7 @@ def delta_eta(jetmomenta, idx1, idx2, abs=False):
 
 
 def delta_r(jetmomenta, idx1, idx2):
-    return (
-        delta_phi(jetmomenta, idx1, idx2) ** 2 + delta_eta(jetmomenta, idx1, idx2) ** 2
-    ) ** 0.5
+    return (delta_phi(jetmomenta, idx1, idx2) ** 2 + delta_eta(jetmomenta, idx1, idx2) ** 2) ** 0.5
 
 
 def delta_r_fast(jetmomenta1, jetmomenta2):

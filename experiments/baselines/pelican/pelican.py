@@ -16,9 +16,7 @@ class PELICANOfficial(nn.Module):
         num_channels_2,
         mlp_out=True,
     ):
-        assert (
-            num_scalars == 0
-        ), "Scalar inputs for PELICAN not supported yet (non-trivial)"
+        assert num_scalars == 0, "Scalar inputs for PELICAN not supported yet (non-trivial)"
 
         # use the typical model setup in the pelican repo
         num_channels_m = [[num_channels_1]] * 5

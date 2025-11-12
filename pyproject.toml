@@ -7,10 +7,23 @@ name = "lloca-experiments"
 version = "1.0.0"
 requires-python = ">=3.10"
 
-[project.entry-points."lloca.backbone.attention_backends"]
-default_attention = "lloca.backbone.attention_backends.default_attention"
-xformers_attention = "lloca.backbone.attention_backends.xformers_attention"
-flex_attention = "lloca.backbone.attention_backends.flex_attention"
-
 [tool.setuptools.packages.find]
 include = ["lloca"]
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+exclude=["experiments/baselines", "experiments/tagging/miniweaver"]
+extend-exclude = ["data/", "runs/", "notebooks/"]
+
+[tool.ruff.lint]
+select = ["E","F","I","B","UP"]
+ignore = [
+    "E203", "E501", # black compatibility for slices
+    "F401", # allow importing unused modules (for __init__.py)
+    "B006", # allow mutable default function arguments
+]

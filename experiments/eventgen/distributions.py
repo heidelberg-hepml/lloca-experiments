@@ -1,13 +1,14 @@
-import torch
 import math
 
+import torch
+
+import experiments.eventgen.coordinates as c
 from experiments.eventgen.utils import (
-    get_pt,
+    EPS1,
     delta_r_fast,
     fourmomenta_to_jetmomenta,
-    EPS1,
+    get_pt,
 )
-import experiments.eventgen.coordinates as c
 
 # sample a few extra events to speed up rejection sampling
 SAMPLING_FACTOR = 10  # typically acceptance_rate > 0.5
@@ -68,9 +69,7 @@ class RejectionDistribution(BaseDistribution):
 
     def sample(self, shape, device, dtype, generator=None):
         def collect():
-            fourmomenta = self.propose(
-                shape, device=device, dtype=dtype, generator=generator
-            )
+            fourmomenta = self.propose(shape, device=device, dtype=dtype, generator=generator)
             mask = self.create_cut_mask(fourmomenta)
             fourmomenta = fourmomenta[mask, ...]
             return fourmomenta
@@ -154,9 +153,7 @@ class NaivePPPLogM2(RejectionDistribution):
         """Base distribution for 4-momenta: 3-momentum and log-mass from standard normal"""
         eps = torch.randn(shape, device=device, dtype=dtype, generator=generator)
         onshell_mass = self.onshell_mass.to(device, dtype=dtype).unsqueeze(0)
-        eps[..., self.onshell_list, 3] = torch.log(
-            (onshell_mass / self.units) ** 2 + EPS1
-        )
+        eps[..., self.onshell_list, 3] = torch.log((onshell_mass / self.units) ** 2 + EPS1)
         fourmomenta = self.coordinates.x_to_fourmomenta(eps)
         return fourmomenta
 
@@ -185,9 +182,7 @@ class StandardPPPLogM2(RejectionDistribution):
         # onshell business
         eps = self.coordinates.transforms[-1].inverse(eps)
         onshell_mass = self.onshell_mass.to(device, dtype=dtype).unsqueeze(0)
-        eps[..., self.onshell_list, 3] = torch.log(
-            (onshell_mass / self.units) ** 2 + EPS1
-        )
+        eps[..., self.onshell_list, 3] = torch.log((onshell_mass / self.units) ** 2 + EPS1)
 
         for t in self.coordinates.transforms[:-1][::-1]:
             eps = t.inverse(eps)
@@ -210,10 +205,8 @@ class StandardLogPtPhiEtaLogM2(RejectionDistribution):
         super().__init__(*args, **kwargs)
         assert (
             self.use_pt_min
-        ), f"use_pt_min=False not implemented for distribution StandardLogPtPhiEtaLogM2"
-        self.coordinates = c.StandardLogPtPhiEtaLogM2(
-            self.pt_min, self.units, self.onshell_list
-        )
+        ), "use_pt_min=False not implemented for distribution StandardLogPtPhiEtaLogM2"
+        self.coordinates = c.StandardLogPtPhiEtaLogM2(self.pt_min, self.units, self.onshell_list)
 
     def propose(self, shape, device, dtype, generator=None):
         """Base distribution for precisesiast: pt, eta gaussian; phi uniform; mass shifted gaussian"""
@@ -225,14 +218,11 @@ class StandardLogPtPhiEtaLogM2(RejectionDistribution):
         # onshell business
         eps = self.coordinates.transforms[-1].inverse(eps)
         onshell_mass = self.onshell_mass.to(device, dtype=dtype).unsqueeze(0)
-        eps[..., self.onshell_list, 3] = torch.log(
-            (onshell_mass / self.units) ** 2 + EPS1
-        )
+        eps[..., self.onshell_list, 3] = torch.log((onshell_mass / self.units) ** 2 + EPS1)
 
         # be careful with phi and eta
         eps[..., 1] = math.pi * (
-            2 * torch.rand(shape[:-1], device=device, dtype=dtype, generator=generator)
-            - 1
+            2 * torch.rand(shape[:-1], device=device, dtype=dtype, generator=generator) - 1
         )  # sample phi uniformly
 
         for t in self.coordinates.transforms[:-1][::-1]:
@@ -254,9 +244,7 @@ class StandardLogPtPhiEtaLogM2(RejectionDistribution):
 
 def get_pt_mask(fourmomenta, pt_min):
     pt = get_pt(fourmomenta)
-    pt_min = pt_min[: fourmomenta.shape[1]].to(
-        fourmomenta.device, dtype=fourmomenta.dtype
-    )
+    pt_min = pt_min[: fourmomenta.shape[1]].to(fourmomenta.device, dtype=fourmomenta.dtype)
     mask = (pt > pt_min).all(dim=-1)
     return mask
 
@@ -274,5 +262,5 @@ def get_delta_r_mask(fourmomenta, delta_r_min):
 
 
 def log_prob_normal(z, mean=0.0, std=1.0):
-    std_term = torch.log(std) if type(std) == torch.Tensor else math.log(std)
+    std_term = torch.log(std) if isinstance(std, torch.Tensor) else math.log(std)
     return -((z - mean) ** 2) / (2 * std**2) - 0.5 * math.log(2 * math.pi) - std_term

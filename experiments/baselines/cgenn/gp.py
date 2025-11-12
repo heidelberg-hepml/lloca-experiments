@@ -9,9 +9,7 @@ from experiments.baselines.cgenn.normalization import NormalizationLayer
 
 
 class SteerableGeometricProductLayer(nn.Module):
-    def __init__(
-        self, algebra, features, include_first_order=True, normalization_init=0
-    ):
+    def __init__(self, algebra, features, include_first_order=True, normalization_init=0):
         super().__init__()
 
         self.algebra = algebra
@@ -19,9 +17,7 @@ class SteerableGeometricProductLayer(nn.Module):
         self.include_first_order = include_first_order
 
         if normalization_init is not None:
-            self.normalization = NormalizationLayer(
-                algebra, features, normalization_init
-            )
+            self.normalization = NormalizationLayer(algebra, features, normalization_init)
         else:
             self.normalization = nn.Identity()
         self.linear_right = MVLinear(algebra, features, features, bias=False)

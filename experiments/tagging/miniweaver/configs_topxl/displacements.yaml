@@ -12,23 +12,23 @@ inputs:
    pf_features:
       length: 128
       pad_mode: constant
-      vars: 
+      vars:
       ### [format 1]: var_name (no transformation)
-      ### [format 2]: [var_name, 
-      ###              subtract_by(optional, default=None, no transf. if preprocess.method=manual, auto transf. if preprocess.method=auto), 
-      ###              multiply_by(optional, default=1), 
-      ###              clip_min(optional, default=-5), 
-      ###              clip_max(optional, default=5), 
+      ### [format 2]: [var_name,
+      ###              subtract_by(optional, default=None, no transf. if preprocess.method=manual, auto transf. if preprocess.method=auto),
+      ###              multiply_by(optional, default=1),
+      ###              clip_min(optional, default=-5),
+      ###              clip_max(optional, default=5),
       ###              pad_value(optional, default=0)]
          - [part_d0, null]
          - [part_ErrD0, 0, 1, 0, 1]
          - [part_dz, null]
          - [part_ErrDZ, 0, 1, 0, 1]
- 
+
    pf_vectors:
       length: 128
       pad_mode: constant
-      vars: 
+      vars:
          - [part_energy, null]
          - [part_px, null]
          - [part_py, null]
@@ -41,7 +41,7 @@ labels:
    value: [label_isQCD, label_isTop]
    ### [option 2] otherwise use `custom` to define the label, then `value` is a map
    # type: custom
-   # value: 
+   # value:
    #    truth_label: label.argmax(1)
 
-weights: 
+weights:

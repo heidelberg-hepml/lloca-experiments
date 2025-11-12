@@ -54,16 +54,11 @@ def _finalize_inputs(table, data_config):
             table[k] = np.nan_to_num(table[k])
     # stack variables for each input group
     for k, names in data_config.input_dicts.items():
-        if (
-            len(names) == 1
-            and data_config.preprocess_params[names[0]]["length"] is None
-        ):
+        if len(names) == 1 and data_config.preprocess_params[names[0]]["length"] is None:
             output["_" + k] = ak.to_numpy(ak.values_astype(table[names[0]], "float64"))
         else:
             output["_" + k] = ak.to_numpy(
-                np.stack(
-                    [ak.to_numpy(table[n]).astype("float64") for n in names], axis=1
-                )
+                np.stack([ak.to_numpy(table[n]).astype("float64") for n in names], axis=1)
             )
     # copy monitor variables (after transformation)
     for k in data_config.z_variables:
@@ -83,9 +78,7 @@ def _get_reweight_indices(weights, up_sample=True, max_resample=10, weight_scale
         if n_repeats > max_resample:
             n_repeats = max_resample
         all_indices = np.repeat(np.arange(len(weights)), n_repeats)
-        randwgt = np.random.uniform(
-            low=0, high=weight_scale, size=len(weights) * n_repeats
-        )
+        randwgt = np.random.uniform(low=0, high=weight_scale, size=len(weights) * n_repeats)
         keep_indices = all_indices[randwgt < np.repeat(weights, n_repeats)]
     return copy.deepcopy(keep_indices)
 
@@ -108,18 +101,14 @@ def _preprocess(table, data_config, options):
     # apply selection
     table = _apply_selection(
         table,
-        data_config.selection
-        if options["training"]
-        else data_config.test_time_selection,
+        data_config.selection if options["training"] else data_config.test_time_selection,
         funcs=data_config.var_funcs,
     )
     if len(table) == 0:
         return []
     # define new variables
     aux_branches = (
-        data_config.train_aux_branches
-        if options["training"]
-        else data_config.test_aux_branches
+        data_config.train_aux_branches if options["training"] else data_config.test_aux_branches
     )
     table = _build_new_variables(
         table, {k: v for k, v in data_config.var_funcs.items() if k in aux_branches}
@@ -149,9 +138,7 @@ def _preprocess(table, data_config, options):
             if np.iterable(data_config.bucketing_bins):
                 bins = data_config.bucketing_bins
             else:
-                bins = np.percentile(
-                    counts, np.linspace(0, 100, data_config.bucketing_bins + 1)
-                )
+                bins = np.percentile(counts, np.linspace(0, 100, data_config.bucketing_bins + 1))
             bins[0] = -np.inf
             bins[-1] = np.inf
             for lower, upper in zip(bins[:-1], bins[1:]):
@@ -162,9 +149,7 @@ def _preprocess(table, data_config, options):
                 )
                 remainder_indices.append(inds[:remainder])
             # shuffle the batches (i.e., along axis=0)
-            bucket_indices = rng.permutation(
-                np.concatenate(bucket_indices), axis=0
-            ).reshape(-1)
+            bucket_indices = rng.permutation(np.concatenate(bucket_indices), axis=0).reshape(-1)
             indices = np.concatenate([bucket_indices, *remainder_indices])
         else:
             np.random.shuffle(indices)
@@ -175,9 +160,7 @@ def _preprocess(table, data_config, options):
 
 def _load_next(data_config, filelist, load_ranges, options):
     load_branches = (
-        data_config.train_load_branches
-        if options["training"]
-        else data_config.test_load_branches
+        data_config.train_load_branches if options["training"] else data_config.test_load_branches
     )
     table = _read_files(
         filelist,
@@ -240,8 +223,7 @@ class _SimpleIter(object):
             filelist = filelist[:num_files]
         self.filelist = [f for _, f in filelist]
         self.file_dict = {
-            name: [f for k, f in filelist if k == name]
-            for name in set(k for k, _ in filelist)
+            name: [f for k, f in filelist if k == name] for name in set(k for k, _ in filelist)
         }
 
         if self._init_load_range_and_fraction is None:
@@ -277,10 +259,7 @@ class _SimpleIter(object):
                 # e.g., n=5, d=3, each time it should load 5/3 files, so the status is:
                 # [[0, 0, 0, 0, 0], [1, 2/3, 0, 0, 0], [1, 1, 1, 1/3, 0], [1, 1, 1, 1, 1]]
                 return np.array(
-                    [
-                        [np.clip(n * di / d - ni, 0, 1) for ni in range(n)]
-                        for di in range(d + 1)
-                    ]
+                    [[np.clip(n * di / d - ni, 0, 1) for ni in range(n)] for di in range(d + 1)]
                 )
 
             for i_load in range(
@@ -301,8 +280,7 @@ class _SimpleIter(object):
                             [
                                 files[i]
                                 for i in range(n_files)
-                                if n_div_d_sep_array[d + 1, i] - n_div_d_sep_array[d, i]
-                                > 0
+                                if n_div_d_sep_array[d + 1, i] - n_div_d_sep_array[d, i] > 0
                             ]
                         )
                         _ranges.extend(
@@ -312,8 +290,7 @@ class _SimpleIter(object):
                                     start_pos + delta * n_div_d_sep_array[d + 1, i],
                                 )
                                 for i in range(n_files)
-                                if n_div_d_sep_array[d + 1, i] - n_div_d_sep_array[d, i]
-                                > 0
+                                if n_div_d_sep_array[d + 1, i] - n_div_d_sep_array[d, i] > 0
                             ]
                         )
                 self.load_filelist_and_ranges += _load_filelist_and_ranges
@@ -408,10 +385,7 @@ class _SimpleIter(object):
 
     def get_data(self, i):
         # inputs
-        X = {
-            k: copy.deepcopy(self.table["_" + k][i])
-            for k in self._data_config.input_names
-        }
+        X = {k: copy.deepcopy(self.table["_" + k][i]) for k in self._data_config.input_names}
         # labels
         y = {k: copy.deepcopy(self.table[k][i]) for k in self._data_config.label_names}
         # observers / monitor variables
@@ -525,9 +499,7 @@ class SimpleIterDataset(torch.utils.data.IterableDataset):
             ):
                 if remake_weights or self._data_config.reweight_hists is None:
                     # use `extra_selection` here as it may change the distributions
-                    w = WeightMaker(
-                        file_dict, self._data_config, extra_selection=extra_selection
-                    )
+                    w = WeightMaker(file_dict, self._data_config, extra_selection=extra_selection)
                     self._data_config = w.produce(data_config_autogen_file)
 
             # reload data_config w/o observers for training
@@ -568,7 +540,5 @@ class SimpleIterDataset(torch.utils.data.IterableDataset):
                 return self._iters[worker_id]
 
     def __len__(self):
-        num_files = sum(
-            len(self._init_file_dict[k]) for k in self._init_file_dict.keys()
-        )
+        num_files = sum(len(self._init_file_dict[k]) for k in self._init_file_dict.keys())
         return num_files * self._events_per_file
