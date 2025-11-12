@@ -235,3 +235,9 @@ python run.py -cp config -cn jctagging model/framesnet=learnedpd data.tagging_fe
 python run.py -cp config -cn jctagging model/framesnet=learnedpd data.tagging_features_framesnet=so3invariant data.beam_reference=null # SO(3)
 # SO(1,3) is the same as for 'architecture'
 ```
+
+### 6) Extra features in the code
+
+- Warm-start runs for evaluation or continue-training (use `training.scheduler_scale`) by pointing `-cp` and `-cn` to an existing experiment and use `warm_start_idx` to select the run to load
+- Tracking with `mlflow` (set `use_mlflow=true`)
+- ML tricks that we don't use by default (`amp`, `float32_matmul_precision`, `ema`)
