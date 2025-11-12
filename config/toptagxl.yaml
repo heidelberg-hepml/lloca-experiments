@@ -2,7 +2,7 @@ exp_type: toptagxl
 exp_name: toptagxl
 
 data:
- data_dir: /remote/gpu06/spinner/lorentz-frames/data/topxl
+ data_dir: data/toptagxl
  features: default
  data_config: null
  add_scalar_features: True
