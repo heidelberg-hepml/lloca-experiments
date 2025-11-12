@@ -1,5 +1,5 @@
 
-## Reproducing the papers
+## Reproducing the LLoCa results
 
 This file provides the commands used to reproduce the results presented in our papers. Please note that these commands were written from memory and have not been re-tested. If you encounter any errors or inconsistencies, feel free to open a GitHub issue or contact us by email.
 
@@ -19,7 +19,7 @@ pip install -e .
 pip install -r requirements.txt
 ```
 
-Test your environment
+Quickly test your environment with the `config_quick/` configs. They support all options and are great to quickly get a feeling for what is going on with some manual print statements etc. These runs use small datasets shipped with the repo under `data/`.
 ```bash
 pytest tests
 python run_workflows.py
@@ -27,6 +27,8 @@ python run.py -cp config_quick -cn amplitudes save=false
 python run.py -cp config_quick -cn toptagging save=false
 python run.py -cp config_quick -cn ttbar save=false
 ```
+
+<span style="color:red">xformers on MacOS</span> The Transformer, LLoCa-Transformer and L-GATr taggers use xformers' `memory_efficient_attention` as attention backend, because it supports block-diagonal attention matrices that allow us to save a factor of ~2 of RAM usage compared to standard torch attention with zero-padding for different-length jets. Unfortunately, [xformers does not support MacOS anymore](https://github.com/facebookresearch/xformers/issues/775). As a Mac user, we recommend to run this code on a HPC cluster in an interactive session. Note that LLoCa/L-GATr taggers can also be used without xformers, but that requires modifying the data embedding and attention mask construction. If you want to run just amplitude regression or event generation, it should be possible to just comment out the xformers imports in `experiments/`.
 
 ### 2) Collect datasets
 
