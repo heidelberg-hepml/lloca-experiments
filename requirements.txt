@@ -1,7 +1,6 @@
 # experiment management
 hydra-core
 pytest
-black==22.3.0
 pre-commit>=3.7
 mlflow-skinny # can optionally install extras, see https://pypi.org/project/mlflow-skinny/
 
