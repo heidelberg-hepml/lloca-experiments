@@ -2,7 +2,7 @@ exp_type: jctagging
 exp_name: jc_debug
 
 data:
- data_dir: /remote/gpu02/breso/lorentz-gatr-old/data/JetClass/Pythia
+ data_dir: data/JetClass/Pythia
  features: default
  data_config: null
  train_files_range: [0, 100]

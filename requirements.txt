@@ -8,6 +8,7 @@ mlflow-skinny # can optionally install extras, see https://pypi.org/project/mlfl
 # standard science stack
 numpy
 matplotlib
+scikit-learn
 
 # deep learning
 torch>=2.0.0
