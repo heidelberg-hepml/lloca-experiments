@@ -3,18 +3,6 @@ import matplotlib.font_manager as font_manager
 import matplotlib.pyplot as plt
 import numpy as np
 
-font_dir = ["src/utils/bitstream-charter-ttf/Charter/"]
-for font in font_manager.findSystemFonts(font_dir):
-    font_manager.fontManager.addfont(font)
-font_manager.findSystemFonts(fontpaths=None, fontext="ttf")
-
-# setup matplotlib
-plt.rcParams["font.family"] = "serif"
-plt.rcParams["font.serif"] = "Charter"
-plt.rcParams["text.usetex"] = True
-plt.rcParams["text.latex.preamble"] = (
-    r"\usepackage[bitstream-charter]{mathdesign} \usepackage{amsmath}"
-)
 
 # fontsize
 FONTSIZE = 14
