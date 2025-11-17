@@ -4,7 +4,6 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 from experiments.base_plots import plot_loss, plot_metric
 
-
 FONTSIZE = 14
 FONTSIZE_LEGEND = 13
 FONTSIZE_TICK = 12

@@ -3,7 +3,6 @@ import matplotlib.font_manager as font_manager
 import matplotlib.pyplot as plt
 import numpy as np
 
-
 # fontsize
 FONTSIZE = 14
 FONTSIZE_LEGEND = 13
