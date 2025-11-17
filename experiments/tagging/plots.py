@@ -105,8 +105,8 @@ def plot_roc(out, fpr, tpr, auc, title=None):
 
     # usual roc
     fig, ax = plt.subplots(figsize=(5, 4))
-    ax.set_xlabel("eps_B", fontsize=FONTSIZE)
-    ax.set_ylabel("eps_S", fontsize=FONTSIZE)
+    ax.set_xlabel(r"$\epsilon_B$", fontsize=FONTSIZE)
+    ax.set_ylabel(r"$\epsilon_S$", fontsize=FONTSIZE)
     ax.plot(rnd, rnd, "k--")
     ax.plot(fpr, tpr, color=color)
     ax.text(
@@ -132,8 +132,8 @@ def plot_roc(out, fpr, tpr, auc, title=None):
 
     # physicists roc
     fig, ax = plt.subplots(figsize=(5, 4))
-    ax.set_xlabel("r eps_S", fontsize=FONTSIZE)
-    ax.set_ylabel("1 / eps_B", fontsize=FONTSIZE)
+    ax.set_xlabel(r"$\epsilon_S$", fontsize=FONTSIZE)
+    ax.set_ylabel(r"$1 / \epsilon_B$", fontsize=FONTSIZE)
     ax.set_yscale("log")
     ax.plot(rnd, 1 / rnd, "k--")
     ax.plot(tpr, 1 / fpr, color=color)
@@ -160,8 +160,8 @@ def plot_roc(out, fpr, tpr, auc, title=None):
 
     # sic
     fig, ax = plt.subplots(figsize=(5, 4))
-    ax.set_xlabel("eps_S", fontsize=FONTSIZE)
-    ax.set_ylabel("eps_S / sqrt(eps_B)", fontsize=FONTSIZE)
+    ax.set_xlabel(r"$\epsilon_S$", fontsize=FONTSIZE)
+    ax.set_ylabel(r"$\epsilon_S / \sqrt{\epsilon_B}$", fontsize=FONTSIZE)
     ax.plot(rnd, rnd**0.5, "k--")
     ax.plot(tpr, tpr / fpr**0.5, color=color)
     ax.text(
