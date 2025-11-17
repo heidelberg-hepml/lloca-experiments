@@ -82,7 +82,7 @@ class TaggingExperiment(BaseExperiment):
         self.data_test.load_data(data_path, "test", **kwargs)
         self.data_val.load_data(data_path, "val", **kwargs)
         dt = time.time() - t0
-        LOGGER.info(f"Finished creating datasets after {dt:.2f} s = {dt/60:.2f} min")
+        LOGGER.info(f"Finished creating datasets after {dt:.2f} s = {dt / 60:.2f} min")
 
     def _init_dataloader(self):
         trn_sampler = torch.utils.data.DistributedSampler(

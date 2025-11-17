@@ -21,7 +21,7 @@ class ttbarExperiment(EventGenerationExperiment):
         self.delta_r_min = 0.5
         self.obs_names_index = ["b1", "q1", "q2", "b2", "q3", "q4"]
         for ijet in range(self.n_jets_max):
-            self.obs_names_index.append(f"j{ijet+1}")
+            self.obs_names_index.append(f"j{ijet + 1}")
         self.fourmomentum_ranges = [[0, 200], [-150, 150], [-150, 150], [-150, 150]]
         self.jetmomentum_ranges = [[10, 150], [-np.pi, np.pi], [-6, 6], [0, 20]]
         self.virtual_components = [

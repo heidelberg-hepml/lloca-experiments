@@ -26,9 +26,9 @@ class AmplitudeXLExperiment(AmplitudeExperiment):
     def _init_dataloader(self):
         super()._init_dataloader(log=False)  # init val and test dataloaders
 
-        assert (
-            self.cfg.data.subsample is None or self.cfg.data.num_train_files == 1
-        ), "You should not subsample while using multiple files"
+        assert self.cfg.data.subsample is None or self.cfg.data.num_train_files == 1, (
+            "You should not subsample while using multiple files"
+        )
 
         # overwrite self.train_loader
         def get_fname(n):

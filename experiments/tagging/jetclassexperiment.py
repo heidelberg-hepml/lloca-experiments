@@ -109,7 +109,7 @@ class JetClassTaggingExperiment(TaggingExperiment):
         self.data_val = datasets["val"]
 
         dt = time.time() - t0
-        LOGGER.info(f"Finished creating datasets after {dt:.2f} s = {dt/60:.2f} min")
+        LOGGER.info(f"Finished creating datasets after {dt:.2f} s = {dt / 60:.2f} min")
 
     def _init_dataloader(self):
         self.loader_kwargs = {

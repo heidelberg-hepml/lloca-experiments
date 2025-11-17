@@ -106,7 +106,6 @@ def plot_histogram(
     for y, y_err, scale, label, color in zip(
         hists, hist_errors, scales, labels, colors, strict=False
     ):
-
         axs[0].step(
             bins,
             dup_last(y) * scale,

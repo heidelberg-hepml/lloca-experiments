@@ -55,9 +55,9 @@ class MLPClassifier:
         if cls_params["mean"] is None or cls_params["std"] is None:
             cls_params["mean"] = x.mean(dim=0, keepdim=True)
             cls_params["std"] = x.std(dim=0, keepdim=True)
-            cls_params["std"][
-                cls_params["std"] < 1e-3
-            ] = 1.0  # regularize (only relevant for dR diagonal)
+            cls_params["std"][cls_params["std"] < 1e-3] = (
+                1.0  # regularize (only relevant for dR diagonal)
+            )
         x = (x - cls_params["mean"]) / cls_params["std"]
         assert torch.isfinite(x).all()
         return x, cls_params
@@ -138,7 +138,7 @@ class MLPClassifier:
                     break
 
         dt = time.time() - t0
-        LOGGER.info(f"Finished classifier training after {dt/60:.2f} min")
+        LOGGER.info(f"Finished classifier training after {dt / 60:.2f} min")
         if self.cfg_training.es_load_best_model and self.exp.cfg.save:
             path = os.path.join(
                 self.exp.cfg.run_dir,

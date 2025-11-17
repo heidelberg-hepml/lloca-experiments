@@ -203,9 +203,9 @@ class StandardLogPtPhiEtaLogM2(RejectionDistribution):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        assert (
-            self.use_pt_min
-        ), "use_pt_min=False not implemented for distribution StandardLogPtPhiEtaLogM2"
+        assert self.use_pt_min, (
+            "use_pt_min=False not implemented for distribution StandardLogPtPhiEtaLogM2"
+        )
         self.coordinates = c.StandardLogPtPhiEtaLogM2(self.pt_min, self.units, self.onshell_list)
 
     def propose(self, shape, device, dtype, generator=None):

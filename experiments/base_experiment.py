@@ -101,7 +101,7 @@ class BaseExperiment:
         LOGGER.info(f"CPU_RAM_max_used = {max_cpuram_used:.3} GB")
         dt = time.time() - t0
         LOGGER.info(
-            f"Finished experiment {self.cfg.exp_name}/{self.cfg.run_name} after {dt/60:.2f}min = {dt/60**2:.2f}h"
+            f"Finished experiment {self.cfg.exp_name}/{self.cfg.run_name} after {dt / 60:.2f}min = {dt / 60**2:.2f}h"
         )
 
     def init_model(self):
@@ -593,9 +593,9 @@ class BaseExperiment:
                 dt_corrected = time.time() - self.training_start_time_corrected
                 dt_estimate = dt_corrected * self.cfg.training.iterations / (step + 1)
                 LOGGER.info(
-                    f"Finished iteration {step+1} after {dt:.2f}s, "
-                    f"training time estimate: {dt_estimate/60:.2f}min "
-                    f"= {dt_estimate/60**2:.2f}h"
+                    f"Finished iteration {step + 1} after {dt:.2f}s, "
+                    f"training time estimate: {dt_estimate / 60:.2f}min "
+                    f"= {dt_estimate / 60**2:.2f}h"
                 )
 
             if self.cfg.training.scheduler in [
@@ -614,7 +614,7 @@ class BaseExperiment:
         dt = time.time() - self.training_start_time
         LOGGER.info(
             f"Finished training for {step} iterations = {step / len(self.train_loader):.1f} epochs "
-            f"after {dt/60:.2f}min = {dt/60**2:.2f}h"
+            f"after {dt / 60:.2f}min = {dt / 60**2:.2f}h"
         )
         LOGGER.info(f"Spend {train_time:.2f}s training and {val_time:.2f}s validating")
         if self.cfg.use_mlflow:
