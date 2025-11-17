@@ -19,8 +19,8 @@ pytorch_optimizer>=3.2.0
 torchdiffeq
 xformers # might cause troubles, see https://github.com/facebookresearch/xformers
 pelican-lite
-lgatr[xformers_attention]>=1.3.2
-lloca[xformers_attention]>=1.3.1
+lgatr[xformers-attention]>=1.3.2
+lloca[xformers-attention]>=1.3.1
 
 # weaver packages
 tqdm>=4.41.0
