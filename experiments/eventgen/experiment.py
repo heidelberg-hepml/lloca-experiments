@@ -307,7 +307,7 @@ class EventGenerationExperiment(BaseExperiment):
             NLL = -self.model.log_prob(data).squeeze().cpu()
             self.NLLs.extend(NLL.squeeze().numpy().tolist())
         dt = time.time() - t0
-        LOGGER.info(f"Finished evaluating log_prob for {title} dataset after {dt/60:.2f}min")
+        LOGGER.info(f"Finished evaluating log_prob for {title} dataset after {dt / 60:.2f}min")
         LOGGER.info(f"NLL = {np.mean(self.NLLs)}")
         if self.cfg.use_mlflow:
             log_mlflow(f"eval.{title}.NLL", np.mean(self.NLLs))
@@ -328,7 +328,7 @@ class EventGenerationExperiment(BaseExperiment):
             x_t = self.model.sample(shape, self.device)
             sample.append(x_t)
         t1 = time.time()
-        LOGGER.info(f"Finished generating events after {t1-t0:.2f}s = {(t1-t0)/60:.2f}min")
+        LOGGER.info(f"Finished generating events after {t1 - t0:.2f}s = {(t1 - t0) / 60:.2f}min")
 
         samples = torch.cat(sample, dim=0)[: self.cfg.evaluation.nsamples, ...].cpu()
         self.data_prepd["gen"] = samples

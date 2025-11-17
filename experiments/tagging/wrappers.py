@@ -554,9 +554,7 @@ class MIParTWrapper(ParTWrapper):
             _,
             batch,
             tracker,
-        ) = super(
-            ParTWrapper, self
-        ).forward(embedding)
+        ) = super(ParTWrapper, self).forward(embedding)
         fourmomenta_local = fourmomenta_local.to(features_local.dtype)
         fourmomenta_local = fourmomenta_local[..., [1, 2, 3, 0]]  # need (px, py, pz, E)
 

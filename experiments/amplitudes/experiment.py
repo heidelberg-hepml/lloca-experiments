@@ -185,7 +185,7 @@ class AmplitudeExperiment(BaseExperiment):
             frames_list.append(frames.matrices.cpu())
         dt = time.time() - t0
         LOGGER.info(
-            f"Evaluation time: {dt*1e6/len(loader.dataset):.2f}s for 1M events "
+            f"Evaluation time: {dt * 1e6 / len(loader.dataset):.2f}s for 1M events "
             f"using batchsize {self.cfg.evaluation.batchsize}"
         )
         amp_truth_prepd = torch.cat(amp_truth_prepd, dim=0)
