@@ -1,8 +1,5 @@
 import torch
 from lgatr import embed_vector, extract_scalar
-from lloca.backbone.attention_backends.xformers_attention import (
-    get_xformers_attention_mask,
-)
 from lloca.framesnet.frames import Frames
 from lloca.framesnet.nonequi_frames import IdentityFrames
 from lloca.reps.tensorreps import TensorReps
@@ -18,6 +15,7 @@ from torch import nn
 from torch_geometric.nn.aggr import MeanAggregation
 from torch_geometric.utils import scatter, to_dense_batch
 
+from experiments.misc import get_xformers_attention_mask
 from experiments.tagging.embedding import get_tagging_features
 
 
